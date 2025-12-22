@@ -66,26 +66,28 @@ public class LibraryItemController {
                 size,
                 parseSort(sort)
         );
-        return PageResponse.fromPage(libraryItemService.getItems(filter));
+        PageResponse<LibraryItemResponse> response = PageResponse.fromPage(libraryItemService.getItems(filter));
+        return response;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LibraryItemResponse> getById(@PathVariable UUID id) {
         return libraryItemService.getById(id)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<LibraryItemResponse> create(@Valid @RequestBody LibraryItemRequest request) {
-        return ResponseEntity.ok(libraryItemService.create(request));
+        LibraryItemResponse response = libraryItemService.create(request);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<LibraryItemResponse> update(@PathVariable UUID id, @Valid @RequestBody LibraryItemRequest request) {
         return libraryItemService.update(id, request)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

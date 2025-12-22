@@ -31,14 +31,15 @@ public class BookTypeController {
 
     @PostMapping
     public ResponseEntity<BookTypeResponse> create(@Valid @RequestBody BookTypeRequest request) {
-        return ResponseEntity.ok(bookTypeService.create(request));
+        BookTypeResponse response = bookTypeService.create(request);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<BookTypeResponse> update(@PathVariable UUID id, @Valid @RequestBody BookTypeRequest request) {
         return bookTypeService.update(id, request)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
