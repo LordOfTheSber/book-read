@@ -1,16 +1,18 @@
 import React, { useEffect } from 'react';
-import { Button, Col, Form, Input, InputNumber, Row, Select, Switch } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Switch, Flex } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
 import { setFilters } from '@/features/book/set-book-filters';
 import { loadBooks } from '@/entities/book';
 import { loadBookTypes } from '@/entities/book-type';
+import { useFiltersPanelStyles } from './FiltersPanelWidget.styles';
 
 export const FiltersPanelWidget: React.FC = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const [form] = Form.useForm();
+  const styles = useFiltersPanelStyles();
 
   useEffect(() => {
     dispatch(loadBookTypes());
@@ -26,57 +28,50 @@ export const FiltersPanelWidget: React.FC = () => {
 
   return (
     <Form layout="vertical" form={form} initialValues={filters} onFinish={onFinish}>
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item name="q" label="Search">
-            <Input placeholder="Title or alt title" allowClear />
+      <Flex gap={styles.formGap} vertical>
+        <Flex gap={16} wrap>
+          <Form.Item name="q" label="Поиск" style={styles.field(240)}>
+            <Input placeholder="Название или альтернативное название" allowClear />
           </Form.Item>
-        </Col>
-        <Col span={4}>
-          <Form.Item name="typeId" label="Type">
-            <Select allowClear options={bookTypes.map((t) => ({ label: t.name, value: t.id }))} />
+          <Form.Item name="typeId" label="Тип" style={styles.field(180)}>
+            <Select
+              placeholder="Все типы"
+              allowClear
+              options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
+            />
           </Form.Item>
-        </Col>
-        <Col span={4}>
-          <Form.Item name="status" label="Status">
-            <Select allowClear options={statusOptions.map((s) => ({ label: s.label, value: s.value }))} />
+          <Form.Item name="status" label="Статус" style={styles.field(180)}>
+            <Select placeholder="Любой" allowClear options={statusOptions.map((s) => ({ label: s.label, value: s.value }))} />
           </Form.Item>
-        </Col>
-        <Col span={4}>
-          <Form.Item name="favorite" label="Favorite" valuePropName="checked">
+          <Form.Item name="favorite" label="Избранное" valuePropName="checked" style={styles.narrowField}>
             <Switch />
           </Form.Item>
-        </Col>
-        <Col span={3}>
-          <Form.Item name="minRating" label="Min rating">
-            <InputNumber min={0} max={10} step={0.5} style={{ width: '100%' }} />
+          <Form.Item name="minRating" label="Минимальная оценка" style={styles.field(160)}>
+            <InputNumber min={0} max={10} step={0.5} style={styles.numberInput} />
           </Form.Item>
-        </Col>
-        <Col span={3}>
-          <Form.Item name="maxRating" label="Max rating">
-            <InputNumber min={0} max={10} step={0.5} style={{ width: '100%' }} />
+          <Form.Item name="maxRating" label="Максимальная оценка" style={styles.field(160)}>
+            <InputNumber min={0} max={10} step={0.5} style={styles.numberInput} />
           </Form.Item>
-        </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={4}>
-          <Form.Item name="sort" label="Sort by">
+          <Form.Item name="sort" label="Сортировка" style={styles.field(200)}>
             <Select
+              placeholder="Выберите порядок"
               options={[
-                { label: 'Updated desc', value: 'updatedAt,desc' },
-                { label: 'Updated asc', value: 'updatedAt,asc' },
-                { label: 'Title asc', value: 'title,asc' },
-                { label: 'Title desc', value: 'title,desc' },
-                { label: 'Rating desc', value: 'rating,desc' },
-                { label: 'Rating asc', value: 'rating,asc' }
+                { label: 'Обновлено ↓', value: 'updatedAt,desc' },
+                { label: 'Обновлено ↑', value: 'updatedAt,asc' },
+                { label: 'Название ↑', value: 'title,asc' },
+                { label: 'Название ↓', value: 'title,desc' },
+                { label: 'Оценка ↓', value: 'rating,desc' },
+                { label: 'Оценка ↑', value: 'rating,asc' }
               ]}
             />
           </Form.Item>
-        </Col>
-      </Row>
-      <Button type="primary" htmlType="submit">
-        Apply
-      </Button>
+        </Flex>
+        <Flex justify="flex-end" style={styles.actions}>
+          <Button type="primary" htmlType="submit" block style={styles.button}>
+            Применить фильтры
+          </Button>
+        </Flex>
+      </Flex>
     </Form>
   );
 };

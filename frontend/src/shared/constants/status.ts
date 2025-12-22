@@ -1,6 +1,6 @@
 export const statusOptions = [
-  { label: 'Reading', value: 'READING' },
-  { label: 'Dropped', value: 'DROPPED' },
-  { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Planned', value: 'PLANNED' }
+  { label: 'Читаю', value: 'READING' },
+  { label: 'Заброшено', value: 'DROPPED' },
+  { label: 'Завершено', value: 'COMPLETED' },
+  { label: 'В планах', value: 'PLANNED' }
 ] as const;
