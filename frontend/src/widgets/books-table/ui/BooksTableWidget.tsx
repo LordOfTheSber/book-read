@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Modal, Space, Table, Tag, message, Form, Input, InputNumber, Select, Switch, Typography } from 'antd';
+import { Button, Modal, Space, Table, Tag, message, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -17,8 +17,6 @@ const formLayout = {
 };
 
 const statusLabelMap = Object.fromEntries(statusOptions.map((s) => [s.value, s.label]));
-
-const { Text } = Typography;
 
 export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const dispatch = useAppDispatch();
@@ -119,9 +117,6 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   return (
     <>
       <div style={styles.toolbar}>
-        <div>
-          <Text style={styles.infoText}>Всего книг: {total}</Text>
-        </div>
         <Button type="primary" onClick={() => openEdit()}>
           Добавить книгу
         </Button>
@@ -131,7 +126,13 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
         columns={columns}
         dataSource={items}
         loading={loading}
-        pagination={{ current: page + 1, pageSize: size, total, showSizeChanger: true }}
+        pagination={{
+          current: page + 1,
+          pageSize: size,
+          total,
+          showSizeChanger: true,
+          showTotal: (count, range) => `Книги ${range[0]}–${range[1]} из ${count}`
+        }}
         onChange={onTableChange}
       />
 
