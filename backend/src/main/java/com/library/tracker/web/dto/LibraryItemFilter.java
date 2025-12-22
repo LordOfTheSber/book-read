@@ -2,10 +2,12 @@ package com.library.tracker.web.dto;
 
 import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ReadingStatus;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.data.domain.Sort;
 
 public record LibraryItemFilter(
@@ -23,4 +25,4 @@ public record LibraryItemFilter(
         int page,
         int size,
         Sort sort
-) {}
+) { }

@@ -4,8 +4,10 @@ import com.library.tracker.service.BookTypeService;
 import com.library.tracker.web.dto.BookTypeRequest;
 import com.library.tracker.web.dto.BookTypeResponse;
 import jakarta.validation.Valid;
+
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/types")
+@RequestMapping( "/api/v1/types" )
 @RequiredArgsConstructor
 public class BookTypeController {
 
@@ -30,21 +32,22 @@ public class BookTypeController {
     }
 
     @PostMapping
-    public ResponseEntity<BookTypeResponse> create(@Valid @RequestBody BookTypeRequest request) {
-        BookTypeResponse response = bookTypeService.create(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<BookTypeResponse> create( @Valid @RequestBody BookTypeRequest request ) {
+        BookTypeResponse response = bookTypeService.create( request );
+        return ResponseEntity.ok( response );
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<BookTypeResponse> update(@PathVariable UUID id, @Valid @RequestBody BookTypeRequest request) {
-        return bookTypeService.update(id, request)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @PutMapping( "/{id}" )
+    public ResponseEntity<BookTypeResponse> update( @PathVariable UUID id,
+                                                    @Valid @RequestBody BookTypeRequest request ) {
+        return bookTypeService.update( id, request )
+                              .map( ResponseEntity::ok )
+                              .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        bookTypeService.delete(id);
+    @DeleteMapping( "/{id}" )
+    public ResponseEntity<Void> delete( @PathVariable UUID id ) {
+        bookTypeService.delete( id );
         return ResponseEntity.noContent().build();
     }
 }
