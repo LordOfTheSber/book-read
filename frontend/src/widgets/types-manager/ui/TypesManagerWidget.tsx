@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Space, Table, message } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookTypeThunk, deleteBookTypeThunk, loadBookTypes, updateBookTypeThunk } from '@/entities/book-type';
+import { useTypesManagerWidgetStyles } from './TypesManagerWidget.styles';
 
 export const TypesManagerWidget: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -9,6 +10,7 @@ export const TypesManagerWidget: React.FC = () => {
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const styles = useTypesManagerWidgetStyles();
 
   useEffect(() => {
     dispatch(loadBookTypes());
@@ -30,10 +32,10 @@ export const TypesManagerWidget: React.FC = () => {
     const values = await form.validateFields();
     if (editingId) {
       await dispatch(updateBookTypeThunk({ id: editingId, payload: values }));
-      message.success('Updated');
+      message.success('Тип обновлён');
     } else {
       await dispatch(createBookTypeThunk(values));
-      message.success('Created');
+      message.success('Тип добавлен');
     }
     setOpen(false);
     dispatch(loadBookTypes());
@@ -41,10 +43,12 @@ export const TypesManagerWidget: React.FC = () => {
 
   const confirmDelete = (id: string) => {
     Modal.confirm({
-      title: 'Delete type?',
+      title: 'Удалить тип?',
+      okText: 'Удалить',
+      cancelText: 'Отмена',
       onOk: async () => {
         await dispatch(deleteBookTypeThunk(id));
-        message.success('Deleted');
+        message.success('Тип удалён');
         dispatch(loadBookTypes());
       }
     });
@@ -52,26 +56,28 @@ export const TypesManagerWidget: React.FC = () => {
 
   return (
     <>
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={styles.toolbar}>
         <Button type="primary" onClick={() => openModal()}>
-          Add type
+          Добавить тип
         </Button>
       </Space>
       <Table
         rowKey={(row) => row.id}
         dataSource={list}
         loading={loading}
+        pagination={false}
+        style={styles.table}
         columns={[
-          { title: 'Name', dataIndex: 'name' },
+          { title: 'Название', dataIndex: 'name' },
           {
-            title: 'Actions',
+            title: 'Действия',
             render: (_, record) => (
-              <Space>
+              <Space size="small">
                 <Button size="small" onClick={() => openModal(record.id)}>
-                  Edit
+                  Редактировать
                 </Button>
                 <Button size="small" danger onClick={() => confirmDelete(record.id)}>
-                  Delete
+                  Удалить
                 </Button>
               </Space>
             )
@@ -79,10 +85,10 @@ export const TypesManagerWidget: React.FC = () => {
         ]}
       />
 
-      <Modal open={open} onCancel={() => setOpen(false)} onOk={handleSave} title={editingId ? 'Edit type' : 'Add type'}>
-        <Form layout="vertical" form={form}>
-          <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}> 
-            <Input />
+      <Modal open={open} onCancel={() => setOpen(false)} onOk={handleSave} okText="Сохранить" cancelText="Отмена" title={editingId ? 'Редактирование типа' : 'Добавление типа'}>
+        <Form layout="vertical" form={form} initialValues={{ name: '' }} style={styles.modal}>
+          <Form.Item name="name" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
+            <Input placeholder="Введите название типа" />
           </Form.Item>
         </Form>
       </Modal>

@@ -1,19 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Modal, Space, Table, Tag, message, Form, Input, InputNumber, Select, Switch } from 'antd';
+import { Button, Modal, Space, Table, Tag, message, Form, Input, InputNumber, Select, Switch, Typography } from 'antd';
 import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { deleteBookThunk, loadBooks, updateBookThunk, createBookThunk } from '@/entities/book';
 import { statusOptions } from '@/shared/constants/status';
+import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
 
 interface Props {
   onChangePage: (page: number, size: number, sort?: string) => void;
 }
 
 const formLayout = {
-  labelCol: { span: 6 },
-  wrapperCol: { span: 16 }
+  labelCol: { span: 7 },
+  wrapperCol: { span: 15 }
 };
+
+const statusLabelMap = Object.fromEntries(statusOptions.map((s) => [s.value, s.label]));
+
+const { Text } = Typography;
 
 export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const dispatch = useAppDispatch();
@@ -23,43 +28,44 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const styles = useBooksTableWidgetStyles();
 
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [
-      { title: 'Title', dataIndex: 'title', sorter: true },
-      { title: 'Alt title', dataIndex: 'altTitle' },
+      { title: 'Название', dataIndex: 'title', sorter: true },
+      { title: 'Альтернативное название', dataIndex: 'altTitle' },
       {
-        title: 'Type',
+        title: 'Тип',
         dataIndex: 'typeName'
       },
       {
-        title: 'Status',
+        title: 'Статус',
         dataIndex: 'status',
-        render: (status) => <Tag>{status}</Tag>
+        render: (status) => <Tag color="blue-inverse">{statusLabelMap[status] || status}</Tag>
       },
       {
-        title: 'Rating',
+        title: 'Оценка',
         dataIndex: 'rating'
       },
       {
-        title: 'Favorite',
+        title: 'Избранное',
         dataIndex: 'favorite',
-        render: (favorite) => (favorite ? '★' : '')
+        render: (favorite) => (favorite ? '★' : '—')
       },
       {
-        title: 'Updated',
+        title: 'Обновлено',
         dataIndex: 'updatedAt'
       },
       {
-        title: 'Actions',
+        title: 'Действия',
         dataIndex: 'actions',
         render: (_, record) => (
-          <Space>
+          <Space size="small">
             <Button size="small" onClick={() => openEdit(record)}>
-              Edit
+              Редактировать
             </Button>
             <Button size="small" danger onClick={() => confirmDelete(record.id)}>
-              Delete
+              Удалить
             </Button>
           </Space>
         )
@@ -70,10 +76,12 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
 
   const confirmDelete = (id: string) => {
     Modal.confirm({
-      title: 'Delete book?',
+      title: 'Удалить книгу?',
+      okText: 'Удалить',
+      cancelText: 'Отмена',
       onOk: async () => {
         await dispatch(deleteBookThunk(id));
-        message.success('Deleted');
+        message.success('Книга удалена');
         dispatch(loadBooks(filters));
       }
     });
@@ -94,10 +102,10 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
     const values = await form.validateFields();
     if (editing) {
       await dispatch(updateBookThunk({ id: editing.id, payload: values }));
-      message.success('Updated');
+      message.success('Данные обновлены');
     } else {
       await dispatch(createBookThunk(values));
-      message.success('Created');
+      message.success('Книга добавлена');
     }
     setModalOpen(false);
     dispatch(loadBooks(filters));
@@ -110,47 +118,57 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
 
   return (
     <>
-      <Space style={{ marginBottom: 16 }}>
+      <div style={styles.toolbar}>
+        <div>
+          <Text style={styles.infoText}>Всего книг: {total}</Text>
+        </div>
         <Button type="primary" onClick={() => openEdit()}>
-          Add book
+          Добавить книгу
         </Button>
-      </Space>
+      </div>
       <Table
         rowKey={(record) => record.id}
         columns={columns}
         dataSource={items}
         loading={loading}
-        pagination={{ current: page + 1, pageSize: size, total }}
+        pagination={{ current: page + 1, pageSize: size, total, showSizeChanger: true }}
         onChange={onTableChange}
       />
 
       <Modal
-        title={editing ? 'Edit book' : 'Add book'}
+        title={editing ? 'Редактирование книги' : 'Добавление книги'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleSubmit}
+        okText={editing ? 'Сохранить' : 'Добавить'}
+        cancelText="Отмена"
         destroyOnClose
       >
-        <Form {...formLayout} form={form} initialValues={{ status: 'PLANNED', favorite: false }}>
-          <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Title is required' }]}>
+        <Form
+          {...formLayout}
+          form={form}
+          initialValues={{ status: 'PLANNED', favorite: false }}
+          style={styles.formPadding}
+        >
+          <Form.Item name="title" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="altTitle" label="Alt title">
+          <Form.Item name="altTitle" label="Альтернативное название">
             <Input />
           </Form.Item>
-          <Form.Item name="typeId" label="Type">
+          <Form.Item name="typeId" label="Тип">
             <Select allowClear options={types.map((t) => ({ label: t.name, value: t.id }))} />
           </Form.Item>
-          <Form.Item name="status" label="Status" rules={[{ required: true }]}> 
+          <Form.Item name="status" label="Статус" rules={[{ required: true }]}>
             <Select options={statusOptions.map((s) => ({ label: s.label, value: s.value }))} />
           </Form.Item>
-          <Form.Item name="rating" label="Rating">
-            <InputNumber min={0} max={10} step={0.5} style={{ width: '100%' }} />
+          <Form.Item name="rating" label="Оценка">
+            <InputNumber min={0} max={10} step={0.5} style={styles.fullWidth} />
           </Form.Item>
-          <Form.Item name="favorite" label="Favorite" valuePropName="checked">
+          <Form.Item name="favorite" label="Избранное" valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="comment" label="Comment">
+          <Form.Item name="comment" label="Комментарий">
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
