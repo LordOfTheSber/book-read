@@ -111,7 +111,10 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
 
   const onTableChange = (pagination: TablePaginationConfig, _filters: any, sorter: any) => {
     const sortValue = sorter.order ? `${sorter.field},${sorter.order === 'descend' ? 'desc' : 'asc'}` : filters.sort;
-    onChangePage((pagination.current || 1) - 1, pagination.pageSize || size, sortValue);
+    const currentPage = (pagination.current || 1) - 1;
+    const pageSize = pagination.pageSize || size;
+
+    onChangePage(currentPage, pageSize, sortValue);
   };
 
   return (

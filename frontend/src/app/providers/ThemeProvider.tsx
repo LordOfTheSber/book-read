@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { ConfigProvider, theme as antdTheme, ThemeConfig } from 'antd';
+import { AliasToken } from 'antd/es/theme/interface';
 
 type ThemeMode = 'light' | 'dark' | 'teal';
 
@@ -32,10 +33,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [mode]);
 
   const themeConfig = useMemo<ThemeConfig>(() => {
-    const baseTokens: ThemeConfig['token'] = {
+    const baseTokens = {
       borderRadius: 12,
-      fontFamily: antdTheme.defaultSeed.fontFamily
-    };
+      fontFamily: antdTheme.defaultSeed.fontFamily,
+      colorPrimary: antdTheme.defaultSeed.colorPrimary,
+      boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
+      boxShadowSecondary: '0 6px 18px rgba(0,0,0,0.12)',
+      margin: 16,
+      marginSM: 12,
+      paddingXS: 8
+    } as ThemeConfig['token'] & Partial<AliasToken>;
+
+    const lightTokens = {
+      ...baseTokens,
+      colorBgContainer: '#ffffff'
+    } as ThemeConfig['token'];
 
     if (mode === 'teal') {
       return {
@@ -50,7 +62,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           colorBorder: '#b9e8df',
           colorLink: '#0fbf9f',
           controlItemBgActive: '#d2f6ed'
-        },
+        } as ThemeConfig['token'],
         components: {
           Layout: {
             headerBg: 'linear-gradient(120deg, #0fbf9f 0%, #12a4d9 65%, #12d1b8 100%)'
@@ -59,13 +71,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             itemSelectedBg: '#d2f6ed'
           }
         }
-      };
+      } as ThemeConfig;
     }
 
+    const isDark = mode === 'dark';
+
     return {
-      algorithm: mode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-      token: baseTokens
-    };
+      algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+      token: isDark ? baseTokens : lightTokens
+    } as ThemeConfig;
   }, [mode]);
 
   const value = useMemo<ThemeContextValue>(() => ({

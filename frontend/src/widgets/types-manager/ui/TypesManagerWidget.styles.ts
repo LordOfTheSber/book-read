@@ -7,8 +7,8 @@ export const useTypesManagerWidgetStyles = () => {
   return useMemo(
     () => ({
       toolbar: { marginBottom: 18 },
-      table: { background: token.colorBgContainer },
-      modal: { paddingTop: token.paddingXS }
+      table: { background: token.colorBgContainer ?? '#ffffff' },
+      modal: { paddingTop: token.paddingXS ?? 8 }
     }),
     [token]
   );
