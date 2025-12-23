@@ -9,7 +9,11 @@ const { Header, Content } = Layout;
 
 export const PageLayout: React.FC = () => {
   const location = useLocation();
-  const selected = location.pathname.startsWith('/types') ? 'types' : 'books';
+  const selected = location.pathname.startsWith('/types')
+    ? 'types'
+    : location.pathname.startsWith('/sources')
+      ? 'sources'
+      : 'books';
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles();
 
@@ -33,7 +37,8 @@ export const PageLayout: React.FC = () => {
               selectedKeys={[selected]}
               items={[
                 { key: 'books', label: <Link to="/">Книги</Link> },
-                { key: 'types', label: <Link to="/types">Типы</Link> }
+                { key: 'types', label: <Link to="/types">Типы</Link> },
+                { key: 'sources', label: <Link to="/sources">Источники</Link> }
               ]}
             />
           </div>

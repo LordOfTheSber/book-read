@@ -20,6 +20,9 @@ public class LibraryItemResponse {
     String altTitle;
     UUID typeId;
     String typeName;
+    UUID sourceId;
+    String sourceName;
+    String sourceUrl;
     String comment;
     BigDecimal rating;
     boolean favorite;

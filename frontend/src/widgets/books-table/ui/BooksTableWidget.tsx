@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Modal, Space, Table, Tag, message, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { LibraryItem } from '@/shared/types/library';
@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { deleteBookThunk, loadBooks, updateBookThunk, createBookThunk } from '@/entities/book';
 import { statusOptions } from '@/shared/constants/status';
 import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
+import { loadSources } from '@/entities/source';
 
 interface Props {
   onChangePage: (page: number, size: number, sort?: string) => void;
@@ -22,6 +23,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const dispatch = useAppDispatch();
   const { items, page, size, total, loading } = useAppSelector((state) => state.books);
   const types = useAppSelector((state) => state.bookTypes.list);
+  const sources = useAppSelector((state) => state.sources.list);
   const filters = useAppSelector((state) => state.bookFilters);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,6 +37,18 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
       {
         title: 'Тип',
         dataIndex: 'typeName'
+      },
+      {
+        title: 'Источник',
+        dataIndex: 'sourceName',
+        render: (sourceName, record) =>
+          sourceName ? (
+            <a href={record.sourceUrl} target="_blank" rel="noreferrer">
+              {sourceName}
+            </a>
+          ) : (
+            '—'
+          )
       },
       {
         title: 'Статус',
@@ -88,13 +102,17 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const openEdit = (item?: LibraryItem) => {
     if (item) {
       setEditing(item);
-      form.setFieldsValue({ ...item, typeId: item.typeId });
+      form.setFieldsValue({ ...item, typeId: item.typeId, sourceId: item.sourceId });
     } else {
       setEditing(null);
       form.resetFields();
     }
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    dispatch(loadSources());
+  }, [dispatch]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
@@ -162,6 +180,9 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
           </Form.Item>
           <Form.Item name="typeId" label="Тип">
             <Select allowClear options={types.map((t) => ({ label: t.name, value: t.id }))} />
+          </Form.Item>
+          <Form.Item name="sourceId" label="Источник">
+            <Select allowClear options={sources.map((s) => ({ label: s.name, value: s.id }))} />
           </Form.Item>
           <Form.Item name="status" label="Статус" rules={[{ required: true }]}>
             <Select options={statusOptions.map((s) => ({ label: s.label, value: s.value }))} />

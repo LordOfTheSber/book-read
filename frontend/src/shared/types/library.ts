@@ -15,10 +15,22 @@ export interface LibraryItem {
   altTitle?: string;
   typeId?: string;
   typeName?: string;
+  sourceId?: string;
+  sourceName?: string;
+  sourceUrl?: string;
   comment?: string;
   rating?: number;
   favorite: boolean;
   status: ReadingStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Source {
+  id: string;
+  name: string;
+  url: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }

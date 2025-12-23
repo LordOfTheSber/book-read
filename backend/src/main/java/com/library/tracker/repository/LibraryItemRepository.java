@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>, JpaSpecificationExecutor<LibraryItem> {
 
     boolean existsByTypeId( UUID typeId );
+
+    boolean existsBySourceId( UUID sourceId );
 }

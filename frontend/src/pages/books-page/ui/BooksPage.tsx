@@ -19,7 +19,7 @@ export const BooksPage: React.FC = () => {
 
   return (
     <Card title="Книги" style={styles.pageCard} headStyle={styles.pageHead} bodyStyle={styles.pageBody}>
-      <Flex gap={styles.contentWrapper.gap} align="start" wrap>
+      <Flex gap={styles.contentWrapper.gap} align="start">
         <Flex flex={1} vertical gap={18} style={styles.heroCard as React.CSSProperties}>
           <Title level={4} style={styles.heroTitle}>
             Личная библиотека
