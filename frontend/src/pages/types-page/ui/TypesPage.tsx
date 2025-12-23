@@ -7,7 +7,7 @@ export const TypesPage: React.FC = () => {
   const styles = useTypesPageStyles();
 
   return (
-    <Card title="Типы книг" bodyStyle={styles.cardBody} style={styles.cardStyle}>
+    <Card title="Типы книг" headStyle={styles.cardHead} bodyStyle={styles.cardBody} style={styles.cardStyle}>
       <TypesManagerWidget />
     </Card>
   );

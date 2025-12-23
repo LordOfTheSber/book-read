@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Space, Table, message } from 'antd';
+import { Button, Form, Input, Modal, Space, Table, Tooltip, message, Flex } from 'antd';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createSourceThunk, deleteSourceThunk, loadSources, updateSourceThunk } from '@/entities/source';
 import { useSourcesManagerWidgetStyles } from './SourcesManagerWidget.styles';
@@ -11,6 +12,8 @@ export const SourcesManagerWidget: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const styles = useSourcesManagerWidgetStyles();
+
+  const renderDash = (value?: string | null) => (value ? value : '—');
 
   useEffect(() => {
     dispatch(loadSources());
@@ -56,46 +59,73 @@ export const SourcesManagerWidget: React.FC = () => {
 
   return (
     <>
-      <Space style={styles.toolbar}>
-        <Button type="primary" onClick={() => openModal()}>
+      <Flex style={styles.toolbar} align="center" justify="space-between">
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
           Добавить источник
         </Button>
-      </Space>
+      </Flex>
       <Table
         rowKey={(row) => row.id}
         dataSource={list}
         loading={loading}
         pagination={false}
         style={styles.table}
+        onHeaderRow={() => ({ style: styles.headerRow })}
         columns={[
-          { title: 'Название', dataIndex: 'name' },
+          { title: 'Название', dataIndex: 'name', render: renderDash },
           {
             title: 'Ссылка',
             dataIndex: 'url',
-            render: (url: string) => (
-              <a href={url} target="_blank" rel="noreferrer">
-                {url}
-              </a>
-            )
+            render: (url: string) =>
+              url ? (
+                <a href={url} target="_blank" rel="noreferrer">
+                  {url}
+                </a>
+              ) : (
+                renderDash()
+              )
           },
-          { title: 'Описание', dataIndex: 'description' },
+          { title: 'Описание', dataIndex: 'description', ellipsis: true, render: renderDash },
           {
             title: 'Действия',
             render: (_, record) => (
               <Space size="small">
-                <Button size="small" onClick={() => openModal(record.id)}>
-                  Редактировать
-                </Button>
-                <Button size="small" danger onClick={() => confirmDelete(record.id)}>
-                  Удалить
-                </Button>
+                <Tooltip title="Редактировать">
+                  <Button
+                    size="small"
+                    type="text"
+                    shape="circle"
+                    icon={<EditOutlined />}
+                    onClick={() => openModal(record.id)}
+                    aria-label="Редактировать"
+                  />
+                </Tooltip>
+                <Tooltip title="Удалить">
+                  <Button
+                    size="small"
+                    danger
+                    type="text"
+                    shape="circle"
+                    icon={<DeleteOutlined />}
+                    onClick={() => confirmDelete(record.id)}
+                    aria-label="Удалить"
+                  />
+                </Tooltip>
               </Space>
             )
           }
         ]}
       />
 
-      <Modal open={open} onCancel={() => setOpen(false)} onOk={handleSave} okText="Сохранить" cancelText="Отмена" title={editingId ? 'Редактирование источника' : 'Добавление источника'}>
+      <Modal
+        open={open}
+        onCancel={() => setOpen(false)}
+        onOk={handleSave}
+        okText="Сохранить"
+        cancelText="Отмена"
+        title={editingId ? 'Редактирование источника' : 'Добавление источника'}
+        destroyOnClose
+      >
         <Form layout="vertical" form={form} initialValues={{ name: '', url: '', description: '' }} style={styles.modal}>
           <Form.Item name="name" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
             <Input placeholder="Введите название источника" />

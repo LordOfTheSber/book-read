@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Button, Form, Input, InputNumber, Select, Switch, Flex } from 'antd';
+import { Button, Form, InputNumber, Select, Switch, Flex } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
 import { setFilters } from '@/features/book/set-book-filters';
@@ -29,10 +29,7 @@ export const FiltersPanelWidget: React.FC = () => {
   return (
     <Form layout="vertical" form={form} initialValues={filters} onFinish={onFinish}>
       <Flex gap={styles.formGap} vertical>
-        <Flex gap={16} wrap>
-          <Form.Item name="q" label="Поиск" style={styles.field(240)}>
-            <Input placeholder="Название или альтернативное название" allowClear />
-          </Form.Item>
+        <Flex gap={24} wrap>
           <Form.Item name="typeId" label="Тип" style={styles.field(180)}>
             <Select
               placeholder="Все типы"
@@ -66,7 +63,7 @@ export const FiltersPanelWidget: React.FC = () => {
             />
           </Form.Item>
         </Flex>
-        <Flex justify="flex-end" style={styles.actions}>
+        <Flex justify="flex-start" style={styles.actions}>
           <Button type="primary" htmlType="submit" block style={styles.button}>
             Применить фильтры
           </Button>

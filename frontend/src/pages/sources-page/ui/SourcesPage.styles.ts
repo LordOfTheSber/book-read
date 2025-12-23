@@ -7,7 +7,8 @@ export const useSourcesPageStyles = () => {
   return useMemo(
     () => ({
       cardBody: { padding: 24 },
-      cardStyle: { boxShadow: token.boxShadow, borderRadius: 12 }
+      cardHead: { padding: '16px 24px', fontSize: 20, fontWeight: 600 },
+      cardStyle: { boxShadow: token.boxShadow, borderRadius: 16, border: 'none', background: token.colorBgLayout }
     }),
     [token]
   );
