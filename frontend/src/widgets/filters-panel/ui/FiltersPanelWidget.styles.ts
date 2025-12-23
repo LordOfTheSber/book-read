@@ -11,7 +11,7 @@ export const useFiltersPanelStyles = () => {
       actions: { justifyContent: 'flex-end' as const },
       button: { minWidth: 200 },
       numberInput: { width: '100%' },
-      formGap: token.marginMD
+      formGap: token.marginSM ?? token.margin ?? 12
     }),
     [token]
   );
