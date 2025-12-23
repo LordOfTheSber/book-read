@@ -45,8 +45,7 @@ export const useBooksPageStyles = () => {
         position: 'sticky' as const,
         top: 24,
         maxWidth: 340,
-        minWidth: 300,
-        width: '100%'
+        minWidth: 300
       },
       filtersCardBodyStyle: { padding: 0 },
       filtersCardBody: {

@@ -3,12 +3,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { bookReducer } from '@/entities/book';
 import { bookTypeReducer } from '@/entities/book-type';
+import { sourceReducer } from '@/entities/source';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 
 const store = configureStore({
   reducer: {
     books: bookReducer,
     bookTypes: bookTypeReducer,
+    sources: sourceReducer,
     bookFilters: bookFilterReducer
   }
 });

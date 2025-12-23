@@ -5,6 +5,7 @@ import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
@@ -29,6 +30,7 @@ public class LibraryItemService {
 
     private final LibraryItemRepository libraryItemRepository;
     private final BookTypeRepository bookTypeRepository;
+    private final SourceRepository sourceRepository;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
         PageRequest pageRequest = PageRequest.of( filter.page(), filter.size(), filter.sort() );
@@ -71,6 +73,12 @@ public class LibraryItemService {
             item.setType( type );
         } else {
             item.setType( null );
+        }
+        if ( request.getSourceId() != null ) {
+            item.setSource( sourceRepository.findById( request.getSourceId() )
+                                            .orElseThrow( () -> new IllegalArgumentException( "Source not found" ) ) );
+        } else {
+            item.setSource( null );
         }
     }
 
@@ -129,6 +137,9 @@ public class LibraryItemService {
                                   .altTitle( item.getAltTitle() )
                                   .typeId( item.getType() != null ? item.getType().getId() : null )
                                   .typeName( item.getType() != null ? item.getType().getName() : null )
+                                  .sourceId( item.getSource() != null ? item.getSource().getId() : null )
+                                  .sourceName( item.getSource() != null ? item.getSource().getName() : null )
+                                  .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
                                   .comment( item.getComment() )
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )

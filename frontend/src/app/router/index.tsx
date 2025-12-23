@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { PageLayout } from '@/shared/ui/PageLayout';
 import { BooksPage } from '@/pages/books-page';
 import { TypesPage } from '@/pages/types-page';
+import { SourcesPage } from '@/pages/sources-page';
 
 const router = createBrowserRouter([
   {
@@ -10,7 +11,8 @@ const router = createBrowserRouter([
     element: <PageLayout />,
     children: [
       { index: true, element: <BooksPage /> },
-      { path: 'types', element: <TypesPage /> }
+      { path: 'types', element: <TypesPage /> },
+      { path: 'sources', element: <SourcesPage /> }
     ]
   }
 ]);

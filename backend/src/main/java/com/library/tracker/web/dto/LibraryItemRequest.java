@@ -24,6 +24,8 @@ public class LibraryItemRequest {
 
     private UUID typeId;
 
+    private UUID sourceId;
+
     private String comment;
 
     @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
