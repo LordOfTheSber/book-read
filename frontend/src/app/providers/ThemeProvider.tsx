@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { ConfigProvider, theme as antdTheme, ThemeConfig } from 'antd';
 
-type ThemeMode = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark' | 'teal';
 
 interface ThemeContextValue {
   mode: ThemeMode;
-  toggle: () => void;
+  setMode: (mode: ThemeMode) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -15,7 +15,11 @@ const getInitialMode = (): ThemeMode => {
     return 'light';
   }
   const stored = window.localStorage.getItem('app-theme');
-  return stored === 'dark' ? 'dark' : 'light';
+  if (stored === 'dark' || stored === 'teal') {
+    return stored;
+  }
+
+  return 'light';
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -27,19 +31,46 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [mode]);
 
-  const themeConfig = useMemo<ThemeConfig>(
-    () => ({
+  const themeConfig = useMemo<ThemeConfig>(() => {
+    const baseTokens: ThemeConfig['token'] = {
+      borderRadius: 12,
+      fontFamily: antdTheme.defaultSeed.fontFamily
+    };
+
+    if (mode === 'teal') {
+      return {
+        algorithm: antdTheme.defaultAlgorithm,
+        token: {
+          ...baseTokens,
+          colorPrimary: '#0fbf9f',
+          colorInfo: '#14d6b1',
+          colorBgLayout: '#e9fbf6',
+          colorBgContainer: '#f8fffd',
+          colorText: '#0f3631',
+          colorBorder: '#b9e8df',
+          colorLink: '#0fbf9f',
+          controlItemBgActive: '#d2f6ed'
+        },
+        components: {
+          Layout: {
+            headerBg: 'linear-gradient(120deg, #0fbf9f 0%, #12a4d9 65%, #12d1b8 100%)'
+          },
+          Segmented: {
+            itemSelectedBg: '#d2f6ed'
+          }
+        }
+      };
+    }
+
+    return {
       algorithm: mode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-      token: {
-        borderRadius: 12
-      }
-    }),
-    [mode]
-  );
+      token: baseTokens
+    };
+  }, [mode]);
 
   const value = useMemo<ThemeContextValue>(() => ({
     mode,
-    toggle: () => setMode((prev) => (prev === 'light' ? 'dark' : 'light'))
+    setMode
   }), [mode]);
 
   return (

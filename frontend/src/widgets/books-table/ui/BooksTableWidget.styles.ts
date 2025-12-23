@@ -1,5 +1,11 @@
-import { useMemo } from 'react';
+import { type CSSProperties, useMemo } from 'react';
 import { theme } from 'antd';
+
+interface BooksTableWidgetStyles {
+  toolbar: CSSProperties;
+  fullWidth: CSSProperties;
+  formPadding: CSSProperties;
+}
 
 export const useBooksTableWidgetStyles = () => {
   const { token } = theme.useToken();
@@ -8,12 +14,10 @@ export const useBooksTableWidgetStyles = () => {
     () => ({
       toolbar: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
-        marginBottom: 18
-      },
-      infoText: {
-        color: token.colorTextSecondary
+        marginBottom: 18,
+        gap: 12
       },
       fullWidth: {
         width: '100%'
@@ -21,7 +25,7 @@ export const useBooksTableWidgetStyles = () => {
       formPadding: {
         paddingTop: 4
       }
-    }),
+    } satisfies BooksTableWidgetStyles),
     [token]
   );
 };
