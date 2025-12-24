@@ -1,7 +1,6 @@
 package com.library.tracker.config;
 
 import com.library.tracker.security.JwtAuthenticationFilter;
-import com.library.tracker.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -24,14 +23,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
     @RequiredArgsConstructor
     public class SecurityConfig {
 
-        private final UserService userService;
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
-        public SecurityFilterChain securityFilterChain( HttpSecurity http ) throws Exception {
-            http.csrf( csrf -> csrf.disable() )
-                .userDetailsService( userService )
-                .authorizeHttpRequests( auth -> auth
+    public SecurityFilterChain securityFilterChain( HttpSecurity http ) throws Exception {
+        http.csrf( csrf -> csrf.disable() )
+            .authorizeHttpRequests( auth -> auth
                         .requestMatchers( "/api/v1/auth/**" ).permitAll()
                         .requestMatchers( "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**" ).permitAll()
                         .requestMatchers( "/api/v1/users/me" ).hasAnyRole( "ADMIN", "EDITOR", "USER" )
