@@ -5,9 +5,11 @@ import { bookReducer } from '@/entities/book';
 import { bookTypeReducer } from '@/entities/book-type';
 import { sourceReducer } from '@/entities/source';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
+import { authReducer } from '@/entities/auth';
 
 const store = configureStore({
   reducer: {
+    auth: authReducer,
     books: bookReducer,
     bookTypes: bookTypeReducer,
     sources: sourceReducer,

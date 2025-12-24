@@ -46,6 +46,10 @@ public class LibraryItem extends BaseAuditEntity {
     @JoinColumn( name = "source_id" )
     private Source source;
 
+    @ManyToOne( fetch = FetchType.LAZY )
+    @JoinColumn( name = "created_by" )
+    private User createdBy;
+
     @Column( name = "comment", columnDefinition = "TEXT" )
     private String comment;
 

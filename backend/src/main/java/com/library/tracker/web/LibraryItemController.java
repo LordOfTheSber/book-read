@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,12 +67,14 @@ public class LibraryItemController {
                                  .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
+    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR','USER')" )
     @PostMapping
     public ResponseEntity<LibraryItemResponse> create( @Valid @RequestBody LibraryItemRequest request ) {
         LibraryItemResponse response = libraryItemService.create( request );
         return ResponseEntity.ok( response );
     }
 
+    @PreAuthorize( "hasRole('ADMIN')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<LibraryItemResponse> update( @PathVariable UUID id,
                                                        @Valid @RequestBody LibraryItemRequest request ) {
@@ -80,6 +83,7 @@ public class LibraryItemController {
                                  .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
+    @PreAuthorize( "hasRole('ADMIN')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         libraryItemService.delete( id );

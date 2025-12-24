@@ -3,6 +3,7 @@ package com.library.tracker.service;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
@@ -31,20 +32,28 @@ public class LibraryItemService {
     private final LibraryItemRepository libraryItemRepository;
     private final BookTypeRepository bookTypeRepository;
     private final SourceRepository sourceRepository;
+    private final UserService userService;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
         PageRequest pageRequest = PageRequest.of( filter.page(), filter.size(), filter.sort() );
-        return libraryItemRepository.findAll( buildSpecification( filter ), pageRequest )
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+        return libraryItemRepository.findAll( buildSpecification( filter, currentUser, isAdmin ), pageRequest )
                                     .map( this::toResponse );
     }
 
     public Optional<LibraryItemResponse> getById( UUID id ) {
-        return libraryItemRepository.findById( id ).map( this::toResponse );
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+        return libraryItemRepository.findById( id )
+                                    .filter( item -> isAdmin || isOwnedBy( item, currentUser ) )
+                                    .map( this::toResponse );
     }
 
     public LibraryItemResponse create( LibraryItemRequest request ) {
         LibraryItem item = new LibraryItem();
         applyRequest( item, request );
+        item.setCreatedBy( userService.getCurrentUser() );
         return toResponse( libraryItemRepository.save( item ) );
     }
 
@@ -82,7 +91,11 @@ public class LibraryItemService {
         }
     }
 
-    private Specification<LibraryItem> buildSpecification( LibraryItemFilter filter ) {
+    private boolean isOwnedBy( LibraryItem item, User user ) {
+        return item.getCreatedBy() != null && item.getCreatedBy().getId().equals( user.getId() );
+    }
+
+    private Specification<LibraryItem> buildSpecification( LibraryItemFilter filter, User currentUser, boolean isAdmin ) {
         return ( root, query, cb ) -> {
             Specification<LibraryItem> spec = Specification.where( null );
             if ( filter.query().isPresent() ) {
@@ -125,6 +138,9 @@ public class LibraryItemService {
             if ( filter.kind().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.get( "kind" ), filter.kind().get() ) );
             }
+            if ( !isAdmin ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "createdBy" ).get( "id" ), currentUser.getId() ) );
+            }
             return spec.toPredicate( root, query, cb );
         };
     }
@@ -140,6 +156,9 @@ public class LibraryItemService {
                                   .sourceId( item.getSource() != null ? item.getSource().getId() : null )
                                   .sourceName( item.getSource() != null ? item.getSource().getName() : null )
                                   .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
+                                  .createdById( item.getCreatedBy() != null ? item.getCreatedBy().getId() : null )
+                                  .createdByUsername(
+                                          item.getCreatedBy() != null ? item.getCreatedBy().getUsername() : null )
                                   .comment( item.getComment() )
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )

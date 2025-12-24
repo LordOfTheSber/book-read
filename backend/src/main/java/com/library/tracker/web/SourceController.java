@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,12 +32,14 @@ public class SourceController {
         return sourceService.findAll();
     }
 
+    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
     @PostMapping
     public ResponseEntity<SourceResponse> create( @Valid @RequestBody SourceRequest request ) {
         SourceResponse response = sourceService.create( request );
         return ResponseEntity.ok( response );
     }
 
+    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<SourceResponse> update( @PathVariable UUID id, @Valid @RequestBody SourceRequest request ) {
         return sourceService.update( id, request )
@@ -44,6 +47,7 @@ public class SourceController {
                             .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
+    @PreAuthorize( "hasRole('ADMIN')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         sourceService.delete( id );
