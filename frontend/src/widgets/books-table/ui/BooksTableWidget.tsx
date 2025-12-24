@@ -9,6 +9,7 @@ import { statusOptions } from '@/shared/constants/status';
 import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
 import { loadSources } from '@/entities/source';
 import { setFilters } from '@/features/book/set-book-filters';
+import { AxiosError } from 'axios';
 
 interface Props {
   onChangePage: (page: number, size: number, sort?: string) => void;
@@ -44,11 +45,13 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const types = useAppSelector((state) => state.bookTypes.list);
   const sources = useAppSelector((state) => state.sources.list);
   const filters = useAppSelector((state) => state.bookFilters);
+  const role = useAppSelector((state) => state.auth.user?.role);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(filters.q ?? '');
   const [form] = Form.useForm();
   const styles = useBooksTableWidgetStyles();
+  const isAdmin = role === 'ADMIN';
 
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [
@@ -105,38 +108,61 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
         dataIndex: 'updatedAt',
         render: (value) => formatDateTime(value)
       },
-      {
-        title: 'Действия',
-        dataIndex: 'actions',
-        render: (_, record) => (
-          <Space size="small">
-            <Tooltip title="Редактировать">
-              <Button
-                size="small"
-                type="text"
-                shape="circle"
-                icon={<EditOutlined />}
-                onClick={() => openEdit(record)}
-                aria-label="Редактировать"
-              />
-            </Tooltip>
-            <Tooltip title="Удалить">
-              <Button
-                size="small"
-                danger
-                type="text"
-                shape="circle"
-                icon={<DeleteOutlined />}
-                onClick={() => confirmDelete(record.id)}
-                aria-label="Удалить"
-              />
-            </Tooltip>
-          </Space>
-        )
-      }
+      ...(isAdmin
+        ? [
+            {
+              title: 'Автор',
+              dataIndex: 'createdByUsername',
+              render: (value) => value || '—'
+            } as ColumnsType<LibraryItem>[number]
+          ]
+        : []),
+      ...(isAdmin
+        ? [
+            {
+              title: 'Действия',
+              dataIndex: 'actions',
+              render: (_: unknown, record: LibraryItem) => (
+                <Space size="small">
+                  <Tooltip title="Редактировать">
+                    <Button
+                      size="small"
+                      type="text"
+                      shape="circle"
+                      icon={<EditOutlined />}
+                      onClick={() => openEdit(record)}
+                      aria-label="Редактировать"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Удалить">
+                    <Button
+                      size="small"
+                      danger
+                      type="text"
+                      shape="circle"
+                      icon={<DeleteOutlined />}
+                      onClick={() => confirmDelete(record.id)}
+                      aria-label="Удалить"
+                    />
+                  </Tooltip>
+                </Space>
+              )
+            } as ColumnsType<LibraryItem>[number]
+          ]
+        : [])
     ],
-    []
+    [isAdmin]
   );
+
+  const showRequestError = (error: unknown, fallback: string) => {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const status = axiosError.response?.status;
+    if (status === 403) {
+      message.error('Нет прав для выполнения действия');
+      return;
+    }
+    message.error(axiosError.response?.data?.message || fallback);
+  };
 
   const confirmDelete = (id: string) => {
     Modal.confirm({
@@ -144,9 +170,13 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
       okText: 'Удалить',
       cancelText: 'Отмена',
       onOk: async () => {
-        await dispatch(deleteBookThunk(id));
-        message.success('Книга удалена');
-        dispatch(loadBooks(filters));
+        try {
+          await dispatch(deleteBookThunk(id)).unwrap();
+          message.success('Книга удалена');
+          dispatch(loadBooks(filters));
+        } catch (error) {
+          showRequestError(error, 'Не удалось удалить книгу');
+        }
       }
     });
   };
@@ -172,15 +202,19 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-    if (editing) {
-      await dispatch(updateBookThunk({ id: editing.id, payload: values }));
-      message.success('Данные обновлены');
-    } else {
-      await dispatch(createBookThunk(values));
-      message.success('Книга добавлена');
+    try {
+      if (editing) {
+        await dispatch(updateBookThunk({ id: editing.id, payload: values })).unwrap();
+        message.success('Данные обновлены');
+      } else {
+        await dispatch(createBookThunk(values)).unwrap();
+        message.success('Книга добавлена');
+      }
+      setDrawerOpen(false);
+      dispatch(loadBooks(filters));
+    } catch (error) {
+      showRequestError(error, 'Не удалось сохранить книгу');
     }
-    setDrawerOpen(false);
-    dispatch(loadBooks(filters));
   };
 
   const onTableChange = (pagination: TablePaginationConfig, _filters: any, sorter: any) => {

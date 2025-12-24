@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -40,6 +41,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler( IllegalStateException.class )
     public ResponseEntity<ApiError> handleIllegalState( IllegalStateException ex ) {
         return build( HttpStatus.CONFLICT, ex.getMessage(), Collections.emptyList(), ex );
+    }
+
+    @ExceptionHandler( AccessDeniedException.class )
+    public ResponseEntity<ApiError> handleAccessDenied( AccessDeniedException ex ) {
+        return build( HttpStatus.FORBIDDEN, ex.getMessage(), Collections.emptyList(), ex );
     }
 
     @ExceptionHandler( Exception.class )

@@ -23,6 +23,8 @@ public class LibraryItemResponse {
     UUID sourceId;
     String sourceName;
     String sourceUrl;
+    UUID createdById;
+    String createdByUsername;
     String comment;
     BigDecimal rating;
     boolean favorite;

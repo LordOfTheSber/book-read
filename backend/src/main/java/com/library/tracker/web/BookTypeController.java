@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,12 +32,14 @@ public class BookTypeController {
         return bookTypeService.findAll();
     }
 
+    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
     @PostMapping
     public ResponseEntity<BookTypeResponse> create( @Valid @RequestBody BookTypeRequest request ) {
         BookTypeResponse response = bookTypeService.create( request );
         return ResponseEntity.ok( response );
     }
 
+    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<BookTypeResponse> update( @PathVariable UUID id,
                                                     @Valid @RequestBody BookTypeRequest request ) {
@@ -45,6 +48,7 @@ public class BookTypeController {
                               .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
+    @PreAuthorize( "hasRole('ADMIN')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         bookTypeService.delete( id );
