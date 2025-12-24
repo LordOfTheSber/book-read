@@ -7,7 +7,7 @@ export const SourcesPage: React.FC = () => {
   const styles = useSourcesPageStyles();
 
   return (
-    <Card title="Источники" bodyStyle={styles.cardBody} style={styles.cardStyle}>
+    <Card title="Источники" headStyle={styles.cardHead} bodyStyle={styles.cardBody} style={styles.cardStyle}>
       <SourcesManagerWidget />
     </Card>
   );
