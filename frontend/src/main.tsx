@@ -7,11 +7,9 @@ import './app/styles/global.css';
 import 'antd/dist/reset.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <StoreProvider>
-        <AppRouter />
-      </StoreProvider>
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider>
+    <StoreProvider>
+      <AppRouter />
+    </StoreProvider>
+  </ThemeProvider>
 );
