@@ -1,14 +1,17 @@
-import { Layout, Menu, Segmented } from 'antd';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Avatar, Button, Layout, Menu, Segmented, Space, Tag, Typography } from 'antd';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { useThemeMode } from '@/app/providers/ThemeProvider';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
+import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
+import { authActions } from '@/entities/auth';
 
 const { Header, Content } = Layout;
 
 export const PageLayout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const selected = location.pathname.startsWith('/types')
     ? 'types'
     : location.pathname.startsWith('/sources')
@@ -16,6 +19,13 @@ export const PageLayout: React.FC = () => {
       : 'books';
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles();
+  const user = useAppSelector((state) => state.auth.user);
+  const dispatch = useAppDispatch();
+
+  const handleLogout = () => {
+    dispatch(authActions.logout());
+    navigate('/login');
+  };
 
   return (
     <Layout style={styles.layout}>
@@ -44,6 +54,26 @@ export const PageLayout: React.FC = () => {
           </div>
 
           <div style={styles.headerExtra}>
+            {user ? (
+              <Space size="small">
+                <Avatar>{user.username.charAt(0).toUpperCase()}</Avatar>
+                <div style={{ textAlign: 'right' }}>
+                  <Typography.Text style={{ color: '#fff' }}>{user.username}</Typography.Text>
+                  <br />
+                  <Tag color="blue" style={{ marginTop: 4 }}>
+                    {user.role}
+                  </Tag>
+                </div>
+                <Button onClick={handleLogout}>Выйти</Button>
+              </Space>
+            ) : (
+              <Space>
+                <Button type="primary" onClick={() => navigate('/login')}>
+                  Войти
+                </Button>
+                <Button onClick={() => navigate('/register')}>Регистрация</Button>
+              </Space>
+            )}
             <span style={styles.toggleLabel}>Тема</span>
             <Segmented
               value={mode}

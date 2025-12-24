@@ -18,6 +18,8 @@ export interface LibraryItem {
   sourceId?: string;
   sourceName?: string;
   sourceUrl?: string;
+  createdById?: string;
+  createdByUsername?: string;
   comment?: string;
   rating?: number;
   favorite: boolean;
@@ -41,4 +43,12 @@ export interface PageResponse<T> {
   size: number;
   totalElements: number;
   totalPages: number;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  role: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

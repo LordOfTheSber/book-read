@@ -31,6 +31,7 @@ public class LibraryItemService {
     private final LibraryItemRepository libraryItemRepository;
     private final BookTypeRepository bookTypeRepository;
     private final SourceRepository sourceRepository;
+    private final UserService userService;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
         PageRequest pageRequest = PageRequest.of( filter.page(), filter.size(), filter.sort() );
@@ -45,6 +46,7 @@ public class LibraryItemService {
     public LibraryItemResponse create( LibraryItemRequest request ) {
         LibraryItem item = new LibraryItem();
         applyRequest( item, request );
+        item.setCreatedBy( userService.getCurrentUser() );
         return toResponse( libraryItemRepository.save( item ) );
     }
 
@@ -140,6 +142,9 @@ public class LibraryItemService {
                                   .sourceId( item.getSource() != null ? item.getSource().getId() : null )
                                   .sourceName( item.getSource() != null ? item.getSource().getName() : null )
                                   .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
+                                  .createdById( item.getCreatedBy() != null ? item.getCreatedBy().getId() : null )
+                                  .createdByUsername(
+                                          item.getCreatedBy() != null ? item.getCreatedBy().getUsername() : null )
                                   .comment( item.getComment() )
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )
