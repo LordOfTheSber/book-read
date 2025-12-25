@@ -55,7 +55,6 @@ export const TypesManagerWidget: React.FC = () => {
         message.success('Тип добавлен');
       }
       setOpen(false);
-      dispatch(loadBookTypes());
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить тип');
     }
@@ -70,7 +69,6 @@ export const TypesManagerWidget: React.FC = () => {
         try {
           await dispatch(deleteBookTypeThunk(id)).unwrap();
           message.success('Тип удалён');
-          dispatch(loadBookTypes());
         } catch (error) {
           showRequestError(error, 'Не удалось удалить тип');
         }

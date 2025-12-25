@@ -6,13 +6,19 @@ import com.library.tracker.repository.UserRepository;
 import com.library.tracker.security.AppUserDetails;
 import com.library.tracker.web.dto.UserResponse;
 
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import net.jpountz.lz4.LZ4Factory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +28,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +37,14 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+            "image/webp",
+            "image/gif"
+    );
 
     @Override
     @Transactional( readOnly = true )
@@ -92,6 +107,34 @@ public class UserService implements UserDetailsService {
         return toResponse( getCurrentUser() );
     }
 
+    public UserResponse updateCurrentUserAvatar( MultipartFile file ) {
+        if ( file.isEmpty() ) {
+            throw new IllegalArgumentException( "Avatar file is empty" );
+        }
+        if ( file.getSize() > 2 * 1024 * 1024 ) {
+            throw new IllegalArgumentException( "Avatar must be less than 2MB" );
+        }
+        String contentType = file.getContentType();
+        if ( contentType == null || !ALLOWED_CONTENT_TYPES.contains( contentType.toLowerCase() ) ) {
+            throw new IllegalArgumentException( "Unsupported avatar format. Allowed: PNG, JPEG, WEBP, GIF" );
+        }
+
+        User user = getCurrentUser();
+        try {
+            byte[] compressedAvatar = compressAvatar( file.getBytes() );
+            user.setAvatar( compressedAvatar );
+            user.setAvatarContentType( contentType );
+            User saved = userRepository.save( user );
+            return toResponse( saved );
+        } catch ( Exception ex ) {
+            throw new IllegalArgumentException( "Failed to save avatar" );
+        }
+    }
+
+    public Optional<User> findById( UUID id ) {
+        return userRepository.findById( id );
+    }
+
     public boolean isAdmin( User user ) {
         return user.getRole() == Role.ADMIN;
     }
@@ -101,6 +144,8 @@ public class UserService implements UserDetailsService {
                            .id( user.getId() )
                            .username( user.getUsername() )
                            .role( user.getRole() )
+                           .avatar( encodeAvatar( decompressAvatar( user.getAvatar() ) ) )
+                           .avatarContentType( user.getAvatarContentType() )
                            .createdAt( toOffsetDateTime( user.getCreatedAt() ) )
                            .updatedAt( toOffsetDateTime( user.getUpdatedAt() ) )
                            .build();
@@ -117,5 +162,40 @@ public class UserService implements UserDetailsService {
 
     private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {
         return dateTime != null ? dateTime.atOffset( ZoneOffset.UTC ) : null;
+    }
+
+    private String encodeAvatar( byte[] avatar ) {
+        return avatar != null ? Base64.getEncoder().encodeToString( avatar ) : null;
+    }
+
+    private byte[] compressAvatar( byte[] avatar ) {
+        if ( avatar == null || avatar.length == 0 ) {
+            return avatar;
+        }
+        var compressor = lz4Factory.fastCompressor();
+        int maxCompressedLength = compressor.maxCompressedLength( avatar.length );
+        byte[] target = new byte[4 + maxCompressedLength];
+        ByteBuffer.wrap( target ).putInt( avatar.length );
+        int compressedSize = compressor.compress( avatar, 0, avatar.length, target, 4, maxCompressedLength );
+        return Arrays.copyOf( target, 4 + compressedSize );
+    }
+
+    public byte[] decompressAvatar( byte[] avatar ) {
+        if ( avatar == null || avatar.length < 4 ) {
+            return avatar;
+        }
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap( avatar );
+            int originalSize = buffer.getInt();
+            if ( originalSize <= 0 ) {
+                return avatar;
+            }
+            var decompressor = lz4Factory.fastDecompressor();
+            byte[] result = new byte[originalSize];
+            decompressor.decompress( avatar, 4, result, 0, originalSize );
+            return result;
+        } catch ( Exception ex ) {
+            return avatar;
+        }
     }
 }

@@ -25,3 +25,14 @@ export const fetchMe = async (): Promise<User> => {
   const { data } = await httpClient.get<User>('/users/me');
   return data;
 };
+
+export const uploadAvatar = async (file: File): Promise<User> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const { data } = await httpClient.put<User>('/users/me/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+  return data;
+};

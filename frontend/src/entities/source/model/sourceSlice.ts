@@ -6,14 +6,21 @@ interface SourceState {
   list: Source[];
   loading: boolean;
   error?: string;
+  loaded: boolean;
 }
 
 const initialState: SourceState = {
   list: [],
-  loading: false
+  loading: false,
+  loaded: false
 };
 
-export const loadSources = createAsyncThunk('sources/load', async () => fetchSources());
+export const loadSources = createAsyncThunk('sources/load', async () => fetchSources(), {
+  condition: (_, { getState }) => {
+    const state = getState() as { sources: SourceState };
+    return !state.sources.loaded && !state.sources.loading;
+  }
+});
 export const createSourceThunk = createAsyncThunk('sources/create', async (payload: Partial<Source>) => createSource(payload));
 export const updateSourceThunk = createAsyncThunk(
   'sources/update',
@@ -36,6 +43,7 @@ const sourceSlice = createSlice({
       .addCase(loadSources.fulfilled, (state, action: PayloadAction<Source[]>) => {
         state.loading = false;
         state.list = action.payload;
+        state.loaded = true;
       })
       .addCase(loadSources.rejected, (state, action) => {
         state.loading = false;

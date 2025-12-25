@@ -15,6 +15,8 @@ public class UserResponse {
     UUID id;
     String username;
     Role role;
+    String avatar;
+    String avatarContentType;
     OffsetDateTime createdAt;
     OffsetDateTime updatedAt;
 }
