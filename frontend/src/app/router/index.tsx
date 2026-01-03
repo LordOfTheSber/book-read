@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { UsersPage } from '@/pages/users-page';
 import { NodesPage } from '@/pages/nodes-page';
 import { fetchCurrentUser } from '@/entities/auth';
+import { AnalyticsPage } from '@/pages/analytics-page';
 
 const RequireAuth: React.FC = () => {
   const token = useAppSelector((state) => state.auth.token);
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
         element: <PageLayout />,
         children: [
           { index: true, element: <BooksPage /> },
+          { path: 'analytics', element: <AnalyticsPage /> },
           { path: 'types', element: <TypesPage /> },
           { path: 'sources', element: <SourcesPage /> },
           {

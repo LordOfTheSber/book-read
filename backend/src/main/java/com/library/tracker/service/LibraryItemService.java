@@ -7,20 +7,26 @@ import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
+import com.library.tracker.web.dto.BookAnalyticsResponse;
 import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
+import com.library.tracker.web.dto.SourceCountResponse;
+import com.library.tracker.web.dto.TypeCountResponse;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +72,56 @@ public class LibraryItemService {
 
     public void delete( UUID id ) {
         libraryItemRepository.deleteById( id );
+    }
+
+    @Transactional( readOnly = true )
+    public BookAnalyticsResponse getAnalytics( Optional<UUID> userId ) {
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+
+        if ( userId.isPresent() && !isAdmin && !userId.get().equals( currentUser.getId() ) ) {
+            throw new AccessDeniedException( "Недостаточно прав для просмотра аналитики другого пользователя" );
+        }
+
+        UUID targetUserId = userId.filter( id -> isAdmin || id.equals( currentUser.getId() ) )
+                                  .orElseGet( () -> isAdmin ? null : currentUser.getId() );
+
+        long totalItems = libraryItemRepository.countAllByUserId( targetUserId );
+        long favoriteItems = libraryItemRepository.countFavorites( targetUserId );
+        Double avg = libraryItemRepository.averageRating( targetUserId );
+
+        var statusBreakdown = libraryItemRepository.countByStatus( targetUserId )
+                                                   .stream()
+                                                   .collect( Collectors.toMap(
+                                                           LibraryItemRepository.StatusCount::getStatus,
+                                                           LibraryItemRepository.StatusCount::getCount ) );
+
+        var topTypes = libraryItemRepository.countByType( targetUserId )
+                                            .stream()
+                                            .map( tc -> TypeCountResponse.builder()
+                                                                         .typeId( tc.getTypeId() )
+                                                                         .typeName( tc.getTypeName() )
+                                                                         .count( tc.getCount() )
+                                                                         .build() )
+                                            .toList();
+
+        var topSources = libraryItemRepository.countBySource( targetUserId )
+                                              .stream()
+                                              .map( sc -> SourceCountResponse.builder()
+                                                                             .sourceId( sc.getSourceId() )
+                                                                             .sourceName( sc.getSourceName() )
+                                                                             .count( sc.getCount() )
+                                                                             .build() )
+                                              .toList();
+
+        return BookAnalyticsResponse.builder()
+                                    .totalItems( totalItems )
+                                    .favoriteItems( favoriteItems )
+                                    .averageRating( avg != null ? BigDecimal.valueOf( avg ) : null )
+                                    .statusBreakdown( statusBreakdown )
+                                    .topTypes( topTypes )
+                                    .topSources( topSources )
+                                    .build();
     }
 
     private void applyRequest( LibraryItem item, LibraryItemRequest request ) {

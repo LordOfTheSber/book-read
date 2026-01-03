@@ -21,7 +21,9 @@ export const PageLayout: React.FC = () => {
         ? 'users'
         : location.pathname.startsWith('/nodes')
           ? 'nodes'
-          : 'books';
+          : location.pathname.startsWith('/analytics')
+            ? 'analytics'
+            : 'books';
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles();
   const user = useAppSelector((state) => state.auth.user);
@@ -93,6 +95,7 @@ export const PageLayout: React.FC = () => {
               selectedKeys={[selected]}
               items={[
                 { key: 'books', label: <Link to="/">Книги</Link> },
+                { key: 'analytics', label: <Link to="/analytics">Аналитика</Link> },
                 { key: 'types', label: <Link to="/types">Типы</Link> },
                 { key: 'sources', label: <Link to="/sources">Источники</Link> },
                 ...(user?.role === 'ADMIN'
