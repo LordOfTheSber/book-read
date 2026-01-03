@@ -139,6 +139,33 @@ public class UserService implements UserDetailsService {
         return user.getRole() == Role.ADMIN;
     }
 
+    public UserResponse updateSessionOverrides( UUID userId, Integer ttlMinutes, Integer maxLifetimeMinutes ) {
+        User user = userRepository.findById( userId )
+                                  .orElseThrow( () -> new UsernameNotFoundException( "User not found" ) );
+        if ( ttlMinutes != null && ttlMinutes < 1 ) {
+            throw new IllegalArgumentException( "Session TTL must be at least 1 minute" );
+        }
+        if ( maxLifetimeMinutes != null && maxLifetimeMinutes < 1 ) {
+            throw new IllegalArgumentException( "Max session lifetime must be at least 1 minute" );
+        }
+        if ( ttlMinutes != null && maxLifetimeMinutes != null && maxLifetimeMinutes < ttlMinutes ) {
+            throw new IllegalArgumentException( "Max session lifetime cannot be shorter than TTL" );
+        }
+        user.setSessionTtlOverrideMinutes( ttlMinutes );
+        user.setMaxSessionLifetimeOverrideMinutes( maxLifetimeMinutes );
+        User saved = userRepository.save( user );
+        return toResponse( saved );
+    }
+
+    public UserResponse clearSessionOverrides( UUID userId ) {
+        User user = userRepository.findById( userId )
+                                  .orElseThrow( () -> new UsernameNotFoundException( "User not found" ) );
+        user.setSessionTtlOverrideMinutes( null );
+        user.setMaxSessionLifetimeOverrideMinutes( null );
+        User saved = userRepository.save( user );
+        return toResponse( saved );
+    }
+
     public UserResponse toResponse( User user ) {
         return UserResponse.builder()
                            .id( user.getId() )
@@ -148,6 +175,8 @@ public class UserService implements UserDetailsService {
                            .avatarContentType( user.getAvatarContentType() )
                            .createdAt( toOffsetDateTime( user.getCreatedAt() ) )
                            .updatedAt( toOffsetDateTime( user.getUpdatedAt() ) )
+                           .sessionTtlOverrideMinutes( user.getSessionTtlOverrideMinutes() )
+                           .maxSessionLifetimeOverrideMinutes( user.getMaxSessionLifetimeOverrideMinutes() )
                            .build();
     }
 

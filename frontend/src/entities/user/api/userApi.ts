@@ -5,3 +5,16 @@ export const fetchUsers = async (): Promise<User[]> => {
   const { data } = await httpClient.get<User[]>('/users');
   return data;
 };
+
+export const updateUserSessionSettings = async (
+  userId: string,
+  payload: { sessionTtlMinutes?: number | null; maxSessionLifetimeMinutes?: number | null }
+): Promise<User> => {
+  const { data } = await httpClient.put<User>(`/users/${userId}/session-settings`, payload);
+  return data;
+};
+
+export const clearUserSessionSettings = async (userId: string): Promise<User> => {
+  const { data } = await httpClient.delete<User>(`/users/${userId}/session-settings`);
+  return data;
+};

@@ -53,6 +53,8 @@ export interface User {
   avatarContentType?: string;
   createdAt?: string;
   updatedAt?: string;
+  sessionTtlOverrideMinutes?: number | null;
+  maxSessionLifetimeOverrideMinutes?: number | null;
 }
 
 export interface SystemNode {
@@ -82,4 +84,9 @@ export interface BookAnalytics {
   statusBreakdown: Record<ReadingStatus, number>;
   topTypes: Array<{ typeId: string; typeName: string; count: number }>;
   topSources: Array<{ sourceId: string; sourceName: string; count: number }>;
+}
+
+export interface SessionSettings {
+  sessionTtlMinutes: number;
+  maxSessionLifetimeMinutes: number;
 }

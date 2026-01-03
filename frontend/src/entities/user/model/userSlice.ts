@@ -15,12 +15,19 @@ const initialState: UsersState = {
   loaded: false
 };
 
-export const loadUsers = createAsyncThunk('users/load', async () => fetchUsers(), {
-  condition: (_, { getState }) => {
-    const state = getState() as { users: UsersState };
-    return !state.users.loaded && !state.users.loading;
+export const loadUsers = createAsyncThunk<User[], boolean | undefined>(
+  'users/load',
+  async () => fetchUsers(),
+  {
+    condition: (force, { getState }) => {
+      const state = getState() as { users: UsersState };
+      if (force) {
+        return true;
+      }
+      return !state.users.loaded && !state.users.loading;
+    }
   }
-});
+);
 
 const usersSlice = createSlice({
   name: 'users',

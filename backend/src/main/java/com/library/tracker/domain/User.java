@@ -42,4 +42,10 @@ public class User extends BaseAuditEntity {
 
     @Column( name = "avatar_content_type" )
     private String avatarContentType;
+
+    @Column( name = "session_ttl_override_minutes" )
+    private Integer sessionTtlOverrideMinutes;
+
+    @Column( name = "max_session_lifetime_override_minutes" )
+    private Integer maxSessionLifetimeOverrideMinutes;
 }

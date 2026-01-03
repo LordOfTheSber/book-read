@@ -3,13 +3,16 @@ package com.library.tracker.web;
 import com.library.tracker.domain.User;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.service.SessionService;
 import com.library.tracker.web.dto.AuthRequest;
 import com.library.tracker.web.dto.AuthResponse;
 import com.library.tracker.web.dto.RegisterRequest;
+import com.library.tracker.web.dto.SessionResponse;
 import com.library.tracker.web.dto.UserResponse;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +30,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final JwtService jwtService;
+    private final SessionService sessionService;
 
     @PostMapping( "/login" )
     public ResponseEntity<AuthResponse> login(
@@ -40,11 +44,20 @@ public class AuthController {
                                .orElseThrow( () -> new IllegalStateException( "User not found after login" ) );
         UserResponse userResponse = userService.toResponse( user );
         String jwt = jwtService.generateToken( user );
+        var session = sessionService.createSession( user );
+        var cookie = sessionService.buildCookie( session );
         AuthResponse response = AuthResponse.builder()
                                             .token( jwt )
                                             .user( userResponse )
+                                            .session( SessionResponse.builder()
+                                                                      .id( session.getId() )
+                                                                      .expiresAt( session.getExpiresAt() )
+                                                                      .maxExpiresAt( session.getMaxExpiresAt() )
+                                                                      .build() )
                                             .build();
-        return ResponseEntity.ok( response );
+        return ResponseEntity.ok()
+                             .header( HttpHeaders.SET_COOKIE, cookie.toString() )
+                             .body( response );
     }
 
     @PostMapping( "/register" )
@@ -52,6 +65,19 @@ public class AuthController {
         User user = userService.register( request.getUsername(), request.getPassword() );
         String token = jwtService.generateToken( user );
         UserResponse userResponse = userService.toResponse( user );
-        return ResponseEntity.ok( AuthResponse.builder().token( token ).user( userResponse ).build() );
+        var session = sessionService.createSession( user );
+        var cookie = sessionService.buildCookie( session );
+        AuthResponse response = AuthResponse.builder()
+                                            .token( token )
+                                            .user( userResponse )
+                                            .session( SessionResponse.builder()
+                                                                      .id( session.getId() )
+                                                                      .expiresAt( session.getExpiresAt() )
+                                                                      .maxExpiresAt( session.getMaxExpiresAt() )
+                                                                      .build() )
+                                            .build();
+        return ResponseEntity.ok()
+                             .header( HttpHeaders.SET_COOKIE, cookie.toString() )
+                             .body( response );
     }
 }
