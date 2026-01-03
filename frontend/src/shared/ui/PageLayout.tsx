@@ -19,7 +19,9 @@ export const PageLayout: React.FC = () => {
       ? 'sources'
       : location.pathname.startsWith('/users')
         ? 'users'
-      : 'books';
+        : location.pathname.startsWith('/nodes')
+          ? 'nodes'
+          : 'books';
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles();
   const user = useAppSelector((state) => state.auth.user);
@@ -94,7 +96,10 @@ export const PageLayout: React.FC = () => {
                 { key: 'types', label: <Link to="/types">Типы</Link> },
                 { key: 'sources', label: <Link to="/sources">Источники</Link> },
                 ...(user?.role === 'ADMIN'
-                  ? [{ key: 'users', label: <Link to="/users">Пользователи</Link> }]
+                  ? [
+                      { key: 'users', label: <Link to="/users">Пользователи</Link> },
+                      { key: 'nodes', label: <Link to="/nodes">Узлы</Link> }
+                    ]
                   : [])
               ]}
             />

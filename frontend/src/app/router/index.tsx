@@ -8,6 +8,7 @@ import { LoginPage } from '@/pages/login-page';
 import { RegisterPage } from '@/pages/register-page';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { UsersPage } from '@/pages/users-page';
+import { NodesPage } from '@/pages/nodes-page';
 import { fetchCurrentUser } from '@/entities/auth';
 
 const RequireAuth: React.FC = () => {
@@ -41,6 +42,11 @@ const router = createBrowserRouter([
             path: 'users',
             element: <RequireAdmin />,
             children: [{ index: true, element: <UsersPage /> }]
+          },
+          {
+            path: 'nodes',
+            element: <RequireAdmin />,
+            children: [{ index: true, element: <NodesPage /> }]
           }
         ]
       }

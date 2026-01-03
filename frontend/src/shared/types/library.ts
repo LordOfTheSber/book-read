@@ -54,3 +54,23 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface SystemNode {
+  id: string;
+  nodeKey: string;
+  hostname?: string;
+  ip?: string;
+  port?: number;
+  cpuLoad?: number;
+  systemMemoryTotal?: number;
+  systemMemoryFree?: number;
+  heapUsed?: number;
+  heapCommitted?: number;
+  heapMax?: number;
+  diskTotal?: number;
+  diskFree?: number;
+  uptimeSeconds?: number;
+  lastReportedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

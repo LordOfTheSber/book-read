@@ -42,6 +42,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
                         .requestMatchers( HttpMethod.PUT, "/api/v1/book-types/**" ).hasAnyRole( "ADMIN", "EDITOR" )
                         .requestMatchers( HttpMethod.DELETE, "/api/v1/book-types/**" ).hasRole( "ADMIN" )
                         .requestMatchers( HttpMethod.GET, "/api/v1/sources/**" ).hasAnyRole( "ADMIN", "EDITOR", "USER" )
+                        .requestMatchers( HttpMethod.GET, "/api/v1/nodes/**" ).hasRole( "ADMIN" )
                         .requestMatchers( HttpMethod.POST, "/api/v1/sources" ).hasAnyRole( "ADMIN", "EDITOR" )
                         .requestMatchers( HttpMethod.PUT, "/api/v1/sources/**" ).hasAnyRole( "ADMIN", "EDITOR" )
                         .requestMatchers( HttpMethod.DELETE, "/api/v1/sources/**" ).hasRole( "ADMIN" )
