@@ -1,2 +1,2 @@
-export { authReducer, authActions, fetchCurrentUser } from './model/authSlice';
+export { authReducer, authActions, fetchCurrentUser, uploadAvatarThunk } from './model/authSlice';
 export type { AuthState } from './model/authSlice';

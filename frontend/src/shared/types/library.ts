@@ -49,6 +49,8 @@ export interface User {
   id: string;
   username: string;
   role: string;
+  avatar?: string;
+  avatarContentType?: string;
   createdAt?: string;
   updatedAt?: string;
 }

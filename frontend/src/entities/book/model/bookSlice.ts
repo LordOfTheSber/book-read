@@ -57,6 +57,13 @@ const bookSlice = createSlice({
         state.loading = false;
         state.error = action.error.message;
       })
+      .addCase(createBookThunk.fulfilled, (state, action: PayloadAction<LibraryItem>) => {
+        state.items = [action.payload, ...state.items];
+        state.total = state.total + 1;
+      })
+      .addCase(updateBookThunk.fulfilled, (state, action: PayloadAction<LibraryItem>) => {
+        state.items = state.items.map((item) => (item.id === action.payload.id ? action.payload : item));
+      })
       .addCase(deleteBookThunk.fulfilled, (state, action) => {
         state.items = state.items.filter((item) => item.id !== action.payload);
         state.total = Math.max(0, state.total - 1);

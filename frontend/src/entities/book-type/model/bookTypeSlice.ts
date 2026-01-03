@@ -6,14 +6,21 @@ interface BookTypeState {
   list: BookType[];
   loading: boolean;
   error?: string;
+  loaded: boolean;
 }
 
 const initialState: BookTypeState = {
   list: [],
-  loading: false
+  loading: false,
+  loaded: false
 };
 
-export const loadBookTypes = createAsyncThunk('bookTypes/load', async () => fetchBookTypes());
+export const loadBookTypes = createAsyncThunk('bookTypes/load', async () => fetchBookTypes(), {
+  condition: (_, { getState }) => {
+    const state = getState() as { bookTypes: BookTypeState };
+    return !state.bookTypes.loaded && !state.bookTypes.loading;
+  }
+});
 export const createBookTypeThunk = createAsyncThunk('bookTypes/create', async (payload: Partial<BookType>) => createBookType(payload));
 export const updateBookTypeThunk = createAsyncThunk('bookTypes/update', async ({ id, payload }: { id: string; payload: Partial<BookType> }) =>
   updateBookType(id, payload)
@@ -35,6 +42,7 @@ const bookTypeSlice = createSlice({
       .addCase(loadBookTypes.fulfilled, (state, action: PayloadAction<BookType[]>) => {
         state.loading = false;
         state.list = action.payload;
+        state.loaded = true;
       })
       .addCase(loadBookTypes.rejected, (state, action) => {
         state.loading = false;

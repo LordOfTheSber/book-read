@@ -4,7 +4,7 @@ import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { DeleteOutlined, EditOutlined, PlusOutlined, StarFilled, SearchOutlined } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { deleteBookThunk, loadBooks, updateBookThunk, createBookThunk } from '@/entities/book';
+import { deleteBookThunk, updateBookThunk, createBookThunk } from '@/entities/book';
 import { statusOptions } from '@/shared/constants/status';
 import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
 import { loadSources } from '@/entities/source';
@@ -173,7 +173,6 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
         try {
           await dispatch(deleteBookThunk(id)).unwrap();
           message.success('Книга удалена');
-          dispatch(loadBooks(filters));
         } catch (error) {
           showRequestError(error, 'Не удалось удалить книгу');
         }
@@ -211,7 +210,6 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
         message.success('Книга добавлена');
       }
       setDrawerOpen(false);
-      dispatch(loadBooks(filters));
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить книгу');
     }

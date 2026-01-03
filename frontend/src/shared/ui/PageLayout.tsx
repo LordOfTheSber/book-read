@@ -1,11 +1,12 @@
-import { Avatar, Button, Dropdown, Layout, Menu, Segmented, Space, Tag, Typography } from 'antd';
+import { Avatar, Button, Dropdown, Layout, Menu, Segmented, Space, Tag, Typography, Upload, message, Modal } from 'antd';
+import type { UploadProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { useThemeMode } from '@/app/providers/ThemeProvider';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { authActions } from '@/entities/auth';
+import { authActions, uploadAvatarThunk } from '@/entities/auth';
 
 const { Header, Content } = Layout;
 
@@ -22,12 +23,53 @@ export const PageLayout: React.FC = () => {
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles();
   const user = useAppSelector((state) => state.auth.user);
+  const updatingAvatar = useAppSelector((state) => state.auth.updatingAvatar);
   const dispatch = useAppDispatch();
+  const [isAvatarPreviewOpen, setAvatarPreviewOpen] = React.useState(false);
+  const [isDropdownOpen, setDropdownOpen] = React.useState(false);
 
   const handleLogout = () => {
     dispatch(authActions.logout());
     navigate('/login');
   };
+
+  const avatarSrc = user?.avatar && user.avatarContentType ? `data:${user.avatarContentType};base64,${user.avatar}` : undefined;
+
+  const handleAvatarUpload: UploadProps['beforeUpload'] = async (file) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      message.error('Поддерживаются только PNG, JPEG, WEBP или GIF');
+      return Upload.LIST_IGNORE;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      message.error('Размер файла не должен превышать 2 МБ');
+      return Upload.LIST_IGNORE;
+    }
+    try {
+      await dispatch(uploadAvatarThunk(file)).unwrap();
+      message.success('Аватар обновлён');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Не удалось загрузить аватар';
+      message.error(msg);
+    }
+    return false;
+  };
+
+  const handleAvatarClick: React.MouseEventHandler = (event) => {
+    event.stopPropagation();
+    if (!isDropdownOpen) return;
+    if (!avatarSrc) {
+      message.info('Аватар ещё не загружен');
+      return;
+    }
+    setAvatarPreviewOpen(true);
+  };
+
+  React.useEffect(() => {
+    if (!isDropdownOpen) {
+      setAvatarPreviewOpen(false);
+    }
+  }, [isDropdownOpen]);
 
   return (
     <Layout style={styles.layout}>
@@ -63,6 +105,8 @@ export const PageLayout: React.FC = () => {
               <Dropdown
                 trigger={['click']}
                 placement="bottomRight"
+                open={isDropdownOpen}
+                onOpenChange={setDropdownOpen}
                 dropdownRender={() => (
                   <div
                     style={{
@@ -76,7 +120,9 @@ export const PageLayout: React.FC = () => {
                   >
                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
                       <Space>
-                        <Avatar>{user.username.charAt(0).toUpperCase()}</Avatar>
+                        <Avatar src={avatarSrc} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
+                          {user.username.charAt(0).toUpperCase()}
+                        </Avatar>
                         <div>
                           <Typography.Text strong>{user.username}</Typography.Text>
                           <br />
@@ -85,6 +131,11 @@ export const PageLayout: React.FC = () => {
                           </Tag>
                         </div>
                       </Space>
+                      <Upload showUploadList={false} beforeUpload={handleAvatarUpload}>
+                        <Button block loading={updatingAvatar}>
+                          Изменить аватар
+                        </Button>
+                      </Upload>
                       <div>
                         <Typography.Text type="secondary">Тема</Typography.Text>
                         <Segmented
@@ -106,7 +157,9 @@ export const PageLayout: React.FC = () => {
                 )}
               >
                 <Button type="text" style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Avatar size="small">{user.username.charAt(0).toUpperCase()}</Avatar>
+                  <Avatar size="small" src={avatarSrc} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
+                    {user.username.charAt(0).toUpperCase()}
+                  </Avatar>
                   <span>{user.username}</span>
                 </Button>
               </Dropdown>
@@ -135,6 +188,21 @@ export const PageLayout: React.FC = () => {
       <Content style={styles.content}>
         <Outlet />
       </Content>
+
+      <Modal
+        open={isAvatarPreviewOpen}
+        footer={null}
+        onCancel={() => setAvatarPreviewOpen(false)}
+        centered
+        width={360}
+        bodyStyle={{ textAlign: 'center' }}
+      >
+        {avatarSrc ? (
+          <img src={avatarSrc} alt="Аватар пользователя" style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }} />
+        ) : (
+          <Typography.Text type="secondary">Аватар отсутствует</Typography.Text>
+        )}
+      </Modal>
     </Layout>
   );
 };

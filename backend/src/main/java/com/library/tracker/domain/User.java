@@ -13,6 +13,8 @@ import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table( name = "users" )
@@ -33,4 +35,11 @@ public class User extends BaseAuditEntity {
     @Enumerated( EnumType.STRING )
     @Column( name = "role", nullable = false )
     private Role role = Role.USER;
+
+    @JdbcTypeCode( SqlTypes.BINARY )
+    @Column( name = "avatar" )
+    private byte[] avatar;
+
+    @Column( name = "avatar_content_type" )
+    private String avatarContentType;
 }

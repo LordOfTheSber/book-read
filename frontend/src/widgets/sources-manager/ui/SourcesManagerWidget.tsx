@@ -55,7 +55,6 @@ export const SourcesManagerWidget: React.FC = () => {
         message.success('Источник добавлен');
       }
       setOpen(false);
-      dispatch(loadSources());
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить источник');
     }
@@ -70,7 +69,6 @@ export const SourcesManagerWidget: React.FC = () => {
         try {
           await dispatch(deleteSourceThunk(id)).unwrap();
           message.success('Источник удалён');
-          dispatch(loadSources());
         } catch (error) {
           showRequestError(error, 'Не удалось удалить источник');
         }
