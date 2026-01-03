@@ -7,6 +7,7 @@ import { sourceReducer } from '@/entities/source';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 import { authReducer } from '@/entities/auth';
 import { usersReducer } from '@/entities/user';
+import { nodesReducer } from '@/entities/node';
 
 const store = configureStore({
   reducer: {
@@ -15,7 +16,8 @@ const store = configureStore({
     bookTypes: bookTypeReducer,
     sources: sourceReducer,
     bookFilters: bookFilterReducer,
-    users: usersReducer
+    users: usersReducer,
+    nodes: nodesReducer
   }
 });
 
