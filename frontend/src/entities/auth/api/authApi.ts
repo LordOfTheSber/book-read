@@ -6,9 +6,16 @@ export interface AuthRequest {
   password: string;
 }
 
+export interface AuthSession {
+  id: string;
+  expiresAt: string;
+  maxExpiresAt: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;
+  session?: AuthSession;
 }
 
 export const login = async (payload: AuthRequest): Promise<AuthResponse> => {

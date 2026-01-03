@@ -47,6 +47,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
                         .requestMatchers( HttpMethod.POST, "/api/v1/sources" ).hasAnyRole( "ADMIN", "EDITOR" )
                         .requestMatchers( HttpMethod.PUT, "/api/v1/sources/**" ).hasAnyRole( "ADMIN", "EDITOR" )
                         .requestMatchers( HttpMethod.DELETE, "/api/v1/sources/**" ).hasRole( "ADMIN" )
+                        .requestMatchers( "/api/v1/sessions/**" ).hasRole( "ADMIN" )
                         .anyRequest().authenticated()
                 )
                 .sessionManagement( session -> session.sessionCreationPolicy( SessionCreationPolicy.STATELESS ) )

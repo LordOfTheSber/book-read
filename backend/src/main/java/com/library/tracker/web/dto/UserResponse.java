@@ -19,4 +19,6 @@ public class UserResponse {
     String avatarContentType;
     OffsetDateTime createdAt;
     OffsetDateTime updatedAt;
+    Integer sessionTtlOverrideMinutes;
+    Integer maxSessionLifetimeOverrideMinutes;
 }

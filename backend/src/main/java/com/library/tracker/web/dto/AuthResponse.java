@@ -9,4 +9,5 @@ public class AuthResponse {
 
     String token;
     UserResponse user;
+    SessionResponse session;
 }
