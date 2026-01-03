@@ -74,3 +74,12 @@ export interface SystemNode {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface BookAnalytics {
+  totalItems: number;
+  favoriteItems: number;
+  averageRating?: number;
+  statusBreakdown: Record<ReadingStatus, number>;
+  topTypes: Array<{ typeId: string; typeName: string; count: number }>;
+  topSources: Array<{ sourceId: string; sourceName: string; count: number }>;
+}
