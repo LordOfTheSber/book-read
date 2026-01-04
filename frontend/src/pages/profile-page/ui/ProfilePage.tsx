@@ -6,6 +6,7 @@ import {
   Col,
   Divider,
   Flex,
+  Grid,
   Image,
   Progress,
   Row,
@@ -57,7 +58,9 @@ interface Achievement {
 
 export const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const styles = useProfilePageStyles();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const styles = useProfilePageStyles(isMobile);
   const { mode, setMode } = useThemeMode();
   const themeColorMap: Record<typeof mode, string> = {
     light: '#f5f5f5',
@@ -179,7 +182,7 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <Card title="Профиль" style={styles.pageCard} headStyle={styles.pageHead} bodyStyle={styles.pageBody}>
-      <Flex gap={styles.contentWrapper.gap} align="start">
+      <Flex gap={styles.contentWrapper.gap} align={styles.contentWrapper.alignItems} vertical={isMobile}>
         <Flex flex={1} vertical style={styles.heroCard}>
           <div style={styles.heroBanner}>
             <Space align="center" size={16} wrap>

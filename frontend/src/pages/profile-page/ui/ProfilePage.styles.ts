@@ -1,6 +1,6 @@
 import { theme } from 'antd';
 
-export const useProfilePageStyles = () => {
+export const useProfilePageStyles = (isMobile: boolean) => {
   const { token } = theme.useToken();
   return {
     pageCard: {
@@ -18,7 +18,9 @@ export const useProfilePageStyles = () => {
       padding: 24
     },
     contentWrapper: {
-      gap: 24
+      gap: 24,
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'stretch' : 'flex-start'
     },
     heroCard: {
       background: token.colorBgContainer,
@@ -34,6 +36,8 @@ export const useProfilePageStyles = () => {
       alignItems: 'center',
       gap: 16,
       flexWrap: 'wrap',
+      width: '100%',
+      minWidth: 0,
       padding: 14,
       borderRadius: 12,
       background: `linear-gradient(120deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 70%, ${token.colorInfo} 100%)`,
@@ -64,10 +68,11 @@ export const useProfilePageStyles = () => {
       borderRadius: 14,
       boxShadow: token.boxShadowSecondary,
       padding: 0,
-      position: 'sticky' as const,
-      top: 24,
-      minWidth: 300,
-      maxWidth: 360
+      position: isMobile ? 'static' : ('sticky' as const),
+      top: isMobile ? undefined : 24,
+      minWidth: isMobile ? 'auto' : 300,
+      maxWidth: isMobile ? '100%' : 360,
+      width: isMobile ? '100%' : 'auto'
     },
     sideCardBody: {
       padding: 18

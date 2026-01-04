@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Drawer, Modal, Space, Table, Tag, message, Form, Input, Select, Switch, Tooltip, Flex, Rate } from 'antd';
+import { Button, Drawer, Modal, Space, Table, Tag, message, Form, Input, Select, Switch, Tooltip, Flex, Rate, Grid, List, Typography, Pagination } from 'antd';
 import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { DeleteOutlined, EditOutlined, PlusOutlined, StarFilled, SearchOutlined } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
@@ -46,17 +46,19 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const sources = useAppSelector((state) => state.sources.list);
   const filters = useAppSelector((state) => state.bookFilters);
   const role = useAppSelector((state) => state.auth.user?.role);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(filters.q ?? '');
   const [form] = Form.useForm();
-  const styles = useBooksTableWidgetStyles();
+  const styles = useBooksTableWidgetStyles(isMobile);
   const isAdmin = role === 'ADMIN';
 
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [
       { title: 'Название', dataIndex: 'title', sorter: true, ellipsis: true },
-      { title: 'Альтернативное название', dataIndex: 'altTitle', ellipsis: true, render: renderDash },
+      { title: 'Альтернативное название', dataIndex: 'altTitle', ellipsis: true, render: renderDash, responsive: ['lg'] },
       {
         title: 'Тип',
         dataIndex: 'typeName',
@@ -66,6 +68,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
       {
         title: 'Источник',
         dataIndex: 'sourceName',
+        responsive: ['sm'],
         render: (sourceName, record) => {
           if (!sourceName) return renderDash();
           if (!record.sourceUrl) return sourceName;
@@ -106,6 +109,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
       {
         title: 'Обновлено',
         dataIndex: 'updatedAt',
+        responsive: ['md'],
         render: (value) => formatDateTime(value)
       },
       ...(isAdmin
@@ -228,6 +232,10 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
     dispatch(setFilters({ ...filters, q: value || undefined, page: 0 }));
   };
 
+  const handleMobilePageChange = (pageNumber: number, pageSize: number) => {
+    onChangePage(pageNumber - 1, pageSize, filters.sort);
+  };
+
   return (
     <>
       <Flex style={styles.toolbar} align="center" wrap>
@@ -244,31 +252,102 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
           style={styles.searchInput}
         />
       </Flex>
-      <Table
-        rowKey={(record) => record.id}
-        columns={columns}
-        dataSource={items}
-        loading={loading}
-        pagination={{
-          current: page + 1,
-          pageSize: size,
-          total,
-          showSizeChanger: true,
-          showTotal: (count, range) => `Книги ${range[0]}–${range[1]} из ${count}`
-        }}
-        onChange={onTableChange}
-        size="middle"
-        bordered={false}
-        style={styles.tableSurface}
-        onHeaderRow={() => ({ style: styles.headerRow })}
-      />
+      {isMobile ? (
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <List
+            style={styles.mobileList}
+            loading={loading}
+            dataSource={items}
+            renderItem={(item) => (
+              <div style={styles.mobileCard} key={item.id}>
+                <div style={styles.mobileHeader}>
+                  <div style={styles.mobileMeta}>
+                    <Typography.Text strong>{item.title}</Typography.Text>
+                    {item.altTitle && (
+                      <Typography.Text type="secondary" ellipsis>
+                        {item.altTitle}
+                      </Typography.Text>
+                    )}
+                    <Space size={4} wrap>
+                      <Tag color={statusColorMap[item.status] || 'default'}>
+                        {statusLabelMap[item.status] || item.status}
+                      </Tag>
+                      {item.typeName && <Tag>{item.typeName}</Tag>}
+                      {item.favorite && (
+                        <Tag color="gold" bordered={false} icon={<StarFilled />}>
+                          Избранное
+                        </Tag>
+                      )}
+                    </Space>
+                    <Typography.Text type="secondary">
+                      Источник: {item.sourceName || '—'}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      Оценка: {formatRating(item.rating)}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      Обновлено: {formatDateTime(item.updatedAt)}
+                    </Typography.Text>
+                    {isAdmin && (
+                      <Typography.Text type="secondary">
+                        Автор: {renderDash(item.createdByUsername)}
+                      </Typography.Text>
+                    )}
+                  </div>
+                </div>
+                {isAdmin && (
+                  <div style={{ marginTop: 10 }}>
+                    <Space style={styles.mobileActions} wrap>
+                      <Button size="small" type="primary" onClick={() => openEdit(item)}>
+                        Редактировать
+                      </Button>
+                      <Button size="small" danger onClick={() => confirmDelete(item.id)}>
+                        Удалить
+                      </Button>
+                    </Space>
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <Pagination
+            current={page + 1}
+            pageSize={size}
+            total={total}
+            showSizeChanger
+            onChange={handleMobilePageChange}
+            onShowSizeChange={handleMobilePageChange}
+            showTotal={(count, range) => `Книги ${range[0]}–${range[1]} из ${count}`}
+          />
+        </Space>
+      ) : (
+        <Table
+          rowKey={(record) => record.id}
+          columns={columns}
+          dataSource={items}
+          loading={loading}
+          pagination={{
+            current: page + 1,
+            pageSize: size,
+            total,
+            showSizeChanger: true,
+            showTotal: (count, range) => `Книги ${range[0]}–${range[1]} из ${count}`
+          }}
+          onChange={onTableChange}
+          size="middle"
+          bordered={false}
+          style={styles.tableSurface}
+          onHeaderRow={() => ({ style: styles.headerRow })}
+          scroll={{ x: true }}
+        />
+      )}
 
       <Drawer
         title={editing ? 'Редактирование книги' : 'Добавление книги'}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         destroyOnClose
-        width={720}
+        width={isMobile ? '100%' : 720}
         footer={
           <div style={styles.drawerFooter}>
             <Button onClick={() => setDrawerOpen(false)}>Отмена</Button>

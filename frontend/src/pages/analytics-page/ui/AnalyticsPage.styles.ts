@@ -1,6 +1,6 @@
 import { theme } from 'antd';
 
-export const useAnalyticsPageStyles = () => {
+export const useAnalyticsPageStyles = (isMobile: boolean) => {
   const { token } = theme.useToken();
   return {
     pageCard: {
@@ -18,7 +18,9 @@ export const useAnalyticsPageStyles = () => {
       padding: 24
     },
     contentWrapper: {
-      gap: 24
+      gap: 24,
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'stretch' : 'flex-start'
     },
     heroCard: {
       background: token.colorBgContainer,
@@ -39,10 +41,11 @@ export const useAnalyticsPageStyles = () => {
       borderRadius: 14,
       boxShadow: token.boxShadowSecondary,
       padding: 0,
-      position: 'sticky' as const,
-      top: 24,
-      maxWidth: 340,
-      minWidth: 300
+      position: isMobile ? 'static' : ('sticky' as const),
+      top: isMobile ? undefined : 24,
+      maxWidth: isMobile ? '100%' : 340,
+      minWidth: isMobile ? 'auto' : 300,
+      width: isMobile ? '100%' : 'auto'
     },
     filtersCardBodyStyle: { padding: 0 },
     filtersCardBody: {

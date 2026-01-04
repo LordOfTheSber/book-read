@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, Col, Empty, Flex, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Card, Col, Empty, Flex, Grid, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { analyticsActions, loadBookAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
@@ -14,7 +14,9 @@ const statusColorMap: Record<ReadingStatus, string> = {
 };
 
 export const AnalyticsPage: React.FC = () => {
-  const styles = useAnalyticsPageStyles();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const styles = useAnalyticsPageStyles(isMobile);
   const dispatch = useAppDispatch();
   const { data, loading, error, currentUserId } = useAppSelector((state) => state.analytics);
   const { list: users, loaded: usersLoaded, loading: usersLoading } = useAppSelector((state) => state.users);
@@ -52,7 +54,7 @@ export const AnalyticsPage: React.FC = () => {
 
   return (
     <Card title="Аналитика" style={styles.pageCard} headStyle={styles.pageHead} bodyStyle={styles.pageBody}>
-      <Flex gap={styles.contentWrapper.gap} align="start">
+      <Flex gap={styles.contentWrapper.gap} align={styles.contentWrapper.alignItems} vertical={isMobile}>
         <Flex flex={1} vertical gap={18} style={styles.heroCard as React.CSSProperties}>
           <Typography.Title level={4} style={styles.heroTitle}>
             Аналитика по книгам
@@ -95,6 +97,7 @@ export const AnalyticsPage: React.FC = () => {
                     ) : (
                       <Table
                         size="small"
+                        scroll={{ x: true }}
                         rowKey={(row) => row.status}
                         dataSource={statusData}
                         pagination={false}
@@ -119,6 +122,7 @@ export const AnalyticsPage: React.FC = () => {
                     ) : (
                       <Table
                         size="small"
+                        scroll={{ x: true }}
                         rowKey={(row) => row.typeId}
                         dataSource={data.topTypes}
                         pagination={false}
@@ -140,6 +144,7 @@ export const AnalyticsPage: React.FC = () => {
                     ) : (
                       <Table
                         size="small"
+                        scroll={{ x: true }}
                         rowKey={(row) => row.sourceId}
                         dataSource={sourceData}
                         pagination={false}
