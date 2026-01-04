@@ -235,7 +235,9 @@ public class DatabaseDumpService implements ApplicationRunner {
             log.error( "{} interrupted", label, ex );
             return false;
         } catch ( IOException ex ) {
-            log.error( "Failed to run {}. Ensure the utility is installed and on PATH", label, ex );
+            String binary = command.isEmpty() ? label : command.getFirst();
+            log.warn( "Skipping {} because \"{}\" is not available. Ensure the PostgreSQL client tools are installed and on PATH", label, binary );
+            log.debug( "{} failed with IOException", label, ex );
             return false;
         }
     }
