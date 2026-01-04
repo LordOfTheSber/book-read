@@ -33,7 +33,7 @@ services:
       context: ..
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
     environment:
       DOMAIN: ${DOMAIN:-book.read.katernyuk.s.m}
       SSL_CERT_PATH: ${SSL_CERT_PATH:-/etc/nginx/certs/fullchain.pem}
