@@ -47,6 +47,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -66,6 +69,9 @@ public class DataExportService {
 
     @Value( "${export.directory:exports}" )
     private String exportDirectory;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional( readOnly = true )
     public ExportResult exportData() {
@@ -220,91 +226,103 @@ public class DataExportService {
         systemNodeRepository.deleteAll();
         userRepository.deleteAll();
         sessionSettingsRepository.deleteAll();
+        entityManager.flush();
+        entityManager.clear();
     }
 
     private Map<UUID, User> saveUsers( ExportPayload payload ) {
         if ( payload.getUsers() == null ) {
             return Map.of();
         }
-        List<User> saved = userRepository.saveAll(
-                payload.getUsers()
-                       .stream()
-                       .map( dto -> {
-                           User user = new User();
-                           user.setId( dto.getId() );
-                           user.setUsername( dto.getUsername() );
-                           user.setPassword( dto.getPassword() );
-                           user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
-                           user.setBlocked( dto.isBlocked() );
-                           user.setAvatar( decode( dto.getAvatarBase64() ) );
-                           user.setAvatarContentType( dto.getAvatarContentType() );
-                           user.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
-                           user.setMaxSessionLifetimeOverrideMinutes( dto.getMaxSessionLifetimeOverrideMinutes() );
-                           return user;
-                       } )
-                       .toList()
-        );
-        return saved.stream().collect( Collectors.toMap( User::getId, u -> u ) );
+        Map<UUID, User> users = payload.getUsers()
+                                        .stream()
+                                        .map( dto -> {
+                                            User user = new User();
+                                            user.setId( dto.getId() );
+                                            user.setUsername( dto.getUsername() );
+                                            user.setPassword( dto.getPassword() );
+                                            user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
+                                           user.setBlocked( dto.isBlocked() );
+                                           user.setAvatar( decode( dto.getAvatarBase64() ) );
+                                           user.setAvatarContentType( dto.getAvatarContentType() );
+                                           user.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
+                                           user.setMaxSessionLifetimeOverrideMinutes( dto.getMaxSessionLifetimeOverrideMinutes() );
+                                           user.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime()
+                                                                                        : null );
+                                           user.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime()
+                                                                                        : null );
+                                           entityManager.persist( user );
+                                           return user;
+                                       } )
+                                        .collect( Collectors.toMap( User::getId, u -> u ) );
+        entityManager.flush();
+        return users;
     }
 
     private Map<UUID, BookType> saveBookTypes( ExportPayload payload ) {
         if ( payload.getBookTypes() == null ) {
             return Map.of();
         }
-        List<BookType> saved = bookTypeRepository.saveAll(
-                payload.getBookTypes().stream().map( dto -> {
-                    BookType type = new BookType();
-                    type.setId( dto.getId() );
-                    type.setName( dto.getName() );
-                    return type;
-                } ).toList()
-        );
-        return saved.stream().collect( Collectors.toMap( BookType::getId, t -> t ) );
+        Map<UUID, BookType> saved = payload.getBookTypes().stream().map( dto -> {
+            BookType type = new BookType();
+            type.setId( dto.getId() );
+            type.setName( dto.getName() );
+            type.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime() : null );
+            type.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : null );
+            entityManager.persist( type );
+            return type;
+        } ).collect( Collectors.toMap( BookType::getId, t -> t ) );
+        entityManager.flush();
+        return saved;
     }
 
     private Map<UUID, Source> saveSources( ExportPayload payload ) {
         if ( payload.getSources() == null ) {
             return Map.of();
         }
-        List<Source> saved = sourceRepository.saveAll(
-                payload.getSources().stream().map( dto -> {
-                    Source source = new Source();
-                    source.setId( dto.getId() );
-                    source.setName( dto.getName() );
-                    source.setUrl( dto.getUrl() );
-                    source.setDescription( dto.getDescription() );
-                    return source;
-                } ).toList()
-        );
-        return saved.stream().collect( Collectors.toMap( Source::getId, s -> s ) );
+        Map<UUID, Source> saved = payload.getSources().stream().map( dto -> {
+            Source source = new Source();
+            source.setId( dto.getId() );
+            source.setName( dto.getName() );
+            source.setUrl( dto.getUrl() );
+            source.setDescription( dto.getDescription() );
+            source.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime() : null );
+            source.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : null );
+            entityManager.persist( source );
+            return source;
+        } ).collect( Collectors.toMap( Source::getId, s -> s ) );
+        entityManager.flush();
+        return saved;
     }
 
     private Map<UUID, SystemNode> saveSystemNodes( ExportPayload payload ) {
         if ( payload.getSystemNodes() == null ) {
             return Map.of();
         }
-        List<SystemNode> saved = systemNodeRepository.saveAll(
-                payload.getSystemNodes().stream().map( dto -> {
-                    SystemNode node = new SystemNode();
-                    node.setId( dto.getId() );
-                    node.setNodeKey( dto.getNodeKey() );
-                    node.setHostname( dto.getHostname() );
-                    node.setIp( dto.getIp() );
-                    node.setPort( dto.getPort() );
-                    node.setCpuLoad( dto.getCpuLoad() );
-                    node.setSystemMemoryTotal( dto.getSystemMemoryTotal() );
-                    node.setSystemMemoryFree( dto.getSystemMemoryFree() );
-                    node.setHeapUsed( dto.getHeapUsed() );
-                    node.setHeapCommitted( dto.getHeapCommitted() );
-                    node.setHeapMax( dto.getHeapMax() );
-                    node.setDiskTotal( dto.getDiskTotal() );
-                    node.setDiskFree( dto.getDiskFree() );
-                    node.setUptimeSeconds( dto.getUptimeSeconds() );
-                    node.setLastReportedAt( dto.getLastReportedAt() );
-                    return node;
-                } ).toList()
-        );
-        return saved.stream().collect( Collectors.toMap( SystemNode::getId, n -> n ) );
+        Map<UUID, SystemNode> saved = payload.getSystemNodes().stream().map( dto -> {
+            SystemNode node = new SystemNode();
+            node.setId( dto.getId() );
+            node.setNodeKey( dto.getNodeKey() );
+            node.setHostname( dto.getHostname() );
+            node.setIp( dto.getIp() );
+            node.setPort( dto.getPort() );
+            node.setCpuLoad( dto.getCpuLoad() );
+            node.setSystemMemoryTotal( dto.getSystemMemoryTotal() );
+            node.setSystemMemoryFree( dto.getSystemMemoryFree() );
+            node.setHeapUsed( dto.getHeapUsed() );
+            node.setHeapCommitted( dto.getHeapCommitted() );
+            node.setHeapMax( dto.getHeapMax() );
+            node.setDiskTotal( dto.getDiskTotal() );
+            node.setDiskFree( dto.getDiskFree() );
+            node.setUptimeSeconds( dto.getUptimeSeconds() );
+            node.setLastReportedAt( dto.getLastReportedAt() );
+            node.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime() : null );
+            node.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : null );
+            entityManager.persist( node );
+            return node;
+        } ).collect( Collectors.toMap( SystemNode::getId, n -> n ) );
+        entityManager.flush();
+        return saved;
     }
 
     private void saveSessionSettings( ExportPayload payload ) {
@@ -314,11 +332,16 @@ public class DataExportService {
         if ( settingsExport != null ) {
             settings.setSessionTtlMinutes( settingsExport.getSessionTtlMinutes() );
             settings.setMaxSessionLifetimeMinutes( settingsExport.getMaxSessionLifetimeMinutes() );
+            settings.setCreatedAt( settingsExport.getCreatedAt() != null ? settingsExport.getCreatedAt().toLocalDateTime()
+                                                                        : null );
+            settings.setUpdatedAt( settingsExport.getUpdatedAt() != null ? settingsExport.getUpdatedAt().toLocalDateTime()
+                                                                        : null );
         } else {
             settings.setSessionTtlMinutes( 30 );
             settings.setMaxSessionLifetimeMinutes( 24 * 60 );
         }
-        sessionSettingsRepository.save( settings );
+        entityManager.persist( settings );
+        entityManager.flush();
     }
 
     private long saveLibraryItems(
@@ -330,53 +353,54 @@ public class DataExportService {
         if ( payload.getLibraryItems() == null ) {
             return 0;
         }
-        List<LibraryItem> saved = libraryItemRepository.saveAll(
-                payload.getLibraryItems().stream().map( dto -> {
-                    LibraryItem item = new LibraryItem();
-                    item.setId( dto.getId() );
-                    item.setKind( dto.getKind() );
-                    item.setTitle( dto.getTitle() );
-                    item.setAltTitle( dto.getAltTitle() );
-                    item.setType( dto.getTypeId() != null ? types.get( dto.getTypeId() ) : null );
-                    item.setSource( dto.getSourceId() != null ? sources.get( dto.getSourceId() ) : null );
-                    item.setCreatedBy( dto.getCreatedById() != null ? users.get( dto.getCreatedById() ) : null );
-                    item.setComment( dto.getComment() );
-                    item.setRating( dto.getRating() );
-                    item.setFavorite( dto.isFavorite() );
-                    item.setStatus( dto.getStatus() );
-                    return item;
-                } ).toList()
-        );
-        return saved.size();
+        payload.getLibraryItems().forEach( dto -> {
+            LibraryItem item = new LibraryItem();
+            item.setId( dto.getId() );
+            item.setKind( dto.getKind() );
+            item.setTitle( dto.getTitle() );
+            item.setAltTitle( dto.getAltTitle() );
+            item.setType( dto.getTypeId() != null ? types.get( dto.getTypeId() ) : null );
+            item.setSource( dto.getSourceId() != null ? sources.get( dto.getSourceId() ) : null );
+            item.setCreatedBy( dto.getCreatedById() != null ? users.get( dto.getCreatedById() ) : null );
+            item.setComment( dto.getComment() );
+            item.setRating( dto.getRating() );
+            item.setFavorite( dto.isFavorite() );
+            item.setStatus( dto.getStatus() );
+            item.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime() : null );
+            item.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : null );
+            entityManager.persist( item );
+        } );
+        entityManager.flush();
+        return payload.getLibraryItems().size();
     }
 
     private long saveSessions( ExportPayload payload, Map<UUID, User> users ) {
         if ( payload.getSessions() == null ) {
             return 0;
         }
-        Iterable<Session> saved = sessionRepository.saveAll(
-                payload.getSessions()
-                       .stream()
-                       .map( dto -> {
-                           User user = dto.getUserId() != null ? users.get( dto.getUserId() ) : null;
-                           if ( user == null ) {
-                               return null;
-                           }
-                           Session session = new Session();
-                           session.setId( dto.getId() );
-                           session.setUser( user );
-                           session.setExpiresAt( dto.getExpiresAt() );
-                           session.setMaxExpiresAt( dto.getMaxExpiresAt() );
-                           return session;
-                       } )
-                       .filter( java.util.Objects::nonNull )
-                       .toList()
-        );
-        long count = 0;
-        for ( Session ignored : saved ) {
-            count++;
-        }
-        return count;
+        List<Session> sessions = payload.getSessions()
+                                        .stream()
+                                        .map( dto -> {
+                                            User user = dto.getUserId() != null ? users.get( dto.getUserId() ) : null;
+                                            if ( user == null ) {
+                                                return null;
+                                            }
+                                            Session session = new Session();
+                                            session.setId( dto.getId() );
+                                            session.setUser( user );
+                                            session.setExpiresAt( dto.getExpiresAt() );
+                                            session.setMaxExpiresAt( dto.getMaxExpiresAt() );
+                                            session.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime()
+                                                                                             : null );
+                                            session.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime()
+                                                                                             : null );
+                                            entityManager.persist( session );
+                                            return session;
+                                        } )
+                                        .filter( java.util.Objects::nonNull )
+                                        .toList();
+        entityManager.flush();
+        return sessions.size();
     }
 
     private List<UserExport> mapUsers() {
