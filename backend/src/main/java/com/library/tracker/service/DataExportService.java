@@ -243,8 +243,7 @@ public class DataExportService {
                                             user.setPassword( dto.getPassword() );
                                             user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
                                             return user;
-        users.replaceAll( ( id, entity ) -> entityManager.merge( entity ) );
-                                           user.setAvatar( decode( dto.getAvatarBase64() ) );
+                                        .collect( Collectors.toMap( User::getId, user -> entityManager.merge( user ) ) );
                                            user.setAvatarContentType( dto.getAvatarContentType() );
                                            user.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
                                            user.setMaxSessionLifetimeOverrideMinutes( dto.getMaxSessionLifetimeOverrideMinutes() );
