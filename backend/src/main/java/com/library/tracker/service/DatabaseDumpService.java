@@ -100,8 +100,11 @@ public class DatabaseDumpService implements ApplicationRunner {
 
             DbConnectionInfo connectionInfo = resolveConnectionInfo();
             log.info( "Restoring database from dump {} (dump data timestamp: {})", dumpPath, dumpDataUpdatedAt );
-            if ( executeRestore( connectionInfo, dumpPath ) ) {
+            CommandOutcome restoreOutcome = executeRestore( connectionInfo, dumpPath );
+            if ( restoreOutcome.success() ) {
                 log.info( "Database restore completed successfully" );
+            } else if ( restoreOutcome.skipped() ) {
+                log.warn( "Database restore skipped because required utilities are missing" );
             } else {
                 log.warn( "Database restore failed, leaving current state intact" );
             }
@@ -125,9 +128,12 @@ public class DatabaseDumpService implements ApplicationRunner {
 
             OffsetDateTime dataUpdatedAt = fetchLatestUpdatedAt();
             log.info( "Starting database dump (reason: {}) to {}", reason, dumpPath );
-            if ( executeDump( connectionInfo, dumpPath ) ) {
+            CommandOutcome dumpOutcome = executeDump( connectionInfo, dumpPath );
+            if ( dumpOutcome.success() ) {
                 writeMetadata( metadataPath, new DumpMetadata( OffsetDateTime.now( ZoneOffset.UTC ), dataUpdatedAt ) );
                 log.info( "Database dump finished (reason: {})", reason );
+            } else if ( dumpOutcome.skipped() ) {
+                log.info( "Database dump skipped (reason: {}) because required utilities are missing", reason );
             } else {
                 log.warn( "Database dump failed (reason: {})", reason );
             }
@@ -177,7 +183,7 @@ public class DatabaseDumpService implements ApplicationRunner {
         return latest;
     }
 
-    private boolean executeDump( DbConnectionInfo connectionInfo, Path dumpPath ) {
+    private CommandOutcome executeDump( DbConnectionInfo connectionInfo, Path dumpPath ) {
         List<String> command = List.of(
                 "pg_dump",
                 "--no-password",
@@ -194,7 +200,7 @@ public class DatabaseDumpService implements ApplicationRunner {
         return runCommand( command, connectionInfo.password(), "pg_dump" );
     }
 
-    private boolean executeRestore( DbConnectionInfo connectionInfo, Path dumpPath ) {
+    private CommandOutcome executeRestore( DbConnectionInfo connectionInfo, Path dumpPath ) {
         List<String> command = List.of(
                 "psql",
                 "--no-password",
@@ -207,7 +213,7 @@ public class DatabaseDumpService implements ApplicationRunner {
         return runCommand( command, connectionInfo.password(), "psql" );
     }
 
-    private boolean runCommand( List<String> command, String password, String label ) {
+    private CommandOutcome runCommand( List<String> command, String password, String label ) {
         ProcessBuilder builder = new ProcessBuilder( command );
         builder.redirectErrorStream( true );
         if ( StringUtils.hasText( password ) ) {
@@ -220,25 +226,25 @@ public class DatabaseDumpService implements ApplicationRunner {
             if ( !finished ) {
                 process.destroyForcibly();
                 log.warn( "{} timed out after {}. Output: {}", label, dumpTimeout, output );
-                return false;
+                return new CommandOutcome( false, false );
             }
             if ( process.exitValue() != 0 ) {
                 log.error( "{} exited with code {}. Output: {}", label, process.exitValue(), output );
-                return false;
+                return new CommandOutcome( false, false );
             }
             if ( StringUtils.hasText( output ) ) {
                 log.debug( "{} output: {}", label, output );
             }
-            return true;
+            return new CommandOutcome( true, false );
         } catch ( InterruptedException ex ) {
             Thread.currentThread().interrupt();
             log.error( "{} interrupted", label, ex );
-            return false;
+            return new CommandOutcome( false, false );
         } catch ( IOException ex ) {
             String binary = command.isEmpty() ? label : command.getFirst();
             log.warn( "Skipping {} because \"{}\" is not available. Ensure the PostgreSQL client tools are installed and on PATH", label, binary );
             log.debug( "{} failed with IOException", label, ex );
-            return false;
+            return new CommandOutcome( false, true );
         }
     }
 
@@ -297,5 +303,8 @@ public class DatabaseDumpService implements ApplicationRunner {
     }
 
     private record DbConnectionInfo( String host, int port, String database, String username, String password ) {
+    }
+
+    private record CommandOutcome( boolean success, boolean skipped ) {
     }
 }
