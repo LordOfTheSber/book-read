@@ -4,9 +4,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOMAIN="${DOMAIN:-book.read.katernyuk.s.m}"
 APP_ROOT="${APP_ROOT:-/opt/book-read}"
-APP_SRC="${APP_SRC:-$(pwd)}"
+APP_SRC="${APP_SRC:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 VITE_API_URL="${VITE_API_URL:-/api}"
 SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:postgresql://db:5432/library}"
 SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-library}"
@@ -39,6 +40,7 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 echo "Syncing repository to ${APP_ROOT}..."
+mkdir -p "${APP_ROOT}"
 rsync -a --delete "${APP_SRC}/" "${APP_ROOT}/"
 
 cd "${APP_ROOT}"
