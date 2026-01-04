@@ -50,3 +50,20 @@ The app expects API at `http://localhost:8080/api/v1`. Override with `VITE_API_U
 ```bash
 npm run build
 ```
+
+## Ubuntu 22 deployment script (Docker)
+Run the provided script as root (or via `sudo`) on the target server to build Docker images, start containers (frontend + backend + PostgreSQL), and expose the app at `https://book.read.katernyuk.s.m`:
+
+```bash
+sudo bash deploy/install_on_ubuntu_22.sh
+```
+
+Tune behavior with environment variables:
+- `DOMAIN` — domain for Nginx in the frontend container (default `book.read.katernyuk.s.m`).
+- `APP_ROOT` — installation directory for the repo sync (default `/opt/book-read`).
+- `APP_SRC` — path to the repository to deploy (default current directory).
+- `VITE_API_URL` — API base path during frontend build (default `/api`).
+- `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_PROFILES_ACTIVE` — backend environment.
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database configuration for the bundled PostgreSQL container.
+- `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
+- `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
