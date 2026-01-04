@@ -23,4 +23,12 @@ public abstract class BaseAuditEntity {
     @LastModifiedDate
     @Column( name = "updated_at", nullable = false )
     protected LocalDateTime updatedAt;
+
+    protected void setCreatedAt( LocalDateTime createdAt ) {
+        this.createdAt = createdAt;
+    }
+
+    protected void setUpdatedAt( LocalDateTime updatedAt ) {
+        this.updatedAt = updatedAt;
+    }
 }
