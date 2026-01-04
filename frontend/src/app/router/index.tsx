@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Spin } from 'antd';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { PageLayout } from '@/shared/ui/PageLayout';
 import { BooksPage } from '@/pages/books-page';
@@ -24,6 +25,17 @@ const RequireAuth: React.FC = () => {
 
 const RequireAdmin: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
+  const loadingUser = useAppSelector((state) => state.auth.loadingUser);
+  const token = useAppSelector((state) => state.auth.token);
+
+  if (loadingUser || (token && !user)) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   if (!isAdminLike(user?.role)) {
     return <Navigate to="/" replace />;
   }

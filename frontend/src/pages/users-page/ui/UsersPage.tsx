@@ -5,6 +5,7 @@ import {
   Card,
   Form,
   Grid,
+  Input,
   InputNumber,
   List,
   Modal,
@@ -45,6 +46,7 @@ export const UsersPage: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const styles = useUsersPageStyles(isMobile);
+  const [searchValue, setSearchValue] = useState('');
   const [sessionSettings, setSessionSettings] = useState<SessionSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [savingGlobal, setSavingGlobal] = useState(false);
@@ -87,6 +89,11 @@ export const UsersPage: React.FC = () => {
       void loadExports();
     }
   }, [isSuper]);
+
+  const fetchUsersWithSearch = (value?: string) => {
+    const term = (value ?? searchValue).trim();
+    dispatch(loadUsers({ force: true, username: term || undefined }));
+  };
 
   const loadSessionSettings = async () => {
     setSettingsLoading(true);
@@ -155,7 +162,7 @@ export const UsersPage: React.FC = () => {
       await Promise.all(updates);
       message.success('Настройки пользователя обновлены');
       setUserModalOpen(false);
-      dispatch(loadUsers(true));
+      fetchUsersWithSearch();
     } catch (err: any) {
       if (!err?.errorFields) {
         message.error(getErrorMessage(err, 'Не удалось обновить настройки пользователя'));
@@ -170,7 +177,7 @@ export const UsersPage: React.FC = () => {
     try {
       await clearUserSessionSettings(user.id);
       message.success('Настройки пользователя сброшены');
-      dispatch(loadUsers(true));
+      fetchUsersWithSearch();
     } catch (err: any) {
       message.error(getErrorMessage(err, 'Не удалось сбросить настройки пользователя'));
     } finally {
@@ -183,7 +190,7 @@ export const UsersPage: React.FC = () => {
     try {
       await updateUserBlockedStatus(user.id, !user.blocked);
       message.success(!user.blocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
-      dispatch(loadUsers(true));
+      fetchUsersWithSearch();
     } catch (err: any) {
       message.error(getErrorMessage(err, 'Не удалось изменить статус пользователя'));
     } finally {
@@ -270,7 +277,7 @@ export const UsersPage: React.FC = () => {
           message.success(
             `Восстановлено: пользователи ${result.restoredUsers}, записи ${result.restoredItems}, типы ${result.restoredBookTypes}`
           );
-          dispatch(loadUsers(true));
+          fetchUsersWithSearch();
         } catch (err: any) {
           message.error(getErrorMessage(err, 'Не удалось восстановить данные'));
         } finally {
@@ -426,6 +433,21 @@ export const UsersPage: React.FC = () => {
       )}
 
       <Card title="Пользователи" style={styles.card} headStyle={styles.cardHead} bodyStyle={styles.cardBody}>
+        <div style={{ marginBottom: 12 }}>
+          <Input.Search
+            placeholder="Поиск по username"
+            allowClear
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onSearch={(value) => {
+              setSearchValue(value);
+              fetchUsersWithSearch(value);
+            }}
+            enterButton="Поиск"
+            style={{ maxWidth: isMobile ? '100%' : 320 }}
+            loading={loading}
+          />
+        </div>
         {error && (
           <Typography.Paragraph type="danger" style={{ marginBottom: 12 }}>
             {error}

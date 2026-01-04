@@ -15,13 +15,13 @@ const initialState: UsersState = {
   loaded: false
 };
 
-export const loadUsers = createAsyncThunk<User[], boolean | undefined>(
+export const loadUsers = createAsyncThunk<User[], { force?: boolean; username?: string } | undefined>(
   'users/load',
-  async () => fetchUsers(),
+  async (payload) => fetchUsers(payload?.username),
   {
-    condition: (force, { getState }) => {
+    condition: (payload, { getState }) => {
       const state = getState() as { users: UsersState };
-      if (force) {
+      if (payload?.force || payload?.username) {
         return true;
       }
       return !state.users.loaded && !state.users.loading;

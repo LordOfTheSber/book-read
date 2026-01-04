@@ -33,8 +33,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public List<UserResponse> listUsers() {
-        return userService.findAll();
+    public List<UserResponse> listUsers( @RequestParam( value = "username", required = false ) String username ) {
+        return userService.findAll( username );
     }
 
     @GetMapping( "/me" )
