@@ -7,6 +7,7 @@ import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { authActions } from '@/entities/auth';
+import { isAdminLike } from '@/shared/lib/roles';
 
 const { Header, Content } = Layout;
 
@@ -63,7 +64,7 @@ export const PageLayout: React.FC = () => {
     { key: 'analytics', label: <Link to="/analytics">Аналитика</Link> },
     { key: 'types', label: <Link to="/types">Типы</Link> },
     { key: 'sources', label: <Link to="/sources">Источники</Link> },
-    ...(user?.role === 'ADMIN'
+    ...(isAdminLike(user?.role)
       ? [
           { key: 'users', label: <Link to="/users">Пользователи</Link> },
           { key: 'nodes', label: <Link to="/nodes">Узлы</Link> }

@@ -18,3 +18,13 @@ export const clearUserSessionSettings = async (userId: string): Promise<User> =>
   const { data } = await httpClient.delete<User>(`/users/${userId}/session-settings`);
   return data;
 };
+
+export const updateUserRole = async (userId: string, role: User['role']): Promise<User> => {
+  const { data } = await httpClient.put<User>(`/users/${userId}/role`, { role });
+  return data;
+};
+
+export const updateUserBlockedStatus = async (userId: string, blocked: boolean): Promise<User> => {
+  const { data } = await httpClient.put<User>(`/users/${userId}/block`, { blocked });
+  return data;
+};

@@ -38,16 +38,49 @@ export const RegisterPage: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Card title="Регистрация" style={{ width: 400 }}>
         <Form layout="vertical" onFinish={handleFinish}>
-          <Form.Item name="username" label="Логин" rules={[{ required: true, message: 'Введите логин' }]}>
+          <Form.Item
+            name="username"
+            label="Логин"
+            rules={[
+              { required: true, message: 'Введите логин' },
+              { min: 3, max: 32, message: 'От 3 до 32 символов' },
+              {
+                pattern: /^[A-Za-z0-9._-]+$/,
+                message: 'Только буквы, цифры, точка, тире и подчёркивание'
+              }
+            ]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="password" label="Пароль" rules={[{ required: true, message: 'Введите пароль' }]}>
+          <Form.Item
+            name="password"
+            label="Пароль"
+            rules={[
+              { required: true, message: 'Введите пароль' },
+              { min: 8, max: 64, message: 'От 8 до 64 символов' },
+              {
+                pattern: /^(?=.*[A-Za-z])(?=.*\d)[\S]+$/,
+                message: 'Без пробелов, содержит буквы и цифры'
+              }
+            ]}
+          >
             <Input.Password />
           </Form.Item>
           <Form.Item
             name="confirmPassword"
             label="Повторите пароль"
-            rules={[{ required: true, message: 'Повторите пароль' }]}
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Повторите пароль' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Пароли не совпадают'));
+                }
+              })
+            ]}
           >
             <Input.Password />
           </Form.Item>

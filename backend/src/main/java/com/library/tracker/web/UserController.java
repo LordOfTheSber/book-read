@@ -1,6 +1,8 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.UserService;
+import com.library.tracker.web.dto.UpdateUserBlockRequest;
+import com.library.tracker.web.dto.UpdateUserRoleRequest;
 import com.library.tracker.web.dto.UserSessionSettingsRequest;
 import com.library.tracker.web.dto.UserResponse;
 
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -67,5 +70,20 @@ public class UserController {
     @DeleteMapping( "/{id}/session-settings" )
     public UserResponse clearSessionSettings( @PathVariable UUID id ) {
         return userService.clearSessionOverrides( id );
+    }
+
+    @PutMapping( "/{id}/role" )
+    @PreAuthorize( "hasRole('SUPER_ADMIN')" )
+    public UserResponse updateRole( @PathVariable UUID id, @Valid @RequestBody UpdateUserRoleRequest request ) {
+        return userService.updateRole( id, request.getRole() );
+    }
+
+    @PutMapping( "/{id}/block" )
+    @PreAuthorize( "hasRole('SUPER_ADMIN')" )
+    public UserResponse updateBlock(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserBlockRequest request
+                                    ) {
+        return userService.updateBlockedStatus( id, request.getBlocked() );
     }
 }

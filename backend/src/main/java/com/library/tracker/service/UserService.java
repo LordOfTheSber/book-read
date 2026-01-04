@@ -2,6 +2,7 @@ package com.library.tracker.service;
 
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
+import com.library.tracker.repository.SessionRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.security.AppUserDetails;
 import com.library.tracker.web.dto.UserResponse;
@@ -29,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
@@ -68,24 +71,31 @@ public class UserService implements UserDetailsService {
     }
 
     public User ensureUser( String username, String rawPassword, Role role ) {
-        return userRepository.findByUsernameIgnoreCase( username )
+        String normalizedUsername = normalizeUsername( username );
+        return userRepository.findByUsernameIgnoreCase( normalizedUsername )
                              .orElseGet( () -> {
                                  User user = new User();
-                                 user.setUsername( username );
+                                 user.setUsername( normalizedUsername );
                                  user.setPassword( passwordEncoder.encode( rawPassword ) );
                                  user.setRole( role );
+                                 user.setBlocked( false );
                                  return userRepository.save( user );
                              } );
     }
 
     public User register( String username, String rawPassword ) {
-        if ( userRepository.existsByUsernameIgnoreCase( username ) ) {
+        String normalizedUsername = normalizeUsername( username );
+        if ( !StringUtils.hasText( normalizedUsername ) ) {
+            throw new IllegalArgumentException( "Username cannot be blank" );
+        }
+        if ( userRepository.existsByUsernameIgnoreCase( normalizedUsername ) ) {
             throw new IllegalArgumentException( "Username already exists" );
         }
         User user = new User();
-        user.setUsername( username );
+        user.setUsername( normalizedUsername );
         user.setPassword( passwordEncoder.encode( rawPassword ) );
-        user.setRole( Role.USER );
+        user.setRole( userRepository.count() == 0 ? Role.SUPER_ADMIN : Role.USER );
+        user.setBlocked( false );
         return userRepository.save( user );
     }
 
@@ -136,7 +146,11 @@ public class UserService implements UserDetailsService {
     }
 
     public boolean isAdmin( User user ) {
-        return user.getRole() == Role.ADMIN;
+        return user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+    }
+
+    public boolean isSuperAdmin( User user ) {
+        return user.getRole() == Role.SUPER_ADMIN;
     }
 
     public UserResponse updateSessionOverrides( UUID userId, Integer ttlMinutes, Integer maxLifetimeMinutes ) {
@@ -166,6 +180,45 @@ public class UserService implements UserDetailsService {
         return toResponse( saved );
     }
 
+    public UserResponse updateRole( UUID userId, Role role ) {
+        if ( role == null ) {
+            throw new IllegalArgumentException( "Role is required" );
+        }
+        User currentUser = getCurrentUser();
+        if ( !isSuperAdmin( currentUser ) ) {
+            throw new AccessDeniedException( "Only super admins can update roles" );
+        }
+        User user = userRepository.findById( userId )
+                                  .orElseThrow( () -> new UsernameNotFoundException( "User not found" ) );
+        if ( user.getRole() == Role.SUPER_ADMIN && role != Role.SUPER_ADMIN ) {
+            ensureAnotherSuperAdminExists( user.getId() );
+        }
+        user.setRole( role );
+        User saved = userRepository.save( user );
+        return toResponse( saved );
+    }
+
+    public UserResponse updateBlockedStatus( UUID userId, boolean blocked ) {
+        User currentUser = getCurrentUser();
+        if ( !isSuperAdmin( currentUser ) ) {
+            throw new AccessDeniedException( "Only super admins can block users" );
+        }
+        if ( userId.equals( currentUser.getId() ) && blocked ) {
+            throw new IllegalStateException( "Нельзя заблокировать самого себя" );
+        }
+        User user = userRepository.findById( userId )
+                                  .orElseThrow( () -> new UsernameNotFoundException( "User not found" ) );
+        if ( blocked && user.getRole() == Role.SUPER_ADMIN ) {
+            ensureAnotherSuperAdminExists( user.getId() );
+        }
+        user.setBlocked( blocked );
+        User saved = userRepository.save( user );
+        if ( blocked ) {
+            sessionRepository.deleteAllByUserId( userId );
+        }
+        return toResponse( saved );
+    }
+
     public UserResponse toResponse( User user ) {
         return UserResponse.builder()
                            .id( user.getId() )
@@ -177,6 +230,7 @@ public class UserService implements UserDetailsService {
                            .updatedAt( toOffsetDateTime( user.getUpdatedAt() ) )
                            .sessionTtlOverrideMinutes( user.getSessionTtlOverrideMinutes() )
                            .maxSessionLifetimeOverrideMinutes( user.getMaxSessionLifetimeOverrideMinutes() )
+                           .blocked( user.isBlocked() )
                            .build();
     }
 
@@ -186,7 +240,19 @@ public class UserService implements UserDetailsService {
                              .username( user.getUsername() )
                              .password( user.getPassword() )
                              .role( user.getRole() )
+                             .blocked( user.isBlocked() )
                              .build();
+    }
+
+    private void ensureAnotherSuperAdminExists( UUID excludedUserId ) {
+        long superAdmins = userRepository.countByRole( Role.SUPER_ADMIN );
+        if ( superAdmins <= 1 && excludedUserId != null ) {
+            throw new IllegalStateException( "Должен остаться хотя бы один супер админ" );
+        }
+    }
+
+    private String normalizeUsername( String username ) {
+        return username != null ? username.trim() : "";
     }
 
     private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {

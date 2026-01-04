@@ -20,6 +20,7 @@ public class AppUserDetails implements UserDetails {
     private final String username;
     private final String password;
     private final Role role;
+    private final boolean blocked;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -33,7 +34,7 @@ public class AppUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !blocked;
     }
 
     @Override
@@ -43,6 +44,6 @@ public class AppUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return !blocked;
     }
 }

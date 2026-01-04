@@ -10,6 +10,7 @@ import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
 import { loadSources } from '@/entities/source';
 import { setFilters } from '@/features/book/set-book-filters';
 import { AxiosError } from 'axios';
+import { isAdminLike } from '@/shared/lib/roles';
 
 interface Props {
   onChangePage: (page: number, size: number, sort?: string) => void;
@@ -53,7 +54,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const [searchValue, setSearchValue] = useState(filters.q ?? '');
   const [form] = Form.useForm();
   const styles = useBooksTableWidgetStyles(isMobile);
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = isAdminLike(role);
 
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [

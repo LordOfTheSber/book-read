@@ -60,6 +60,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if ( SecurityContextHolder.getContext().getAuthentication() == null ) {
             UserDetails userDetails = userService.loadUserByUsername( username );
+            if ( !userDetails.isAccountNonLocked() || !userDetails.isEnabled() ) {
+                response.setStatus( HttpServletResponse.SC_FORBIDDEN );
+                return;
+            }
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken( userDetails, null, userDetails.getAuthorities() );
             authentication.setDetails( new WebAuthenticationDetailsSource().buildDetails( request ) );

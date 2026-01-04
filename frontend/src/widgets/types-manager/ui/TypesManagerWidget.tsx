@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookTypeThunk, deleteBookTypeThunk, loadBookTypes, updateBookTypeThunk } from '@/entities/book-type';
 import { useTypesManagerWidgetStyles } from './TypesManagerWidget.styles';
 import { AxiosError } from 'axios';
+import { canEditContent, isAdminLike } from '@/shared/lib/roles';
 
 export const TypesManagerWidget: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -14,8 +15,8 @@ export const TypesManagerWidget: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const styles = useTypesManagerWidgetStyles();
-  const canEdit = role === 'ADMIN' || role === 'EDITOR';
-  const canDelete = role === 'ADMIN';
+  const canEdit = canEditContent(role);
+  const canDelete = isAdminLike(role);
 
   const renderDash = (value?: string | null) => (value ? value : '—');
 

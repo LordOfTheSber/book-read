@@ -7,6 +7,7 @@ import { loadBooks } from '@/entities/book';
 import { loadBookTypes } from '@/entities/book-type';
 import { loadUsers } from '@/entities/user';
 import { useFiltersPanelStyles } from './FiltersPanelWidget.styles';
+import { isAdminLike } from '@/shared/lib/roles';
 
 export const FiltersPanelWidget: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -18,7 +19,7 @@ export const FiltersPanelWidget: React.FC = () => {
   const role = useAppSelector((state) => state.auth.user?.role);
   const [form] = Form.useForm();
   const styles = useFiltersPanelStyles();
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = isAdminLike(role);
 
   useEffect(() => {
     dispatch(loadBookTypes());

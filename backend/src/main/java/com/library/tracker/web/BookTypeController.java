@@ -32,14 +32,14 @@ public class BookTypeController {
         return bookTypeService.findAll();
     }
 
-    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
     @PostMapping
     public ResponseEntity<BookTypeResponse> create( @Valid @RequestBody BookTypeRequest request ) {
         BookTypeResponse response = bookTypeService.create( request );
         return ResponseEntity.ok( response );
     }
 
-    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<BookTypeResponse> update( @PathVariable UUID id,
                                                     @Valid @RequestBody BookTypeRequest request ) {
@@ -48,7 +48,7 @@ public class BookTypeController {
                               .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
-    @PreAuthorize( "hasRole('ADMIN')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         bookTypeService.delete( id );
