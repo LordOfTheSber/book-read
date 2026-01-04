@@ -63,11 +63,13 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional( readOnly = true )
-    public List<UserResponse> findAll() {
-        return userRepository.findAll()
-                             .stream()
-                             .map( this::toResponse )
-                             .toList();
+    public List<UserResponse> findAll( String username ) {
+        List<User> users = StringUtils.hasText( username )
+                ? userRepository.findByUsernameContainingIgnoreCase( username.trim() )
+                : userRepository.findAll();
+        return users.stream()
+                    .map( this::toResponse )
+                    .toList();
     }
 
     public User ensureUser( String username, String rawPassword, Role role ) {

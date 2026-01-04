@@ -1,8 +1,10 @@
 import { httpClient } from '@/shared/api/httpClient';
 import { User } from '@/shared/types/library';
 
-export const fetchUsers = async (): Promise<User[]> => {
-  const { data } = await httpClient.get<User[]>('/users');
+export const fetchUsers = async (username?: string): Promise<User[]> => {
+  const { data } = await httpClient.get<User[]>('/users', {
+    params: username ? { username } : undefined
+  });
   return data;
 };
 
