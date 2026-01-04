@@ -11,6 +11,7 @@ export interface FetchBooksParams {
   favorite?: boolean;
   minRating?: number;
   maxRating?: number;
+  userId?: string;
 }
 
 export const fetchBooks = async (params: FetchBooksParams): Promise<PageResponse<LibraryItem>> => {

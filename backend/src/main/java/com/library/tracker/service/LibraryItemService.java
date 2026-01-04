@@ -154,6 +154,9 @@ public class LibraryItemService {
     private Specification<LibraryItem> buildSpecification( LibraryItemFilter filter, User currentUser, boolean isAdmin ) {
         return ( root, query, cb ) -> {
             Specification<LibraryItem> spec = Specification.where( null );
+            if ( filter.userId().isPresent() && !isAdmin && !filter.userId().get().equals( currentUser.getId() ) ) {
+                throw new AccessDeniedException( "Недостаточно прав для просмотра книг другого пользователя" );
+            }
             if ( filter.query().isPresent() ) {
                 String like = "%" + filter.query().get().toLowerCase() + "%";
                 spec = spec.and( ( r, q, c ) -> c.or(
@@ -194,7 +197,9 @@ public class LibraryItemService {
             if ( filter.kind().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.get( "kind" ), filter.kind().get() ) );
             }
-            if ( !isAdmin ) {
+            if ( filter.userId().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "createdBy" ).get( "id" ), filter.userId().get() ) );
+            } else if ( !isAdmin ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "createdBy" ).get( "id" ), currentUser.getId() ) );
             }
             return spec.toPredicate( root, query, cb );
