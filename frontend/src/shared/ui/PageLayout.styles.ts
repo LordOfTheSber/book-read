@@ -28,7 +28,13 @@ export const usePageLayoutStyles = (isMobile: boolean) => {
 
   return useMemo(
     () => ({
-      layout: { minHeight: '100vh' },
+      layout: {
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        maxHeight: '100vh',
+        overflow: 'hidden'
+      },
       loader: {
         minHeight: '100vh',
         display: 'flex',
@@ -143,7 +149,11 @@ export const usePageLayoutStyles = (isMobile: boolean) => {
         letterSpacing: 0.6,
         color: 'rgba(255,255,255,0.78)'
       },
-      content: { padding: isMobile ? '16px 12px 24px' : '24px' },
+      content: {
+        padding: isMobile ? '16px 12px 24px' : '24px',
+        flex: 1,
+        overflow: 'auto'
+      },
       mobileMenuButton: {
         borderColor: 'rgba(255,255,255,0.4)',
         color: token.colorWhite,
