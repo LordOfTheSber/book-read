@@ -60,17 +60,16 @@ public class DatabaseDumpService implements ApplicationRunner {
 
     @Scheduled( cron = "${db.dump.cron:0 0 */4 * * *}" )
     public void scheduledDump() {
-        performDump( "scheduled" );
+        performDump( "scheduled", false );
     }
 
     @PreDestroy
     public void onShutdown() {
-        performDump( "shutdown" );
+        performDump( "shutdown", true );
     }
 
     private void tryRestoreFromDump() {
-        if ( !dumpLock.tryLock() ) {
-            log.warn( "Dump operation already running, skipping startup restore" );
+        if ( !acquireLock( false, "startup restore" ) ) {
             return;
         }
         try {
@@ -113,9 +112,8 @@ public class DatabaseDumpService implements ApplicationRunner {
         }
     }
 
-    private void performDump( String reason ) {
-        if ( !dumpLock.tryLock() ) {
-            log.warn( "Dump operation already running, skipping {}", reason );
+    private void performDump( String reason, boolean waitForLock ) {
+        if ( !acquireLock( waitForLock, reason ) ) {
             return;
         }
         try {
@@ -238,6 +236,22 @@ public class DatabaseDumpService implements ApplicationRunner {
             return false;
         } catch ( IOException ex ) {
             log.error( "Failed to run {}. Ensure the utility is installed and on PATH", label, ex );
+            return false;
+        }
+    }
+
+    private boolean acquireLock( boolean wait, String reason ) {
+        try {
+            boolean acquired = wait
+                    ? dumpLock.tryLock( 30, TimeUnit.SECONDS )
+                    : dumpLock.tryLock();
+            if ( !acquired ) {
+                log.warn( "Dump operation already running, skipping {}", reason );
+            }
+            return acquired;
+        } catch ( InterruptedException ex ) {
+            Thread.currentThread().interrupt();
+            log.warn( "Interrupted while waiting for dump lock ({})", reason, ex );
             return false;
         }
     }
