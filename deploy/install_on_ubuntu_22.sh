@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOMAIN="${DOMAIN:-book.read.katernyuk.s.m}"
+DOMAIN="${DOMAIN:-166.1.22.108}"
 APP_SRC="${APP_SRC:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 APP_ROOT="${APP_ROOT:-${APP_SRC}}"
 VITE_API_URL="${VITE_API_URL:-/api}"
