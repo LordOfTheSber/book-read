@@ -243,7 +243,7 @@ public class DataExportService {
                                             user.setPassword( dto.getPassword() );
                                             user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
                                             return user;
-        users.replaceAll( ( id, user ) -> entityManager.merge( user ) );
+        users.replaceAll( ( id, entity ) -> entityManager.merge( entity ) );
                                            user.setAvatar( decode( dto.getAvatarBase64() ) );
                                            user.setAvatarContentType( dto.getAvatarContentType() );
                                            user.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
