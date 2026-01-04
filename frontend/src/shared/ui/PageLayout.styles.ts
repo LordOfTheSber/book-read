@@ -3,6 +3,7 @@ import { theme } from 'antd';
 
 interface PageLayoutStyles {
   layout: CSSProperties;
+  loader: CSSProperties;
   header: CSSProperties;
   headerContent: CSSProperties;
   headerTopRow: CSSProperties;
@@ -28,6 +29,14 @@ export const usePageLayoutStyles = (isMobile: boolean) => {
   return useMemo(
     () => ({
       layout: { minHeight: '100vh' },
+      loader: {
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: token.colorBgLayout,
+        padding: 24
+      },
       header: {
         padding: isMobile ? '6px 0' : 0,
         position: 'sticky',

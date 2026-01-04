@@ -1,4 +1,4 @@
-import { Avatar, Button, Drawer, Grid, Layout, Menu, Segmented, Space, Tag, Tooltip } from 'antd';
+import { Avatar, Button, Drawer, Grid, Layout, Menu, Segmented, Space, Spin, Tag, Tooltip } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import React, { useMemo, useState } from 'react';
 import { BulbOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
@@ -36,6 +36,8 @@ export const PageLayout: React.FC = () => {
   const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles(isMobile);
   const user = useAppSelector((state) => state.auth.user);
+  const loadingUser = useAppSelector((state) => state.auth.loadingUser);
+  const token = useAppSelector((state) => state.auth.token);
   const dispatch = useAppDispatch();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
 
@@ -71,6 +73,14 @@ export const PageLayout: React.FC = () => {
         ]
       : [])
   ];
+
+  if (token && (loadingUser || !user)) {
+    return (
+      <div style={styles.loader}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <Layout style={styles.layout}>
