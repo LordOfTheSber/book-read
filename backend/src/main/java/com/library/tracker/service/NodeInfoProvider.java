@@ -52,9 +52,9 @@ public class NodeInfoProvider {
         Long totalPhysical = null;
         Long freePhysical = null;
         if ( osBean instanceof com.sun.management.OperatingSystemMXBean advancedOsBean ) {
-            cpuLoad = normalizeCpuLoad( advancedOsBean.getSystemCpuLoad() );
-            totalPhysical = normalizeLong( advancedOsBean.getTotalPhysicalMemorySize() );
-            freePhysical = normalizeLong( advancedOsBean.getFreePhysicalMemorySize() );
+            cpuLoad = normalizeCpuLoad( advancedOsBean.getCpuLoad() );
+            totalPhysical = normalizeLong( advancedOsBean.getTotalMemorySize() );
+            freePhysical = normalizeLong( advancedOsBean.getFreeMemorySize() );
         } else {
             cpuLoad = normalizeCpuLoad( osBean.getSystemLoadAverage() );
             totalPhysical = normalizeLong( runtime.maxMemory() );
