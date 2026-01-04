@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Badge, Card, Progress, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { Badge, Card, Grid, List, Progress, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { loadNodes } from '@/entities/node';
 import { SystemNode } from '@/shared/types/library';
+import { useNodesPageStyles } from './NodesPage.styles';
 
 const formatBytes = (value?: number) => {
   if (value === undefined || value === null) return '—';
@@ -16,7 +17,8 @@ const formatBytes = (value?: number) => {
 
 const formatPercent = (used?: number, total?: number) => {
   if (used === undefined || total === undefined || total <= 0) return undefined;
-  return Math.max(0, Math.min(100, (used / total) * 100));
+  const percent = Math.max(0, Math.min(100, (used / total) * 100));
+  return Number(percent.toFixed(2));
 };
 
 const formatDuration = (seconds?: number) => {
@@ -43,6 +45,9 @@ const heartbeatStatus = (lastReportedAt?: string) => {
 export const NodesPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { list, loading, error, lastUpdated } = useAppSelector((state) => state.nodes);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const styles = useNodesPageStyles();
 
   useEffect(() => {
     dispatch(loadNodes());
@@ -54,6 +59,7 @@ export const NodesPage: React.FC = () => {
     {
       title: 'Узел',
       dataIndex: 'nodeKey',
+      ellipsis: true,
       render: (value, record) => (
         <Space direction="vertical" size={0}>
           <Typography.Text strong>{value}</Typography.Text>
@@ -67,6 +73,7 @@ export const NodesPage: React.FC = () => {
     {
       title: 'IP',
       dataIndex: 'ip',
+      responsive: ['sm'],
       render: (ip: string | undefined) => ip || '—'
     },
     {
@@ -74,7 +81,7 @@ export const NodesPage: React.FC = () => {
       dataIndex: 'cpuLoad',
       render: (value: number | undefined) => {
         if (value === undefined || value === null || value < 0) return '—';
-        const percent = (value * 100).toFixed(1);
+        const percent = Number((value * 100).toFixed(2));
         return <Tag color={value > 0.85 ? 'red' : value > 0.65 ? 'orange' : 'green'}>{percent}%</Tag>;
       }
     },
@@ -163,6 +170,9 @@ export const NodesPage: React.FC = () => {
   return (
     <Card
       title="Мониторинг узлов"
+      style={styles.card}
+      headStyle={styles.cardHead}
+      bodyStyle={styles.cardBody}
       extra={
         <Typography.Text type="secondary">
           Обновлено: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '—'}
@@ -174,13 +184,91 @@ export const NodesPage: React.FC = () => {
           {error}
         </Typography.Paragraph>
       )}
-      <Table<SystemNode>
-        rowKey={(row) => row.id}
-        dataSource={list}
-        loading={loading}
-        pagination={false}
-        columns={columns}
-      />
+
+      {isMobile ? (
+        <List
+          dataSource={list}
+          loading={loading}
+          style={styles.mobileList}
+          renderItem={(node) => {
+            const hb = heartbeatStatus(node.lastReportedAt);
+            return (
+              <div style={styles.mobileCard} key={node.id}>
+                <div style={styles.mobileHeader}>
+                  <div style={styles.mobileMeta}>
+                    <Typography.Text strong ellipsis>
+                      {node.nodeKey}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      {node.hostname || '—'}
+                      {node.port ? `:${node.port}` : ''}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">IP: {node.ip || '—'}</Typography.Text>
+                    <Badge status={hb.status} text={hb.text} />
+                  </div>
+                  <Tag color={node.cpuLoad && node.cpuLoad > 0.85 ? 'red' : node.cpuLoad && node.cpuLoad > 0.65 ? 'orange' : 'green'}>
+                    CPU: {node.cpuLoad !== undefined ? `${Number((node.cpuLoad * 100).toFixed(2))}%` : '—'}
+                  </Tag>
+                </div>
+
+                <Space direction="vertical" size={6} style={{ marginTop: 8, width: '100%' }}>
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text type="secondary">Память</Typography.Text>
+                    <Progress
+                      percent={formatPercent(calculateUsed(node.systemMemoryTotal, node.systemMemoryFree), node.systemMemoryTotal) ?? 0}
+                      size="small"
+                      status="active"
+                    />
+                    <Typography.Text type="secondary">
+                      {formatBytes(calculateUsed(node.systemMemoryTotal, node.systemMemoryFree))} / {formatBytes(node.systemMemoryTotal)}
+                    </Typography.Text>
+                  </Space>
+
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text type="secondary">Heap</Typography.Text>
+                    <Progress
+                      percent={formatPercent(node.heapUsed, node.heapMax) ?? 0}
+                      size="small"
+                      status="normal"
+                    />
+                    <Typography.Text type="secondary">
+                      {formatBytes(node.heapUsed)} / {formatBytes(node.heapMax)}
+                    </Typography.Text>
+                  </Space>
+
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text type="secondary">Диски</Typography.Text>
+                    <Progress
+                      percent={formatPercent(calculateUsed(node.diskTotal, node.diskFree), node.diskTotal) ?? 0}
+                      size="small"
+                      status="normal"
+                    />
+                    <Typography.Text type="secondary">
+                      {formatBytes(calculateUsed(node.diskTotal, node.diskFree))} / {formatBytes(node.diskTotal)}
+                    </Typography.Text>
+                  </Space>
+
+                  <Typography.Text type="secondary">
+                    Аптайм: {formatDuration(node.uptimeSeconds)}
+                  </Typography.Text>
+                </Space>
+              </div>
+            );
+          }}
+        />
+      ) : (
+        <div style={styles.tableWrapper}>
+          <Table<SystemNode>
+            rowKey={(row) => row.id}
+            dataSource={list}
+            loading={loading}
+            pagination={false}
+            size="middle"
+            scroll={{ x: true }}
+            columns={columns}
+          />
+        </div>
+      )}
     </Card>
   );
 };

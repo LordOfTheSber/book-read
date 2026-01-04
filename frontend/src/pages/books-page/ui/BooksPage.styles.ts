@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { theme } from 'antd';
 
-export const useBooksPageStyles = () => {
+export const useBooksPageStyles = (isMobile: boolean) => {
   const { token } = theme.useToken();
 
   return useMemo(
@@ -21,7 +21,9 @@ export const useBooksPageStyles = () => {
         padding: 24
       },
       contentWrapper: {
-        gap: 24
+        gap: 24,
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'flex-start'
       },
       heroCard: {
         background: token.colorBgContainer,
@@ -42,10 +44,11 @@ export const useBooksPageStyles = () => {
         borderRadius: 14,
         boxShadow: token.boxShadowSecondary,
         padding: 0,
-        position: 'sticky' as const,
-        top: 24,
-        maxWidth: 340,
-        minWidth: 300
+        position: isMobile ? 'static' : ('sticky' as const),
+        top: isMobile ? undefined : 24,
+        maxWidth: isMobile ? '100%' : 340,
+        minWidth: isMobile ? 'auto' : 300,
+        width: isMobile ? '100%' : 'auto'
       },
       filtersCardBodyStyle: { padding: 0 },
       filtersCardBody: {
@@ -60,6 +63,6 @@ export const useBooksPageStyles = () => {
         color: token.colorTextSecondary
       }
     }),
-    [token]
+    [isMobile, token]
   );
 };

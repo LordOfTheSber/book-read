@@ -8,9 +8,14 @@ interface BooksTableWidgetStyles {
   headerRow: CSSProperties;
   drawerForm: CSSProperties;
   drawerFooter: CSSProperties;
+  mobileList: CSSProperties;
+  mobileCard: CSSProperties;
+  mobileHeader: CSSProperties;
+  mobileMeta: CSSProperties;
+  mobileActions: CSSProperties;
 }
 
-export const useBooksTableWidgetStyles = () => {
+export const useBooksTableWidgetStyles = (isMobile: boolean) => {
   const { token } = theme.useToken();
 
   return useMemo(
@@ -18,12 +23,14 @@ export const useBooksTableWidgetStyles = () => {
       toolbar: {
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: isMobile ? 'stretch' : 'center',
         marginBottom: 18,
-        gap: 12
+        gap: 12,
+        flexDirection: isMobile ? 'column' : 'row'
       },
       searchInput: {
-        maxWidth: 360
+        maxWidth: isMobile ? '100%' : 360,
+        width: '100%'
       },
       tableSurface: {
         background: token.colorBgContainer,
@@ -46,8 +53,37 @@ export const useBooksTableWidgetStyles = () => {
         justifyContent: 'flex-end',
         gap: 12,
         padding: `${token.paddingXS}px ${token.paddingLG}px ${token.paddingLG}px`
+      },
+      mobileList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      },
+      mobileCard: {
+        border: `1px solid ${token.colorBorderSecondary}`,
+        borderRadius: 12,
+        padding: 12,
+        boxShadow: token.boxShadowTertiary,
+        background: token.colorBgContainer,
+        marginBottom: 16
+      },
+      mobileHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 8,
+        alignItems: 'flex-start'
+      },
+      mobileMeta: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4
+      },
+      mobileActions: {
+        display: 'flex',
+        gap: 8,
+        flexWrap: 'wrap'
       }
     } satisfies BooksTableWidgetStyles),
-    [token]
+    [isMobile, token]
   );
 };
