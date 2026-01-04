@@ -58,6 +58,8 @@ Run the provided script as root (or via `sudo`) on the target server to build Do
 sudo bash deploy/install_on_ubuntu_22.sh
 ```
 
+> Tip: you can run the script from any folder (including `deploy/`); it automatically uses the repository root as the source path.
+
 Tune behavior with environment variables:
 - `DOMAIN` — domain for Nginx in the frontend container (default `book.read.katernyuk.s.m`).
 - `APP_ROOT` — installation directory for the repo sync (default `/opt/book-read`).
