@@ -5,6 +5,7 @@ import { analyticsActions, loadBookAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
 import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
 import { ReadingStatus, User } from '@/shared/types/library';
+import { isAdminLike } from '@/shared/lib/roles';
 
 const statusColorMap: Record<ReadingStatus, string> = {
   READING: 'blue',
@@ -21,7 +22,7 @@ export const AnalyticsPage: React.FC = () => {
   const { data, loading, error, currentUserId } = useAppSelector((state) => state.analytics);
   const { list: users, loaded: usersLoaded, loading: usersLoading } = useAppSelector((state) => state.users);
   const user = useAppSelector((state) => state.auth.user);
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = isAdminLike(user?.role);
 
   useEffect(() => {
     dispatch(loadBookAnalytics(currentUserId));

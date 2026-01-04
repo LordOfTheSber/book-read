@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createSourceThunk, deleteSourceThunk, loadSources, updateSourceThunk } from '@/entities/source';
 import { useSourcesManagerWidgetStyles } from './SourcesManagerWidget.styles';
 import { AxiosError } from 'axios';
+import { canEditContent, isAdminLike } from '@/shared/lib/roles';
 
 export const SourcesManagerWidget: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -14,8 +15,8 @@ export const SourcesManagerWidget: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const styles = useSourcesManagerWidgetStyles();
-  const canEdit = role === 'ADMIN' || role === 'EDITOR';
-  const canDelete = role === 'ADMIN';
+  const canEdit = canEditContent(role);
+  const canDelete = isAdminLike(role);
 
   const renderDash = (value?: string | null) => (value ? value : '—');
 

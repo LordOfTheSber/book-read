@@ -19,4 +19,8 @@ public interface SessionRepository extends CrudRepository<Session, UUID> {
     @Modifying
     @Query( "DELETE FROM Session s WHERE s.expiresAt < :now" )
     void deleteExpired( OffsetDateTime now );
+
+    @Modifying
+    @Query( "DELETE FROM Session s WHERE s.user.id = :userId" )
+    void deleteAllByUserId( UUID userId );
 }

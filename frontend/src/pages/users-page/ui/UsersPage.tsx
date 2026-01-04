@@ -1,16 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { Avatar, Button, Card, Form, Grid, InputNumber, List, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import {
+  Avatar,
+  Button,
+  Card,
+  Form,
+  Grid,
+  InputNumber,
+  List,
+  Modal,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+  message
+} from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { clearUserSessionSettings, loadUsers, updateUserSessionSettings } from '@/entities/user';
+import {
+  clearUserSessionSettings,
+  loadUsers,
+  updateUserBlockedStatus,
+  updateUserRole,
+  updateUserSessionSettings
+} from '@/entities/user';
 import { fetchSessionSettings, updateSessionSettings } from '@/entities/session-settings/api/sessionSettingsApi';
 import { SessionSettings, User } from '@/shared/types/library';
+import {
+  requestExport,
+  downloadExport,
+  listExports,
+  deleteExportFile,
+  restoreExport
+} from '@/entities/export/api/exportApi';
 import { useUsersPageStyles } from './UsersPage.styles';
+import { isAdminLike, isSuperAdmin } from '@/shared/lib/roles';
 
 export const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { list, loading, error, loaded } = useAppSelector((state) => state.users);
   const currentUser = useAppSelector((state) => state.auth.user);
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isSuper = isSuperAdmin(currentUser?.role);
+  const isAdminLikeRole = isAdminLike(currentUser?.role);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const styles = useUsersPageStyles(isMobile);
@@ -21,10 +52,22 @@ export const UsersPage: React.FC = () => {
   const [userActionId, setUserActionId] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [savingUserSettings, setSavingUserSettings] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [lastExportFile, setLastExportFile] = useState<string | null>(null);
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [blockingUserId, setBlockingUserId] = useState<string | null>(null);
+  const [exports, setExports] = useState<
+    { fileName: string; sizeBytes: number; lastModifiedAt: string; downloadUrl?: string }[]
+  >([]);
+  const [exportsLoading, setExportsLoading] = useState(false);
+  const [restoringFile, setRestoringFile] = useState<string | null>(null);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [settingsForm] = Form.useForm<SessionSettings>();
   const [userForm] = Form.useForm<{
     sessionTtlMinutes?: number;
     maxSessionLifetimeMinutes?: number;
+    role?: User['role'];
+    blocked?: boolean;
   }>();
 
   useEffect(() => {
@@ -34,10 +77,16 @@ export const UsersPage: React.FC = () => {
   }, [dispatch, loaded]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdminLikeRole) {
       void loadSessionSettings();
     }
-  }, [isAdmin]);
+  }, [isAdminLikeRole]);
+
+  useEffect(() => {
+    if (isSuper) {
+      void loadExports();
+    }
+  }, [isSuper]);
 
   const loadSessionSettings = async () => {
     setSettingsLoading(true);
@@ -73,7 +122,9 @@ export const UsersPage: React.FC = () => {
     setUserModalOpen(true);
     userForm.setFieldsValue({
       sessionTtlMinutes: user.sessionTtlOverrideMinutes ?? undefined,
-      maxSessionLifetimeMinutes: user.maxSessionLifetimeOverrideMinutes ?? undefined
+      maxSessionLifetimeMinutes: user.maxSessionLifetimeOverrideMinutes ?? undefined,
+      role: user.role,
+      blocked: user.blocked
     });
   };
 
@@ -82,7 +133,26 @@ export const UsersPage: React.FC = () => {
     try {
       const values = await userForm.validateFields();
       setSavingUserSettings(true);
-      await updateUserSessionSettings(editingUser.id, values);
+      const currentTtl = editingUser.sessionTtlOverrideMinutes ?? undefined;
+      const currentMax = editingUser.maxSessionLifetimeOverrideMinutes ?? undefined;
+      const updates: Promise<unknown>[] = [];
+      const sessionChanged =
+        (values.sessionTtlMinutes ?? undefined) !== currentTtl ||
+        (values.maxSessionLifetimeMinutes ?? undefined) !== currentMax;
+      if (sessionChanged) {
+        updates.push(updateUserSessionSettings(editingUser.id, values));
+      }
+      if (isSuper && values.role && values.role !== editingUser.role) {
+        updates.push(updateUserRole(editingUser.id, values.role));
+      }
+      if (isSuper && typeof values.blocked === 'boolean' && values.blocked !== editingUser.blocked) {
+        updates.push(updateUserBlockedStatus(editingUser.id, values.blocked));
+      }
+      if (updates.length === 0) {
+        message.info('Изменений нет');
+        return;
+      }
+      await Promise.all(updates);
       message.success('Настройки пользователя обновлены');
       setUserModalOpen(false);
       dispatch(loadUsers(true));
@@ -106,6 +176,108 @@ export const UsersPage: React.FC = () => {
     } finally {
       setUserActionId(null);
     }
+  };
+
+  const handleToggleBlocked = async (user: User) => {
+    setBlockingUserId(user.id);
+    try {
+      await updateUserBlockedStatus(user.id, !user.blocked);
+      message.success(!user.blocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
+      dispatch(loadUsers(true));
+    } catch (err: any) {
+      message.error(getErrorMessage(err, 'Не удалось изменить статус пользователя'));
+    } finally {
+      setBlockingUserId(null);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const info = await requestExport();
+      setLastExportFile(info.fileName);
+      await loadExports();
+      message.success(`Данные сохранены: ${info.fileName}`);
+    } catch (err: any) {
+      message.error(getErrorMessage(err, 'Не удалось сохранить данные'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadExport = async (fileName: string) => {
+    setDownloadingFile(fileName);
+    try {
+      const blob = await downloadExport(fileName);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      message.success('Файл экспорта скачан');
+    } catch (err: any) {
+      message.error(getErrorMessage(err, 'Не удалось скачать экспорт'));
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
+  const loadExports = async () => {
+    setExportsLoading(true);
+    try {
+      const files = await listExports();
+      setExports(files);
+      if (!lastExportFile && files.length > 0) {
+        setLastExportFile(files[0].fileName);
+      }
+    } catch (err: any) {
+      message.error(getErrorMessage(err, 'Не удалось получить список экспортов'));
+    } finally {
+      setExportsLoading(false);
+    }
+  };
+
+  const handleDeleteExport = async (fileName: string) => {
+    Modal.confirm({
+      title: `Удалить файл ${fileName}?`,
+      okText: 'Удалить',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        setDeletingFile(fileName);
+        try {
+          await deleteExportFile(fileName);
+          message.success('Файл удалён');
+          await loadExports();
+        } catch (err: any) {
+          message.error(getErrorMessage(err, 'Не удалось удалить файл экспорта'));
+        } finally {
+          setDeletingFile(null);
+        }
+      }
+    });
+  };
+
+  const handleRestoreExport = async (fileName: string) => {
+    Modal.confirm({
+      title: `Восстановить данные из ${fileName}?`,
+      okText: 'Восстановить',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        setRestoringFile(fileName);
+        try {
+          const result = await restoreExport(fileName);
+          message.success(
+            `Восстановлено: пользователи ${result.restoredUsers}, записи ${result.restoredItems}, типы ${result.restoredBookTypes}`
+          );
+          dispatch(loadUsers(true));
+        } catch (err: any) {
+          message.error(getErrorMessage(err, 'Не удалось восстановить данные'));
+        } finally {
+          setRestoringFile(null);
+        }
+      }
+    });
   };
 
   const renderSessionInfo = (record: User) => {
@@ -135,9 +307,93 @@ export const UsersPage: React.FC = () => {
   const getErrorMessage = (err: any, fallback: string) =>
     err?.response?.data?.message || err?.message || fallback;
 
+  const roleColors: Record<User['role'], string> = {
+    SUPER_ADMIN: 'purple',
+    ADMIN: 'blue',
+    EDITOR: 'geekblue',
+    USER: 'gray'
+  };
+
+  const renderRoleTag = (role: User['role']) => <Tag color={roleColors[role] || 'blue'}>{role}</Tag>;
+
+  const renderStatusTag = (blocked: boolean) =>
+    blocked ? <Tag color="red">Заблокирован</Tag> : <Tag color="green">Активен</Tag>;
+
   return (
     <div style={styles.pageContainer}>
-      {isAdmin && (
+      {isSuper && (
+        <Card title="Резервное копирование" style={styles.card} headStyle={styles.cardHead} bodyStyle={styles.cardBody}>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            Сохраните всю базу в JSON-файл на сервере. Файл можно скачать после создания.
+          </Typography.Paragraph>
+          <Space wrap style={{ marginBottom: 12 }}>
+            <Button type="primary" onClick={handleExport} loading={exporting}>
+              Сохранить данные
+            </Button>
+            {lastExportFile && (
+              <Button
+                onClick={() => handleDownloadExport(lastExportFile)}
+                loading={downloadingFile === lastExportFile}
+              >
+                Скачать {lastExportFile}
+              </Button>
+            )}
+          </Space>
+          <Table
+            dataSource={exports}
+            rowKey={(row) => row.fileName}
+            loading={exportsLoading}
+            size="small"
+            pagination={false}
+            scroll={{ x: true }}
+            columns={[
+              { title: 'Файл', dataIndex: 'fileName' },
+              {
+                title: 'Размер',
+                dataIndex: 'sizeBytes',
+                render: (value: number) => `${(value / (1024 * 1024)).toFixed(2)} МБ`
+              },
+              {
+                title: 'Обновлён',
+                dataIndex: 'lastModifiedAt',
+                render: (value?: string) => (value ? new Date(value).toLocaleString() : '—')
+              },
+              {
+                title: 'Действия',
+                render: (_: unknown, record) => (
+                  <Space size="small" wrap>
+                    <Button
+                      size="small"
+                      onClick={() => handleDownloadExport(record.fileName)}
+                      loading={downloadingFile === record.fileName}
+                    >
+                      Скачать
+                    </Button>
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={() => handleRestoreExport(record.fileName)}
+                      loading={restoringFile === record.fileName}
+                    >
+                      Восстановить
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      onClick={() => handleDeleteExport(record.fileName)}
+                      loading={deletingFile === record.fileName}
+                    >
+                      Удалить
+                    </Button>
+                  </Space>
+                )
+              }
+            ]}
+          />
+        </Card>
+      )}
+
+      {isAdminLikeRole && (
         <Card title="Глобальные настройки сессий" loading={settingsLoading} style={styles.card} headStyle={styles.cardHead} bodyStyle={styles.cardBody}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
             Управляйте временем жизни сессий и максимальным сроком продления для всех пользователей.
@@ -196,7 +452,8 @@ export const UsersPage: React.FC = () => {
                         <Typography.Text strong ellipsis>
                           {user.username}
                         </Typography.Text>
-                        <Tag color="blue">{user.role}</Tag>
+                        {renderRoleTag(user.role)}
+                        {renderStatusTag(user.blocked)}
                         <Typography.Text type="secondary">
                           {renderSessionInfo(user)}
                         </Typography.Text>
@@ -206,7 +463,7 @@ export const UsersPage: React.FC = () => {
                       </div>
                     </Space>
                   </div>
-                  {isAdmin && (
+                  {isAdminLikeRole && (
                     <div style={{ marginTop: 8 }}>
                       <Space style={styles.mobileActions} wrap>
                         <Button size="small" onClick={() => openUserModal(user)}>
@@ -221,6 +478,16 @@ export const UsersPage: React.FC = () => {
                         >
                           Сбросить
                         </Button>
+                        {isSuper && (
+                          <Button
+                            size="small"
+                            danger={user.blocked}
+                            onClick={() => handleToggleBlocked(user)}
+                            loading={blockingUserId === user.id}
+                          >
+                            {user.blocked ? 'Разблокировать' : 'Блокировать'}
+                          </Button>
+                        )}
                       </Space>
                     </div>
                   )}
@@ -264,7 +531,12 @@ export const UsersPage: React.FC = () => {
                 {
                   title: 'Роль',
                   dataIndex: 'role',
-                  render: (role: string) => <Tag color="blue">{role}</Tag>
+                  render: (role: User['role']) => renderRoleTag(role)
+                },
+                {
+                  title: 'Статус',
+                  dataIndex: 'blocked',
+                  render: (blocked: boolean) => renderStatusTag(blocked)
                 },
                 {
                   title: 'Сессия',
@@ -282,7 +554,7 @@ export const UsersPage: React.FC = () => {
                   responsive: ['lg'],
                   render: (value?: string) => (value ? new Date(value).toLocaleString() : '—')
                 },
-                ...(isAdmin
+                ...(isAdminLikeRole
                   ? [
                       {
                         title: 'Действия',
@@ -302,6 +574,16 @@ export const UsersPage: React.FC = () => {
                             >
                               Сбросить
                             </Button>
+                            {isSuper && (
+                              <Button
+                                size="small"
+                                danger={record.blocked}
+                                onClick={() => handleToggleBlocked(record)}
+                                loading={blockingUserId === record.id}
+                              >
+                                {record.blocked ? 'Разблокировать' : 'Блокировать'}
+                              </Button>
+                            )}
                           </Space>
                         )
                       }
@@ -327,6 +609,23 @@ export const UsersPage: React.FC = () => {
         destroyOnClose
       >
         <Form layout="vertical" form={userForm}>
+          {isSuper && (
+            <>
+              <Form.Item label="Роль" name="role" rules={[{ required: true, message: 'Выберите роль' }]}>
+                <Select
+                  options={[
+                    { label: 'Супер админ', value: 'SUPER_ADMIN' },
+                    { label: 'Админ', value: 'ADMIN' },
+                    { label: 'Редактор', value: 'EDITOR' },
+                    { label: 'Пользователь', value: 'USER' }
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item label="Блокировка" name="blocked" valuePropName="checked">
+                <Switch checkedChildren="Заблокирован" unCheckedChildren="Активен" />
+              </Form.Item>
+            </>
+          )}
           <Form.Item
             label="TTL сессии (мин)"
             name="sessionTtlMinutes"
@@ -339,11 +638,7 @@ export const UsersPage: React.FC = () => {
             name="maxSessionLifetimeMinutes"
             rules={[{ min: 1, type: 'number', message: 'Значение должно быть больше 0' }]}
           >
-            <InputNumber
-              min={1}
-              placeholder="Использовать глобальное значение"
-              style={{ width: '100%' }}
-            />
+            <InputNumber min={1} placeholder="Использовать глобальное значение" style={{ width: '100%' }} />
           </Form.Item>
           <Typography.Paragraph type="secondary">
             Пустые значения означают использование глобальных настроек.

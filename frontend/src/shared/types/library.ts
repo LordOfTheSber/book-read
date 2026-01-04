@@ -45,16 +45,49 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'USER';
+
 export interface User {
   id: string;
   username: string;
-  role: string;
+  role: UserRole;
+  blocked: boolean;
   avatar?: string;
   avatarContentType?: string;
   createdAt?: string;
   updatedAt?: string;
   sessionTtlOverrideMinutes?: number | null;
   maxSessionLifetimeOverrideMinutes?: number | null;
+}
+
+export interface ExportInfo {
+  fileName: string;
+  path: string;
+  downloadUrl?: string;
+  exportedAt: string;
+  usersCount: number;
+  itemsCount: number;
+  bookTypesCount: number;
+  sourcesCount: number;
+  sessionsCount: number;
+  systemNodesCount: number;
+}
+
+export interface ExportFileInfo {
+  fileName: string;
+  sizeBytes: number;
+  lastModifiedAt: string;
+  downloadUrl?: string;
+}
+
+export interface ImportResult {
+  fileName: string;
+  restoredUsers: number;
+  restoredItems: number;
+  restoredBookTypes: number;
+  restoredSources: number;
+  restoredSystemNodes: number;
+  restoredSessions: number;
 }
 
 export interface SystemNode {

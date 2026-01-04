@@ -48,4 +48,7 @@ public class User extends BaseAuditEntity {
 
     @Column( name = "max_session_lifetime_override_minutes" )
     private Integer maxSessionLifetimeOverrideMinutes;
+
+    @Column( name = "blocked", nullable = false )
+    private boolean blocked = false;
 }

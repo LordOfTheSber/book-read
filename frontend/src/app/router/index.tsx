@@ -12,6 +12,7 @@ import { NodesPage } from '@/pages/nodes-page';
 import { fetchCurrentUser } from '@/entities/auth';
 import { AnalyticsPage } from '@/pages/analytics-page';
 import { ProfilePage } from '@/pages/profile-page';
+import { isAdminLike } from '@/shared/lib/roles';
 
 const RequireAuth: React.FC = () => {
   const token = useAppSelector((state) => state.auth.token);
@@ -23,7 +24,7 @@ const RequireAuth: React.FC = () => {
 
 const RequireAdmin: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
-  if (user?.role !== 'ADMIN') {
+  if (!isAdminLike(user?.role)) {
     return <Navigate to="/" replace />;
   }
   return <Outlet />;
