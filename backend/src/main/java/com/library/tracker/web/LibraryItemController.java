@@ -49,6 +49,7 @@ public class LibraryItemController {
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedFrom,
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedTo,
             @RequestParam Optional<MediaKind> kind,
+            @RequestParam Optional<UUID> userId,
             @RequestParam( defaultValue = "0" ) int page,
             @RequestParam( defaultValue = "20" ) int size,
             @RequestParam( defaultValue = "updatedAt,desc" ) String sort
@@ -56,7 +57,7 @@ public class LibraryItemController {
         LibraryItemFilter filter = new LibraryItemFilter(
                 query.map( String::trim ).filter( s -> !s.isEmpty() ),
                 typeId, status, favorite, minRating, maxRating, createdFrom, createdTo, updatedFrom,
-                updatedTo, kind, page, size, parseSort( sort ) );
+                updatedTo, kind, userId, page, size, parseSort( sort ) );
         return PageResponse.fromPage( libraryItemService.getItems( filter ) );
     }
 

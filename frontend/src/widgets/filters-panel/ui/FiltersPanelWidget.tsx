@@ -5,18 +5,30 @@ import { statusOptions } from '@/shared/constants/status';
 import { setFilters } from '@/features/book/set-book-filters';
 import { loadBooks } from '@/entities/book';
 import { loadBookTypes } from '@/entities/book-type';
+import { loadUsers } from '@/entities/user';
 import { useFiltersPanelStyles } from './FiltersPanelWidget.styles';
 
 export const FiltersPanelWidget: React.FC = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
+  const users = useAppSelector((state) => state.users.list);
+  const usersLoaded = useAppSelector((state) => state.users.loaded);
+  const usersLoading = useAppSelector((state) => state.users.loading);
+  const role = useAppSelector((state) => state.auth.user?.role);
   const [form] = Form.useForm();
   const styles = useFiltersPanelStyles();
+  const isAdmin = role === 'ADMIN';
 
   useEffect(() => {
     dispatch(loadBookTypes());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isAdmin && !usersLoaded && !usersLoading) {
+      dispatch(loadUsers());
+    }
+  }, [dispatch, isAdmin, usersLoaded, usersLoading]);
 
   useEffect(() => {
     dispatch(loadBooks(filters));
@@ -62,6 +74,16 @@ export const FiltersPanelWidget: React.FC = () => {
               ]}
             />
           </Form.Item>
+          {isAdmin && (
+            <Form.Item name="userId" label="Пользователь" style={styles.field(220)}>
+              <Select
+                allowClear
+                placeholder="Все пользователи"
+                loading={usersLoading}
+                options={users.map((u) => ({ label: u.username, value: u.id }))}
+              />
+            </Form.Item>
+          )}
         </Flex>
         <Flex justify="flex-start" style={styles.actions}>
           <Button type="primary" htmlType="submit" block style={styles.button}>

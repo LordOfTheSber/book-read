@@ -7,6 +7,7 @@ export interface BookFilterState {
   favorite?: boolean;
   minRating?: number;
   maxRating?: number;
+  userId?: string;
   sort?: string;
   page: number;
   size: number;
