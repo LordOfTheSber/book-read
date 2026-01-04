@@ -16,6 +16,7 @@ import com.library.tracker.repository.SessionSettingsRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.SystemNodeRepository;
 import com.library.tracker.repository.UserRepository;
+import lombok.Value;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,9 +40,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +66,7 @@ public class DataExportService {
     private final SessionSettingsRepository sessionSettingsRepository;
     private final SystemNodeRepository systemNodeRepository;
 
-    @Value( "${export.directory:exports}" )
+    @org.springframework.beans.factory.annotation.Value( "${export.directory:exports}" )
     private String exportDirectory;
 
     @PersistenceContext
@@ -144,7 +143,7 @@ public class DataExportService {
 
     public ImportResult importData( String fileName ) {
         ExportFile exportFile = resolveFile( fileName )
-                .orElseThrow( () -> new IllegalArgumentException( "Файл не найден" ) );
+                                        .orElseThrow( () -> new IllegalArgumentException( "Файл не найден" ) );
         ExportPayload payload;
         try {
             payload = objectMapper.readValue( exportFile.getContent(), ExportPayload.class );
@@ -235,26 +234,26 @@ public class DataExportService {
             return Map.of();
         }
         Map<UUID, User> users = payload.getUsers()
-                                        .stream()
-                                        .map( dto -> {
-                                            User user = new User();
-                                            user.setId( dto.getId() );
-                                            user.setUsername( dto.getUsername() );
-                                            user.setPassword( dto.getPassword() );
-                                            user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
-                                            return user;
-                                        .collect( Collectors.toMap( User::getId, user -> entityManager.merge( user ) ) );
+                                       .stream()
+                                       .map( dto -> {
+                                           User user = new User();
+                                           user.setId( dto.getId() );
+                                           user.setUsername( dto.getUsername() );
+                                           user.setPassword( dto.getPassword() );
+                                           user.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
+                                           user.setBlocked( dto.isBlocked() );
                                            user.setAvatarContentType( dto.getAvatarContentType() );
                                            user.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
                                            user.setMaxSessionLifetimeOverrideMinutes( dto.getMaxSessionLifetimeOverrideMinutes() );
-                                           user.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime()
-                                                                                        : null );
-                                           user.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime()
-                                                                                        : null );
-                                           entityManager.persist( user );
+                                           user.setCreatedAt( dto.getCreatedAt() != null ?
+                                                              dto.getCreatedAt().toLocalDateTime()
+                                                                                         : null );
+                                           user.setUpdatedAt( dto.getUpdatedAt() != null ?
+                                                              dto.getUpdatedAt().toLocalDateTime()
+                                                                                         : null );
                                            return user;
                                        } )
-                                        .collect( Collectors.toMap( User::getId, u -> u ) );
+                                       .collect( Collectors.toMap( User::getId, user -> entityManager.merge( user ) ) );
         entityManager.flush();
         return users;
     }
@@ -315,7 +314,7 @@ public class DataExportService {
             node.setDiskTotal( dto.getDiskTotal() );
             node.setDiskFree( dto.getDiskFree() );
             node.setUptimeSeconds( dto.getUptimeSeconds() );
-            node.setLastReportedAt( dto.getLastReportedAt() );
+            node.setLastReportedAt( dto.getLastReportedAt().toLocalDateTime() );
             node.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime() : null );
             node.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : null );
             entityManager.persist( node );
@@ -332,10 +331,12 @@ public class DataExportService {
         if ( settingsExport != null ) {
             settings.setSessionTtlMinutes( settingsExport.getSessionTtlMinutes() );
             settings.setMaxSessionLifetimeMinutes( settingsExport.getMaxSessionLifetimeMinutes() );
-            settings.setCreatedAt( settingsExport.getCreatedAt() != null ? settingsExport.getCreatedAt().toLocalDateTime()
-                                                                        : null );
-            settings.setUpdatedAt( settingsExport.getUpdatedAt() != null ? settingsExport.getUpdatedAt().toLocalDateTime()
-                                                                        : null );
+            settings.setCreatedAt( settingsExport.getCreatedAt() != null ?
+                                   settingsExport.getCreatedAt().toLocalDateTime()
+                                                                         : null );
+            settings.setUpdatedAt( settingsExport.getUpdatedAt() != null ?
+                                   settingsExport.getUpdatedAt().toLocalDateTime()
+                                                                         : null );
         } else {
             settings.setSessionTtlMinutes( 30 );
             settings.setMaxSessionLifetimeMinutes( 24 * 60 );
@@ -349,7 +350,7 @@ public class DataExportService {
             Map<UUID, User> users,
             Map<UUID, BookType> types,
             Map<UUID, Source> sources
-                                  ) {
+                                 ) {
         if ( payload.getLibraryItems() == null ) {
             return 0;
         }
@@ -390,9 +391,11 @@ public class DataExportService {
                                             session.setUser( user );
                                             session.setExpiresAt( dto.getExpiresAt() );
                                             session.setMaxExpiresAt( dto.getMaxExpiresAt() );
-                                            session.setCreatedAt( dto.getCreatedAt() != null ? dto.getCreatedAt().toLocalDateTime()
+                                            session.setCreatedAt( dto.getCreatedAt() != null ?
+                                                                  dto.getCreatedAt().toLocalDateTime()
                                                                                              : null );
-                                            session.setUpdatedAt( dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime()
+                                            session.setUpdatedAt( dto.getUpdatedAt() != null ?
+                                                                  dto.getUpdatedAt().toLocalDateTime()
                                                                                              : null );
                                             entityManager.persist( session );
                                             return session;
@@ -431,17 +434,19 @@ public class DataExportService {
                                                                    .kind( item.getKind() )
                                                                    .title( item.getTitle() )
                                                                    .altTitle( item.getAltTitle() )
-                                                                   .typeId( item.getType() != null ? item.getType().getId() : null )
-                                                                   .typeName( item.getType() != null ? item.getType().getName() : null )
+                                                                   .typeId( item.getType() != null ?
+                                                                            item.getType().getId() : null )
+                                                                   .typeName( item.getType() != null ?
+                                                                              item.getType().getName() : null )
                                                                    .sourceId( item.getSource() != null
-                                                                           ? item.getSource().getId()
-                                                                           : null )
+                                                                              ? item.getSource().getId()
+                                                                              : null )
                                                                    .sourceName( item.getSource() != null
-                                                                           ? item.getSource().getName()
-                                                                           : null )
+                                                                                ? item.getSource().getName()
+                                                                                : null )
                                                                    .createdById( item.getCreatedBy() != null
-                                                                           ? item.getCreatedBy().getId()
-                                                                           : null )
+                                                                                 ? item.getCreatedBy().getId()
+                                                                                 : null )
                                                                    .comment( item.getComment() )
                                                                    .rating( item.getRating() )
                                                                    .favorite( item.isFavorite() )
@@ -481,13 +486,13 @@ public class DataExportService {
     private List<SessionExport> mapSessions() {
         return StreamSupport.stream( sessionRepository.findAll().spliterator(), false )
                             .map( session -> SessionExport.builder()
-                                                           .id( session.getId() )
-                                                           .userId( session.getUser().getId() )
-                                                           .expiresAt( session.getExpiresAt() )
-                                                           .maxExpiresAt( session.getMaxExpiresAt() )
-                                                           .createdAt( toOffsetDateTime( session.getCreatedAt() ) )
-                                                           .updatedAt( toOffsetDateTime( session.getUpdatedAt() ) )
-                                                           .build() )
+                                                          .id( session.getId() )
+                                                          .userId( session.getUser().getId() )
+                                                          .expiresAt( session.getExpiresAt() )
+                                                          .maxExpiresAt( session.getMaxExpiresAt() )
+                                                          .createdAt( toOffsetDateTime( session.getCreatedAt() ) )
+                                                          .updatedAt( toOffsetDateTime( session.getUpdatedAt() ) )
+                                                          .build() )
                             .collect( Collectors.toList() );
     }
 
@@ -509,27 +514,27 @@ public class DataExportService {
     }
 
     private List<SystemNodeExport> mapSystemNodes() {
-        return StreamSupport.stream( systemNodeRepository.findAll().spliterator(), false )
-                            .map( node -> SystemNodeExport.builder()
-                                                           .id( node.getId() )
-                                                           .nodeKey( node.getNodeKey() )
-                                                           .hostname( node.getHostname() )
-                                                           .ip( node.getIp() )
-                                                           .port( node.getPort() )
-                                                           .cpuLoad( node.getCpuLoad() )
-                                                           .systemMemoryTotal( node.getSystemMemoryTotal() )
-                                                           .systemMemoryFree( node.getSystemMemoryFree() )
-                                                           .heapUsed( node.getHeapUsed() )
-                                                           .heapCommitted( node.getHeapCommitted() )
-                                                           .heapMax( node.getHeapMax() )
-                                                           .diskTotal( node.getDiskTotal() )
-                                                           .diskFree( node.getDiskFree() )
-                                                           .uptimeSeconds( node.getUptimeSeconds() )
-                                                           .lastReportedAt( toOffsetDateTime( node.getLastReportedAt() ) )
-                                                           .createdAt( toOffsetDateTime( node.getCreatedAt() ) )
-                                                           .updatedAt( toOffsetDateTime( node.getUpdatedAt() ) )
-                                                           .build() )
-                            .toList();
+        return systemNodeRepository.findAll().stream()
+                                   .map( node -> SystemNodeExport.builder()
+                                                                 .id( node.getId() )
+                                                                 .nodeKey( node.getNodeKey() )
+                                                                 .hostname( node.getHostname() )
+                                                                 .ip( node.getIp() )
+                                                                 .port( node.getPort() )
+                                                                 .cpuLoad( node.getCpuLoad() )
+                                                                 .systemMemoryTotal( node.getSystemMemoryTotal() )
+                                                                 .systemMemoryFree( node.getSystemMemoryFree() )
+                                                                 .heapUsed( node.getHeapUsed() )
+                                                                 .heapCommitted( node.getHeapCommitted() )
+                                                                 .heapMax( node.getHeapMax() )
+                                                                 .diskTotal( node.getDiskTotal() )
+                                                                 .diskFree( node.getDiskFree() )
+                                                                 .uptimeSeconds( node.getUptimeSeconds() )
+                                                                 .lastReportedAt( toOffsetDateTime( node.getLastReportedAt() ) )
+                                                                 .createdAt( toOffsetDateTime( node.getCreatedAt() ) )
+                                                                 .updatedAt( toOffsetDateTime( node.getUpdatedAt() ) )
+                                                                 .build() )
+                                   .toList();
     }
 
     private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {
