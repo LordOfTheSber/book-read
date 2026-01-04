@@ -23,3 +23,10 @@ springdoc:
 
 node:
   heartbeat-interval: 10s
+
+db:
+  dump:
+    path: ${DB_DUMP_PATH:./db-dumps/library_dump.sql}
+    metadata-path: ${DB_DUMP_METADATA_PATH:./db-dumps/library_dump.meta.json}
+    cron: ${DB_DUMP_CRON:0 0 */4 * * *}
+    timeout: ${DB_DUMP_TIMEOUT:PT120S}
