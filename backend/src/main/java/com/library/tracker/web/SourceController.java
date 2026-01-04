@@ -32,14 +32,14 @@ public class SourceController {
         return sourceService.findAll();
     }
 
-    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
     @PostMapping
     public ResponseEntity<SourceResponse> create( @Valid @RequestBody SourceRequest request ) {
         SourceResponse response = sourceService.create( request );
         return ResponseEntity.ok( response );
     }
 
-    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<SourceResponse> update( @PathVariable UUID id, @Valid @RequestBody SourceRequest request ) {
         return sourceService.update( id, request )
@@ -47,7 +47,7 @@ public class SourceController {
                             .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
-    @PreAuthorize( "hasRole('ADMIN')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         sourceService.delete( id );

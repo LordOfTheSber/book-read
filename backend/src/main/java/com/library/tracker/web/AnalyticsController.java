@@ -20,7 +20,7 @@ public class AnalyticsController {
 
     private final LibraryItemService libraryItemService;
 
-    @PreAuthorize( "hasAnyRole('ADMIN','EDITOR','USER')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
     @GetMapping( "/books" )
     public ResponseEntity<BookAnalyticsResponse> getBookAnalytics( @RequestParam Optional<UUID> userId ) {
         return ResponseEntity.ok( libraryItemService.getAnalytics( userId ) );

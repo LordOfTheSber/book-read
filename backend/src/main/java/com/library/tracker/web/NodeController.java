@@ -17,7 +17,7 @@ public class NodeController {
 
     private final NodeService nodeService;
 
-    @PreAuthorize( "hasRole('ADMIN')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
     @GetMapping
     public List<NodeStatusResponse> listNodes() {
         return nodeService.listNodes();

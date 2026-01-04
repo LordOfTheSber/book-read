@@ -21,4 +21,5 @@ public class UserResponse {
     OffsetDateTime updatedAt;
     Integer sessionTtlOverrideMinutes;
     Integer maxSessionLifetimeOverrideMinutes;
+    boolean blocked;
 }

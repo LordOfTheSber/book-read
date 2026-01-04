@@ -1,5 +1,6 @@
 package com.library.tracker.repository;
 
+import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 
 import java.util.Optional;
@@ -12,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsernameIgnoreCase( String username );
 
     boolean existsByUsernameIgnoreCase( String username );
+
+    long countByRole( Role role );
 }
