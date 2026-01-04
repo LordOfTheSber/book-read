@@ -40,7 +40,7 @@ services:
       SSL_KEY_PATH: ${SSL_KEY_PATH:-/etc/nginx/certs/privkey.pem}
     ports:
       - "80:80"
-      - "443:443"
+      - "8443:443"
     depends_on:
       - backend
     volumes:
