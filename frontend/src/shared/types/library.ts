@@ -123,3 +123,38 @@ export interface SessionSettings {
   sessionTtlMinutes: number;
   maxSessionLifetimeMinutes: number;
 }
+
+export interface NodeMemoryUsage {
+  rss: number;
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  arrayBuffers: number;
+}
+
+export interface ProcessInfo {
+  pid: number;
+  user: string;
+  cpuPercent: number;
+  memoryPercent: number | null;
+  residentMemoryKb: number;
+  virtualMemoryKb: number;
+  command: string;
+}
+
+export interface NodeMemoryDetail {
+  nodeId: string;
+  nodeKey: string;
+  memoryUsage: NodeMemoryUsage;
+  v8HeapStatistics?: {
+    totalHeapSize: number;
+    usedHeapSize: number;
+    heapSizeLimit: number;
+    totalAvailableSize: number;
+    totalPhysicalSize: number;
+    mallocedMemory: number;
+    peakMallocedMemory: number;
+  };
+  topProcessesByMemory?: ProcessInfo[];
+  timestamp: string;
+}

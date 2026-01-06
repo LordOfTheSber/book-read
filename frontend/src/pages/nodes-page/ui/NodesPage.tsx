@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Card, Grid, List, Progress, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { RightOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { loadNodes } from '@/entities/node';
@@ -44,6 +46,7 @@ const heartbeatStatus = (lastReportedAt?: string) => {
 
 export const NodesPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { list, loading, error, lastUpdated } = useAppSelector((state) => state.nodes);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -55,6 +58,10 @@ export const NodesPage: React.FC = () => {
     return () => window.clearInterval(intervalId);
   }, [dispatch]);
 
+  const handleNodeClick = (nodeId: string) => {
+    navigate(`/nodes/${nodeId}`);
+  };
+
   const columns: ColumnsType<SystemNode> = [
     {
       title: 'Узел',
@@ -62,7 +69,9 @@ export const NodesPage: React.FC = () => {
       ellipsis: true,
       render: (value, record) => (
         <Space direction="vertical" size={0}>
-          <Typography.Text strong>{value}</Typography.Text>
+          <Typography.Link strong onClick={() => handleNodeClick(record.id)}>
+            {value}
+          </Typography.Link>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {record.hostname || '—'}
             {record.port ? `:${record.port}` : ''}
@@ -164,6 +173,17 @@ export const NodesPage: React.FC = () => {
           </Tooltip>
         );
       }
+    },
+    {
+      title: '',
+      width: 40,
+      render: (_, record) => (
+        <Tooltip title="Подробнее">
+          <Typography.Link onClick={() => handleNodeClick(record.id)}>
+            <RightOutlined />
+          </Typography.Link>
+        </Tooltip>
+      )
     }
   ];
 
@@ -193,12 +213,16 @@ export const NodesPage: React.FC = () => {
           renderItem={(node) => {
             const hb = heartbeatStatus(node.lastReportedAt);
             return (
-              <div style={styles.mobileCard} key={node.id}>
+              <div
+                style={{ ...styles.mobileCard, cursor: 'pointer' }}
+                key={node.id}
+                onClick={() => handleNodeClick(node.id)}
+              >
                 <div style={styles.mobileHeader}>
                   <div style={styles.mobileMeta}>
-                    <Typography.Text strong ellipsis>
+                    <Typography.Link strong ellipsis>
                       {node.nodeKey}
-                    </Typography.Text>
+                    </Typography.Link>
                     <Typography.Text type="secondary">
                       {node.hostname || '—'}
                       {node.port ? `:${node.port}` : ''}
