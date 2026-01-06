@@ -75,7 +75,7 @@ public class LibraryItemController {
         return ResponseEntity.ok( response );
     }
 
-    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
     @PutMapping( "/{id}" )
     public ResponseEntity<LibraryItemResponse> update( @PathVariable UUID id,
                                                        @Valid @RequestBody LibraryItemRequest request ) {
@@ -84,7 +84,7 @@ public class LibraryItemController {
                                  .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
-    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         libraryItemService.delete( id );

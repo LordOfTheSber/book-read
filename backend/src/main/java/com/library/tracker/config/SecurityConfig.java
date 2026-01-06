@@ -42,8 +42,8 @@ public class SecurityConfig {
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/items" ).hasAnyRole(
                                                     "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
-                                                    .requestMatchers( HttpMethod.PUT, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
-                                                    .requestMatchers( HttpMethod.DELETE, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
+                                                    .requestMatchers( HttpMethod.PUT, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.DELETE, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/book-types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/book-types" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/book-types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )

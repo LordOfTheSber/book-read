@@ -71,6 +71,16 @@ public class LibraryItemService {
     }
 
     public void delete( UUID id ) {
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+
+        LibraryItem item = libraryItemRepository.findById( id )
+                .orElseThrow( () -> new IllegalArgumentException( "Книга не найдена" ) );
+
+        if ( !isAdmin && !isOwnedBy( item, currentUser ) ) {
+            throw new AccessDeniedException( "Вы можете удалять только свои книги" );
+        }
+
         libraryItemRepository.deleteById( id );
     }
 

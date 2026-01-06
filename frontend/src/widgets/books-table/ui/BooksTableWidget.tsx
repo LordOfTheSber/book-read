@@ -10,7 +10,7 @@ import { useBooksTableWidgetStyles } from './BooksTableWidget.styles';
 import { loadSources } from '@/entities/source';
 import { setFilters } from '@/features/book/set-book-filters';
 import { AxiosError } from 'axios';
-import { isAdminLike } from '@/shared/lib/roles';
+import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
 
 interface Props {
   onChangePage: (page: number, size: number, sort?: string) => void;
@@ -46,7 +46,8 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const types = useAppSelector((state) => state.bookTypes.list);
   const sources = useAppSelector((state) => state.sources.list);
   const filters = useAppSelector((state) => state.bookFilters);
-  const role = useAppSelector((state) => state.auth.user?.role);
+  const user = useAppSelector((state) => state.auth.user);
+  const role = user?.role;
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const [editing, setEditing] = useState<LibraryItem | null>(null);
@@ -55,6 +56,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const [form] = Form.useForm();
   const styles = useBooksTableWidgetStyles(isMobile);
   const isAdmin = isAdminLike(role);
+  const canEdit = canEditBooks(role);
 
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [
@@ -122,41 +124,48 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
             } as ColumnsType<LibraryItem>[number]
           ]
         : []),
-      ...(isAdmin
+      ...((canEdit || isAdmin)
         ? [
             {
               title: 'Действия',
               dataIndex: 'actions',
-              render: (_: unknown, record: LibraryItem) => (
-                <Space size="small">
-                  <Tooltip title="Редактировать">
-                    <Button
-                      size="small"
-                      type="text"
-                      shape="circle"
-                      icon={<EditOutlined />}
-                      onClick={() => openEdit(record)}
-                      aria-label="Редактировать"
-                    />
-                  </Tooltip>
-                  <Tooltip title="Удалить">
-                    <Button
-                      size="small"
-                      danger
-                      type="text"
-                      shape="circle"
-                      icon={<DeleteOutlined />}
-                      onClick={() => confirmDelete(record.id)}
-                      aria-label="Удалить"
-                    />
-                  </Tooltip>
-                </Space>
-              )
+              render: (_: unknown, record: LibraryItem) => {
+                const canDelete = canDeleteBook(role, user?.id, record.createdById);
+                return (
+                  <Space size="small">
+                    {canEdit && (
+                      <Tooltip title="Редактировать">
+                        <Button
+                          size="small"
+                          type="text"
+                          shape="circle"
+                          icon={<EditOutlined />}
+                          onClick={() => openEdit(record)}
+                          aria-label="Редактировать"
+                        />
+                      </Tooltip>
+                    )}
+                    {canDelete && (
+                      <Tooltip title="Удалить">
+                        <Button
+                          size="small"
+                          danger
+                          type="text"
+                          shape="circle"
+                          icon={<DeleteOutlined />}
+                          onClick={() => confirmDelete(record.id)}
+                          aria-label="Удалить"
+                        />
+                      </Tooltip>
+                    )}
+                  </Space>
+                );
+              }
             } as ColumnsType<LibraryItem>[number]
           ]
         : [])
     ],
-    [isAdmin]
+    [isAdmin, canEdit, role, user?.id]
   );
 
   const showRequestError = (error: unknown, fallback: string) => {
@@ -296,15 +305,19 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
                     )}
                   </div>
                 </div>
-                {isAdmin && (
+                {(canEdit || canDeleteBook(role, user?.id, item.createdById)) && (
                   <div style={{ marginTop: 10 }}>
                     <Space style={styles.mobileActions} wrap>
-                      <Button size="small" type="primary" onClick={() => openEdit(item)}>
-                        Редактировать
-                      </Button>
-                      <Button size="small" danger onClick={() => confirmDelete(item.id)}>
-                        Удалить
-                      </Button>
+                      {canEdit && (
+                        <Button size="small" type="primary" onClick={() => openEdit(item)}>
+                          Редактировать
+                        </Button>
+                      )}
+                      {canDeleteBook(role, user?.id, item.createdById) && (
+                        <Button size="small" danger onClick={() => confirmDelete(item.id)}>
+                          Удалить
+                        </Button>
+                      )}
                     </Space>
                   </div>
                 )}
