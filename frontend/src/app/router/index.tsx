@@ -10,6 +10,7 @@ import { RegisterPage } from '@/pages/register-page';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { UsersPage } from '@/pages/users-page';
 import { NodesPage } from '@/pages/nodes-page';
+import { NodeDetailPage } from '@/pages/node-detail-page';
 import { fetchCurrentUser } from '@/entities/auth';
 import { AnalyticsPage } from '@/pages/analytics-page';
 import { ProfilePage } from '@/pages/profile-page';
@@ -63,7 +64,10 @@ const router = createBrowserRouter([
           {
             path: 'nodes',
             element: <RequireAdmin />,
-            children: [{ index: true, element: <NodesPage /> }]
+            children: [
+              { index: true, element: <NodesPage /> },
+              { path: ':nodeId', element: <NodeDetailPage /> }
+            ]
           }
         ]
       }

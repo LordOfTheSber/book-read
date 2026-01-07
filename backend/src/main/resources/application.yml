@@ -23,3 +23,16 @@ springdoc:
 
 node:
   heartbeat-interval: 10s
+
+logging:
+  file:
+    path: ${LOG_PATH:logs}
+    name: ${LOG_PATH:logs}/application.log
+  level:
+    root: INFO
+    com.library.tracker: DEBUG
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB
