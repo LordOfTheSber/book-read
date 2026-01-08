@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BookRead favicon">
+  <defs>
+    <linearGradient id="cover" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4096ff"/>
+      <stop offset="100%" stop-color="#73c0ff"/>
+    </linearGradient>
+    <linearGradient id="spine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#73c0ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#4096ff" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="10" width="52" height="44" rx="10" fill="url(#cover)"/>
+  <rect x="14" y="10" width="8" height="44" rx="6" fill="url(#spine)"/>
+  <path d="M20 20h22c3.5 0 6 2.8 6 6.3v11.4c0 3.5-2.5 6.3-6 6.3H20" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M20 24h18M20 32h22M20 40h16" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+</svg>
