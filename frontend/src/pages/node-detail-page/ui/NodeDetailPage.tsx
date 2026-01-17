@@ -111,7 +111,7 @@ export const NodeDetailPage: React.FC = () => {
         data.nodes?.find((snapshot) => snapshot.nodeKey === currentNode?.nodeKey) ?? null;
       setMetrics(nodeSnapshot);
       setMetricsError(null);
-      if (data.settings) {
+      if (data.settings && isSuperAdmin(user?.role)) {
         settingsForm.setFieldsValue({
           pingIntervalSeconds: data.settings.pingIntervalSeconds,
           pingPath: data.settings.pingPath
@@ -123,7 +123,7 @@ export const NodeDetailPage: React.FC = () => {
     } finally {
       setMetricsLoading(false);
     }
-  }, [currentNode?.nodeKey, settingsForm]);
+  }, [currentNode?.nodeKey, settingsForm, user?.role]);
 
   useEffect(() => {
     loadData();
