@@ -158,3 +158,38 @@ export interface NodeMemoryDetail {
   topProcessesByMemory?: ProcessInfo[];
   timestamp: string;
 }
+
+export interface MonitoringGlobalMetrics {
+  totalRequests: number;
+  errorRequests: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  lastRequestAt?: string | null;
+}
+
+export interface EndpointMetrics {
+  method: string;
+  path: string;
+  totalRequests: number;
+  errorRequests: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  lastDurationMs: number;
+  lastRequestAt?: string | null;
+}
+
+export interface SlowRequest {
+  method: string;
+  path: string;
+  status: number;
+  durationMs: number;
+  occurredAt: string;
+}
+
+export interface MonitoringMetrics {
+  enabled: boolean;
+  global: MonitoringGlobalMetrics;
+  endpoints: EndpointMetrics[];
+  slowRequests: SlowRequest[];
+  generatedAt: string;
+}

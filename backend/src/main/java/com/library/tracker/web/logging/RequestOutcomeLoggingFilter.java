@@ -7,14 +7,19 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
+import com.library.tracker.service.RequestMetricsService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class RequestOutcomeLoggingFilter extends OncePerRequestFilter {
+
+    private final RequestMetricsService requestMetricsService;
 
     @Override
     protected void doFilterInternal(
@@ -48,5 +53,7 @@ public class RequestOutcomeLoggingFilter extends OncePerRequestFilter {
         } else {
             log.info( "{} {} completed with status {} in {} ms", method, path, status, duration );
         }
+
+        requestMetricsService.recordRequest( method, path, status, duration );
     }
 }
