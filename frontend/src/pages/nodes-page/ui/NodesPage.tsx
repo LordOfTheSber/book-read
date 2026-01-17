@@ -1,12 +1,24 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Card, Grid, List, Progress, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import {
+  Badge,
+  Card,
+  Grid,
+  List,
+  Progress,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography
+} from 'antd';
 import { RightOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { loadNodes } from '@/entities/node';
 import { SystemNode } from '@/shared/types/library';
 import { useNodesPageStyles } from './NodesPage.styles';
+import { parseServerDate } from '@/shared/lib/date';
 
 const formatBytes = (value?: number) => {
   if (value === undefined || value === null) return '—';
@@ -37,8 +49,9 @@ const calculateUsed = (total?: number, free?: number) =>
   total !== undefined && free !== undefined ? total - free : undefined;
 
 const heartbeatStatus = (lastReportedAt?: string) => {
-  if (!lastReportedAt) return { status: 'default' as const, text: 'нет данных' };
-  const diff = Date.now() - new Date(lastReportedAt).getTime();
+  const parsed = parseServerDate(lastReportedAt);
+  if (!parsed) return { status: 'default' as const, text: 'нет данных' };
+  const diff = Date.now() - parsed.getTime();
   if (diff > 60_000) return { status: 'error' as const, text: 'нет сигнала' };
   if (diff > 20_000) return { status: 'warning' as const, text: 'задержка' };
   return { status: 'success' as const, text: 'в сети' };
@@ -167,8 +180,9 @@ export const NodesPage: React.FC = () => {
       dataIndex: 'lastReportedAt',
       render: (value: string | undefined) => {
         const status = heartbeatStatus(value);
+        const parsed = parseServerDate(value);
         return (
-          <Tooltip title={value ? new Date(value).toLocaleString() : 'Нет данных'}>
+          <Tooltip title={parsed ? parsed.toLocaleString() : 'Нет данных'}>
             <Badge status={status.status} text={status.text} />
           </Tooltip>
         );
@@ -212,6 +226,7 @@ export const NodesPage: React.FC = () => {
           style={styles.mobileList}
           renderItem={(node) => {
             const hb = heartbeatStatus(node.lastReportedAt);
+            const lastSeen = parseServerDate(node.lastReportedAt);
             return (
               <div
                 style={{ ...styles.mobileCard, cursor: 'pointer' }}
@@ -230,7 +245,15 @@ export const NodesPage: React.FC = () => {
                     <Typography.Text type="secondary">IP: {node.ip || '—'}</Typography.Text>
                     <Badge status={hb.status} text={hb.text} />
                   </div>
-                  <Tag color={node.cpuLoad && node.cpuLoad > 0.85 ? 'red' : node.cpuLoad && node.cpuLoad > 0.65 ? 'orange' : 'green'}>
+                  <Tag
+                    color={
+                      node.cpuLoad && node.cpuLoad > 0.85
+                        ? 'red'
+                        : node.cpuLoad && node.cpuLoad > 0.65
+                          ? 'orange'
+                          : 'green'
+                    }
+                  >
                     CPU: {node.cpuLoad !== undefined ? `${Number((node.cpuLoad * 100).toFixed(2))}%` : '—'}
                   </Tag>
                 </div>
@@ -239,12 +262,18 @@ export const NodesPage: React.FC = () => {
                   <Space direction="vertical" size={2}>
                     <Typography.Text type="secondary">Память</Typography.Text>
                     <Progress
-                      percent={formatPercent(calculateUsed(node.systemMemoryTotal, node.systemMemoryFree), node.systemMemoryTotal) ?? 0}
+                      percent={
+                        formatPercent(
+                          calculateUsed(node.systemMemoryTotal, node.systemMemoryFree),
+                          node.systemMemoryTotal
+                        ) ?? 0
+                      }
                       size="small"
                       status="active"
                     />
                     <Typography.Text type="secondary">
-                      {formatBytes(calculateUsed(node.systemMemoryTotal, node.systemMemoryFree))} / {formatBytes(node.systemMemoryTotal)}
+                      {formatBytes(calculateUsed(node.systemMemoryTotal, node.systemMemoryFree))} /{' '}
+                      {formatBytes(node.systemMemoryTotal)}
                     </Typography.Text>
                   </Space>
 
@@ -263,17 +292,23 @@ export const NodesPage: React.FC = () => {
                   <Space direction="vertical" size={2}>
                     <Typography.Text type="secondary">Диски</Typography.Text>
                     <Progress
-                      percent={formatPercent(calculateUsed(node.diskTotal, node.diskFree), node.diskTotal) ?? 0}
+                      percent={
+                        formatPercent(calculateUsed(node.diskTotal, node.diskFree), node.diskTotal) ?? 0
+                      }
                       size="small"
                       status="normal"
                     />
                     <Typography.Text type="secondary">
-                      {formatBytes(calculateUsed(node.diskTotal, node.diskFree))} / {formatBytes(node.diskTotal)}
+                      {formatBytes(calculateUsed(node.diskTotal, node.diskFree))} /{' '}
+                      {formatBytes(node.diskTotal)}
                     </Typography.Text>
                   </Space>
 
                   <Typography.Text type="secondary">
                     Аптайм: {formatDuration(node.uptimeSeconds)}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    Последний сигнал: {lastSeen ? lastSeen.toLocaleString() : '—'}
                   </Typography.Text>
                 </Space>
               </div>

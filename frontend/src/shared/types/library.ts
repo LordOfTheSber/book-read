@@ -158,3 +158,52 @@ export interface NodeMemoryDetail {
   topProcessesByMemory?: ProcessInfo[];
   timestamp: string;
 }
+
+export interface MonitoringGlobalMetrics {
+  totalRequests: number;
+  errorRequests: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  lastRequestAt?: string | null;
+}
+
+export interface MonitoringSettings {
+  metricsEnabled: boolean;
+  pingIntervalSeconds: number;
+  pingPath: string;
+  updatedAt?: string;
+}
+
+export interface EndpointMetrics {
+  method: string;
+  path: string;
+  totalRequests: number;
+  errorRequests: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  lastDurationMs: number;
+  lastRequestAt?: string | null;
+}
+
+export interface SlowRequest {
+  method: string;
+  path: string;
+  status: number;
+  durationMs: number;
+  occurredAt: string;
+}
+
+export interface NodeMetricsSnapshot {
+  nodeKey: string;
+  capturedAt: string;
+  global: MonitoringGlobalMetrics;
+  endpoints: EndpointMetrics[];
+  slowRequests: SlowRequest[];
+}
+
+export interface MonitoringMetrics {
+  enabled: boolean;
+  settings: MonitoringSettings;
+  nodes: NodeMetricsSnapshot[];
+  generatedAt: string;
+}
