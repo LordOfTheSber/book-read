@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -7,17 +7,21 @@ import {
   Card,
   Col,
   Descriptions,
+  Form,
+  Input,
+  InputNumber,
   Progress,
   Row,
   Space,
   Spin,
+  Switch,
   Table,
   Tooltip,
   Typography
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ArrowLeftOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import { ProcessInfo } from '@/shared/types/library';
+import { EndpointMetrics, NodeMetricsSnapshot, ProcessInfo, SlowRequest } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import {
   clearCurrentNode,
@@ -25,7 +29,9 @@ import {
   loadNodeById,
   loadNodeMemoryDetail
 } from '@/entities/node';
-import { isSuperAdmin } from '@/shared/lib/roles';
+import { fetchMonitoringMetrics, updateMonitoringMetricsEnabled, updateMonitoringSettings } from '@/entities/monitoring/api/monitoringApi';
+import { isAdminLike, isSuperAdmin } from '@/shared/lib/roles';
+import { parseServerDate } from '@/shared/lib/date';
 import { useNodeDetailPageStyles } from './NodeDetailPage.styles';
 
 const formatBytes = (value?: number) => {
@@ -53,9 +59,18 @@ const formatDuration = (seconds?: number) => {
   return `${minutes}м`;
 };
 
+const formatMs = (value?: number) => {
+  if (value === undefined || value === null) return '—';
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)} с`;
+  }
+  return `${Math.round(value)} мс`;
+};
+
 const heartbeatStatus = (lastReportedAt?: string) => {
-  if (!lastReportedAt) return { status: 'default' as const, text: 'нет данных' };
-  const diff = Date.now() - new Date(lastReportedAt).getTime();
+  const parsed = parseServerDate(lastReportedAt);
+  if (!parsed) return { status: 'default' as const, text: 'нет данных' };
+  const diff = Date.now() - parsed.getTime();
   if (diff > 60_000) return { status: 'error' as const, text: 'нет сигнала' };
   if (diff > 20_000) return { status: 'warning' as const, text: 'задержка' };
   return { status: 'success' as const, text: 'в сети' };
@@ -66,12 +81,19 @@ export const NodeDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const styles = useNodeDetailPageStyles();
+  const [settingsForm] = Form.useForm();
 
   const { currentNode, currentNodeLoading, memoryDetail, memoryDetailLoading, error } =
     useAppSelector((state) => state.nodes);
   const user = useAppSelector((state) => state.auth.user);
 
   const [downloadingLogs, setDownloadingLogs] = useState(false);
+  const [metrics, setMetrics] = useState<NodeMetricsSnapshot | null>(null);
+  const [metricsEnabled, setMetricsEnabled] = useState<boolean>(false);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [metricsUpdating, setMetricsUpdating] = useState(false);
+  const [settingsUpdating, setSettingsUpdating] = useState(false);
 
   const loadData = useCallback(() => {
     if (nodeId) {
@@ -79,6 +101,29 @@ export const NodeDetailPage: React.FC = () => {
       dispatch(loadNodeMemoryDetail(nodeId));
     }
   }, [dispatch, nodeId]);
+
+  const loadMetrics = useCallback(async () => {
+    setMetricsLoading(true);
+    try {
+      const data = await fetchMonitoringMetrics();
+      setMetricsEnabled(data.enabled);
+      const nodeSnapshot =
+        data.nodes?.find((snapshot) => snapshot.nodeKey === currentNode?.nodeKey) ?? null;
+      setMetrics(nodeSnapshot);
+      setMetricsError(null);
+      if (data.settings) {
+        settingsForm.setFieldsValue({
+          pingIntervalSeconds: data.settings.pingIntervalSeconds,
+          pingPath: data.settings.pingPath
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Не удалось загрузить метрики';
+      setMetricsError(message);
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, [currentNode?.nodeKey, settingsForm]);
 
   useEffect(() => {
     loadData();
@@ -88,6 +133,41 @@ export const NodeDetailPage: React.FC = () => {
       dispatch(clearCurrentNode());
     };
   }, [dispatch, loadData]);
+
+  useEffect(() => {
+    if (!currentNode?.nodeKey) return;
+    loadMetrics();
+    const intervalId = window.setInterval(loadMetrics, 10000);
+    return () => window.clearInterval(intervalId);
+  }, [currentNode?.nodeKey, loadMetrics]);
+
+  const handleToggleMetrics = async (enabled: boolean) => {
+    setMetricsUpdating(true);
+    try {
+      await updateMonitoringMetricsEnabled(enabled);
+      await loadMetrics();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Не удалось обновить настройки метрик';
+      setMetricsError(message);
+    } finally {
+      setMetricsUpdating(false);
+    }
+  };
+
+  const handleUpdateSettings = async () => {
+    try {
+      const values = await settingsForm.validateFields();
+      setSettingsUpdating(true);
+      await updateMonitoringSettings(values);
+      await loadMetrics();
+    } catch (err) {
+      if (err instanceof Error) {
+        setMetricsError(err.message);
+      }
+    } finally {
+      setSettingsUpdating(false);
+    }
+  };
 
   const handleDownloadLogs = async () => {
     if (!nodeId) return;
@@ -126,6 +206,7 @@ export const NodeDetailPage: React.FC = () => {
 
   const node = currentNode;
   const hb = heartbeatStatus(node?.lastReportedAt);
+  const lastReportedAt = parseServerDate(node?.lastReportedAt);
 
   const systemMemoryUsed =
     node?.systemMemoryTotal !== undefined && node?.systemMemoryFree !== undefined
@@ -136,6 +217,83 @@ export const NodeDetailPage: React.FC = () => {
     node?.diskTotal !== undefined && node?.diskFree !== undefined
       ? node.diskTotal - node.diskFree
       : undefined;
+
+  const endpointColumns: ColumnsType<EndpointMetrics> = useMemo(
+    () => [
+      {
+        title: 'Метод',
+        dataIndex: 'method',
+        width: 90
+      },
+      {
+        title: 'Путь',
+        dataIndex: 'path',
+        ellipsis: true
+      },
+      {
+        title: 'Запросы',
+        dataIndex: 'totalRequests',
+        width: 110
+      },
+      {
+        title: 'Ошибки',
+        dataIndex: 'errorRequests',
+        width: 90,
+        render: (value: number) => (
+          <Typography.Text type={value > 0 ? 'danger' : undefined}>{value}</Typography.Text>
+        )
+      },
+      {
+        title: 'Среднее',
+        dataIndex: 'averageDurationMs',
+        width: 120,
+        render: (value: number) => formatMs(value)
+      },
+      {
+        title: 'Макс',
+        dataIndex: 'maxDurationMs',
+        width: 110,
+        render: (value: number) => formatMs(value)
+      }
+    ],
+    []
+  );
+
+  const slowRequestColumns: ColumnsType<SlowRequest> = useMemo(
+    () => [
+      {
+        title: 'Когда',
+        dataIndex: 'occurredAt',
+        width: 160,
+        render: (value: string) => {
+          const parsed = parseServerDate(value);
+          return parsed ? parsed.toLocaleTimeString() : '—';
+        }
+      },
+      {
+        title: 'Метод',
+        dataIndex: 'method',
+        width: 90
+      },
+      {
+        title: 'Путь',
+        dataIndex: 'path',
+        ellipsis: true
+      },
+      {
+        title: 'Статус',
+        dataIndex: 'status',
+        width: 90
+      },
+      {
+        title: 'Длительность',
+        dataIndex: 'durationMs',
+        width: 120,
+        render: (value: number) => formatMs(value)
+      }
+    ],
+    []
+  );
 
   return (
     <div style={styles.container}>
@@ -186,9 +344,131 @@ export const NodeDetailPage: React.FC = () => {
               : '—'}
           </Descriptions.Item>
           <Descriptions.Item label="Последний отчёт">
-            {node?.lastReportedAt ? new Date(node.lastReportedAt).toLocaleString() : '—'}
+            {lastReportedAt ? lastReportedAt.toLocaleString() : '—'}
           </Descriptions.Item>
         </Descriptions>
+      </Card>
+
+      <Card
+        title="Метрики запросов"
+        style={styles.card}
+        headStyle={styles.cardHead}
+        bodyStyle={styles.cardBody}
+        extra={
+          <Space>
+            <Typography.Text type="secondary">Сбор метрик</Typography.Text>
+            <Switch
+              checked={metricsEnabled}
+              loading={metricsUpdating}
+              onChange={handleToggleMetrics}
+              disabled={!isAdminLike(user?.role)}
+            />
+          </Space>
+        }
+      >
+        {metricsError && (
+          <Alert message={metricsError} type="error" showIcon style={{ marginBottom: 12 }} />
+        )}
+
+        {!metricsEnabled && (
+          <Alert
+            message="Сбор метрик выключен"
+            description="Включите сбор, чтобы видеть показатели задержек и ошибок. Пинг также выключается вместе со сбором."
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
+        {metricsLoading && !metrics ? (
+          <Typography.Text type="secondary">Загрузка метрик...</Typography.Text>
+        ) : (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            {isSuperAdmin(user?.role) && (
+              <Card size="small" title="Автоматический пинг" style={{ marginBottom: 12 }}>
+                <Form
+                  form={settingsForm}
+                  layout="inline"
+                  onFinish={handleUpdateSettings}
+                  disabled={!metricsEnabled}
+                >
+                  <Form.Item
+                    label="Интервал (сек)"
+                    name="pingIntervalSeconds"
+                    rules={[{ required: true, message: 'Укажите интервал' }]}
+                  >
+                    <InputNumber min={5} max={3600} />
+                  </Form.Item>
+                  <Form.Item
+                    label="Путь"
+                    name="pingPath"
+                    rules={[{ required: true, message: 'Укажите путь' }]}
+                  >
+                    <Input placeholder="/api/v1/monitoring/ping" />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit" loading={settingsUpdating}>
+                      Сохранить
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            )}
+
+            {metrics ? (
+              <>
+                <Typography.Text type="secondary">
+                  Снимок: {parseServerDate(metrics.capturedAt)?.toLocaleString() ?? '—'}
+                </Typography.Text>
+
+                <Card size="small" title="Глобальные показатели">
+                  <Space direction="vertical" size={4}>
+                    <Typography.Text>Всего запросов: {metrics.global?.totalRequests ?? 0}</Typography.Text>
+                    <Typography.Text>Ошибок (5xx): {metrics.global?.errorRequests ?? 0}</Typography.Text>
+                    <Typography.Text>
+                      Средняя длительность: {formatMs(metrics.global?.averageDurationMs)}
+                    </Typography.Text>
+                    <Typography.Text>
+                      Максимальная длительность: {formatMs(metrics.global?.maxDurationMs)}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      Последний запрос:{' '}
+                      {metrics.global?.lastRequestAt
+                        ? parseServerDate(metrics.global.lastRequestAt)?.toLocaleString() ?? '—'
+                        : '—'}
+                    </Typography.Text>
+                  </Space>
+                </Card>
+
+                <Card size="small" title="Метрики по эндпоинтам">
+                  <Table<EndpointMetrics>
+                    dataSource={metrics.endpoints ?? []}
+                    columns={endpointColumns}
+                    rowKey={(row) => `${row.method}-${row.path}`}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: true }}
+                    locale={{ emptyText: 'Нет данных по запросам' }}
+                  />
+                </Card>
+
+                <Card size="small" title="Медленные запросы">
+                  <Table<SlowRequest>
+                    dataSource={metrics.slowRequests ?? []}
+                    columns={slowRequestColumns}
+                    rowKey={(row) => `${row.method}-${row.path}-${row.occurredAt}-${row.durationMs}`}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: true }}
+                    locale={{ emptyText: 'Медленные запросы не зафиксированы' }}
+                  />
+                </Card>
+              </>
+            ) : (
+              <Typography.Text type="secondary">Нет данных по метрикам для узла.</Typography.Text>
+            )}
+          </Space>
+        )}
       </Card>
 
       <Row gutter={[16, 16]}>
