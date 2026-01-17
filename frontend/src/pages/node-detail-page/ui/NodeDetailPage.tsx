@@ -185,39 +185,6 @@ export const NodeDetailPage: React.FC = () => {
     navigate('/nodes');
   };
 
-  if (currentNodeLoading && !currentNode) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (error && !currentNode) {
-    return (
-      <div style={styles.container}>
-        <Button icon={<ArrowLeftOutlined />} onClick={handleBack} style={styles.backButton}>
-          Назад к узлам
-        </Button>
-        <Alert type="error" message="Ошибка загрузки" description={error} showIcon />
-      </div>
-    );
-  }
-
-  const node = currentNode;
-  const hb = heartbeatStatus(node?.lastReportedAt);
-  const lastReportedAt = parseServerDate(node?.lastReportedAt);
-
-  const systemMemoryUsed =
-    node?.systemMemoryTotal !== undefined && node?.systemMemoryFree !== undefined
-      ? node.systemMemoryTotal - node.systemMemoryFree
-      : undefined;
-
-  const diskUsed =
-    node?.diskTotal !== undefined && node?.diskFree !== undefined
-      ? node.diskTotal - node.diskFree
-      : undefined;
-
   const endpointColumns: ColumnsType<EndpointMetrics> = useMemo(
     () => [
       {
@@ -294,6 +261,39 @@ export const NodeDetailPage: React.FC = () => {
     ],
     []
   );
+
+  if (currentNodeLoading && !currentNode) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (error && !currentNode) {
+    return (
+      <div style={styles.container}>
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack} style={styles.backButton}>
+          Назад к узлам
+        </Button>
+        <Alert type="error" message="Ошибка загрузки" description={error} showIcon />
+      </div>
+    );
+  }
+
+  const node = currentNode;
+  const hb = heartbeatStatus(node?.lastReportedAt);
+  const lastReportedAt = parseServerDate(node?.lastReportedAt);
+
+  const systemMemoryUsed =
+    node?.systemMemoryTotal !== undefined && node?.systemMemoryFree !== undefined
+      ? node.systemMemoryTotal - node.systemMemoryFree
+      : undefined;
+
+  const diskUsed =
+    node?.diskTotal !== undefined && node?.diskFree !== undefined
+      ? node.diskTotal - node.diskFree
+      : undefined;
 
   return (
     <div style={styles.container}>
