@@ -19,4 +19,10 @@ public class MonitoringSettings extends BaseAuditEntity {
 
     @Column( name = "metrics_enabled", nullable = false )
     private Boolean metricsEnabled;
+
+    @Column( name = "ping_interval_seconds", nullable = false )
+    private Integer pingIntervalSeconds;
+
+    @Column( name = "ping_path", nullable = false )
+    private String pingPath;
 }

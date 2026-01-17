@@ -1,12 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Badge, Card, Grid, List, Progress, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Collapse,
+  Form,
+  Grid,
+  Input,
+  InputNumber,
+  List,
+  Progress,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Tooltip,
+  Typography
+} from 'antd';
 import { RightOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { loadNodes } from '@/entities/node';
-import { fetchMonitoringMetrics, updateMonitoringMetricsEnabled } from '@/entities/monitoring/api/monitoringApi';
-import { EndpointMetrics, MonitoringMetrics, SlowRequest, SystemNode } from '@/shared/types/library';
+import { fetchMonitoringMetrics, updateMonitoringMetricsEnabled, updateMonitoringSettings } from '@/entities/monitoring/api/monitoringApi';
+import { EndpointMetrics, MonitoringMetrics, NodeMetricsSnapshot, SlowRequest, SystemNode } from '@/shared/types/library';
+import { isSuperAdmin } from '@/shared/lib/roles';
 import { useNodesPageStyles } from './NodesPage.styles';
 
 const formatBytes = (value?: number) => {
@@ -60,10 +79,13 @@ export const NodesPage: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const styles = useNodesPageStyles();
+  const [settingsForm] = Form.useForm();
   const [metrics, setMetrics] = useState<MonitoringMetrics | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsUpdating, setMetricsUpdating] = useState(false);
+  const [settingsUpdating, setSettingsUpdating] = useState(false);
+  const user = useAppSelector((state) => state.auth.user);
 
   const loadMetrics = useCallback(async () => {
     setMetricsLoading(true);
@@ -91,6 +113,15 @@ export const NodesPage: React.FC = () => {
     return () => window.clearInterval(intervalId);
   }, [loadMetrics]);
 
+  useEffect(() => {
+    if (metrics?.settings) {
+      settingsForm.setFieldsValue({
+        pingIntervalSeconds: metrics.settings.pingIntervalSeconds,
+        pingPath: metrics.settings.pingPath
+      });
+    }
+  }, [metrics, settingsForm]);
+
   const handleToggleMetrics = async (enabled: boolean) => {
     setMetricsUpdating(true);
     try {
@@ -101,6 +132,21 @@ export const NodesPage: React.FC = () => {
       setMetricsError(message);
     } finally {
       setMetricsUpdating(false);
+    }
+  };
+
+  const handleUpdateSettings = async (values?: { pingIntervalSeconds: number; pingPath: string }) => {
+    try {
+      const payload = values ?? (await settingsForm.validateFields());
+      setSettingsUpdating(true);
+      await updateMonitoringSettings(payload);
+      await loadMetrics();
+    } catch (err) {
+      if (err instanceof Error) {
+        setMetricsError(err.message);
+      }
+    } finally {
+      setSettingsUpdating(false);
     }
   };
 
@@ -307,6 +353,50 @@ export const NodesPage: React.FC = () => {
     []
   );
 
+  const renderNodeMetrics = (node: NodeMetricsSnapshot) => (
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <Typography.Text type="secondary">
+        Снимок: {node.capturedAt ? new Date(node.capturedAt).toLocaleString() : '—'}
+      </Typography.Text>
+      <Card size="small" title="Глобальные показатели">
+        <Space direction="vertical" size={4}>
+          <Typography.Text>Всего запросов: {node.global?.totalRequests ?? 0}</Typography.Text>
+          <Typography.Text>Ошибок (5xx): {node.global?.errorRequests ?? 0}</Typography.Text>
+          <Typography.Text>Средняя длительность: {formatMs(node.global?.averageDurationMs)}</Typography.Text>
+          <Typography.Text>Максимальная длительность: {formatMs(node.global?.maxDurationMs)}</Typography.Text>
+          <Typography.Text type="secondary">
+            Последний запрос:{' '}
+            {node.global?.lastRequestAt ? new Date(node.global.lastRequestAt).toLocaleString() : '—'}
+          </Typography.Text>
+        </Space>
+      </Card>
+
+      <Card size="small" title="Метрики по эндпоинтам">
+        <Table<EndpointMetrics>
+          dataSource={node.endpoints ?? []}
+          columns={endpointColumns}
+          rowKey={(row) => `${row.method}-${row.path}`}
+          pagination={false}
+          size="small"
+          scroll={{ x: true }}
+          locale={{ emptyText: 'Нет данных по запросам' }}
+        />
+      </Card>
+
+      <Card size="small" title="Медленные запросы">
+        <Table<SlowRequest>
+          dataSource={node.slowRequests ?? []}
+          columns={slowRequestColumns}
+          rowKey={(row) => `${row.method}-${row.path}-${row.occurredAt}-${row.durationMs}`}
+          pagination={false}
+          size="small"
+          scroll={{ x: true }}
+          locale={{ emptyText: 'Медленные запросы не зафиксированы' }}
+        />
+      </Card>
+    </Space>
+  );
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card
@@ -332,7 +422,7 @@ export const NodesPage: React.FC = () => {
         {!metrics?.enabled && (
           <Alert
             message="Сбор метрик выключен"
-            description="Включите сбор, чтобы видеть показатели задержек и ошибок."
+            description="Включите сбор, чтобы видеть показатели задержек и ошибок. Пинг также выключается вместе со сбором."
             type="warning"
             showIcon
             style={{ marginBottom: 12 }}
@@ -347,54 +437,52 @@ export const NodesPage: React.FC = () => {
               Обновлено: {metrics?.generatedAt ? new Date(metrics.generatedAt).toLocaleTimeString() : '—'}
             </Typography.Text>
 
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              <Card size="small" title="Глобальные показатели">
-                <Space direction="vertical" size={4}>
-                  <Typography.Text>
-                    Всего запросов: {metrics?.global?.totalRequests ?? 0}
-                  </Typography.Text>
-                  <Typography.Text>
-                    Ошибок (5xx): {metrics?.global?.errorRequests ?? 0}
-                  </Typography.Text>
-                  <Typography.Text>
-                    Средняя длительность: {formatMs(metrics?.global?.averageDurationMs)}
-                  </Typography.Text>
-                  <Typography.Text>
-                    Максимальная длительность: {formatMs(metrics?.global?.maxDurationMs)}
-                  </Typography.Text>
-                  <Typography.Text type="secondary">
-                    Последний запрос:{' '}
-                    {metrics?.global?.lastRequestAt
-                      ? new Date(metrics.global.lastRequestAt).toLocaleString()
-                      : '—'}
-                  </Typography.Text>
-                </Space>
+            {isSuperAdmin(user?.role) && (
+              <Card size="small" title="Автоматический пинг" style={{ marginBottom: 12 }}>
+                <Form
+                  form={settingsForm}
+                  layout="inline"
+                  onFinish={handleUpdateSettings}
+                  disabled={!metrics?.enabled}
+                >
+                  <Form.Item
+                    label="Интервал (сек)"
+                    name="pingIntervalSeconds"
+                    rules={[{ required: true, message: 'Укажите интервал' }]}
+                  >
+                    <InputNumber min={5} max={3600} />
+                  </Form.Item>
+                  <Form.Item
+                    label="Путь"
+                    name="pingPath"
+                    rules={[{ required: true, message: 'Укажите путь' }]}
+                  >
+                    <Input placeholder="/api/v1/monitoring/ping" />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit" loading={settingsUpdating}>
+                      Сохранить
+                    </Button>
+                  </Form.Item>
+                </Form>
+                <Typography.Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                  Пинг создаёт регулярные запросы для контроля задержек и доступности узла.
+                </Typography.Text>
               </Card>
+            )}
 
-              <Card size="small" title="Метрики по эндпоинтам">
-                <Table<EndpointMetrics>
-                  dataSource={metrics?.endpoints ?? []}
-                  columns={endpointColumns}
-                  rowKey={(row) => `${row.method}-${row.path}`}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: true }}
-                  locale={{ emptyText: 'Нет данных по запросам' }}
-                />
-              </Card>
-
-              <Card size="small" title="Медленные запросы">
-                <Table<SlowRequest>
-                  dataSource={metrics?.slowRequests ?? []}
-                  columns={slowRequestColumns}
-                  rowKey={(row) => `${row.method}-${row.path}-${row.occurredAt}-${row.durationMs}`}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: true }}
-                  locale={{ emptyText: 'Медленные запросы не зафиксированы' }}
-                />
-              </Card>
-            </Space>
+            {metrics?.nodes?.length ? (
+              <Collapse
+                accordion
+                items={metrics.nodes.map((node) => ({
+                  key: node.nodeKey,
+                  label: node.nodeKey,
+                  children: renderNodeMetrics(node)
+                }))}
+              />
+            ) : (
+              <Typography.Text type="secondary">Нет данных по узлам.</Typography.Text>
+            )}
           </>
         )}
       </Card>

@@ -1,8 +1,6 @@
 package com.library.tracker.service;
 
 import com.library.tracker.web.dto.EndpointMetricsResponse;
-import com.library.tracker.web.dto.MonitoringMetricsResponse;
-import com.library.tracker.web.dto.MonitoringMetricsResponse.GlobalMetricsResponse;
 import com.library.tracker.web.dto.SlowRequestResponse;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
@@ -23,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class RequestMetricsService {
 
     private static final int MAX_ENDPOINTS = 200;
+    private static final int MAX_ENDPOINTS_EXPORT = 50;
     private static final int MAX_SLOW_REQUESTS = 50;
     private static final long SLOW_REQUEST_THRESHOLD_MS = 1000;
 
@@ -76,11 +75,12 @@ public class RequestMetricsService {
         }
     }
 
-    public MonitoringMetricsResponse snapshot() {
+    public MetricsSnapshot snapshot() {
         List<EndpointMetricsResponse> endpoints = endpointStats.values().stream()
                                                                .map( EndpointStats::toResponse )
                                                                .sorted( Comparator.comparingLong( EndpointMetricsResponse::getMaxDurationMs )
                                                                                   .reversed() )
+                                                               .limit( MAX_ENDPOINTS_EXPORT )
                                                                .toList();
         List<SlowRequestResponse> slowRequestsSnapshot;
         synchronized ( slowRequestsLock ) {
@@ -90,19 +90,16 @@ public class RequestMetricsService {
         long totalDurationMs = totalDuration.sum();
         double average = total > 0 ? (double) totalDurationMs / total : 0.0;
 
-        return MonitoringMetricsResponse.builder()
-                                        .enabled( isEnabled() )
-                                        .generatedAt( LocalDateTime.now() )
-                                        .global( GlobalMetricsResponse.builder()
-                                                                      .totalRequests( total )
-                                                                      .errorRequests( errorRequests.sum() )
-                                                                      .averageDurationMs( average )
-                                                                      .maxDurationMs( maxDuration.get() )
-                                                                      .lastRequestAt( lastRequestAt.get() )
-                                                                      .build() )
-                                        .endpoints( endpoints )
-                                        .slowRequests( slowRequestsSnapshot )
-                                        .build();
+        return new MetricsSnapshot(
+                GlobalSnapshot.builder()
+                              .totalRequests( total )
+                              .errorRequests( errorRequests.sum() )
+                              .averageDurationMs( average )
+                              .maxDurationMs( maxDuration.get() )
+                              .lastRequestAt( lastRequestAt.get() )
+                              .build(),
+                endpoints,
+                slowRequestsSnapshot );
     }
 
     private void addSlowRequest( SlowRequestResponse slowRequest ) {
@@ -161,5 +158,22 @@ public class RequestMetricsService {
                                           .lastRequestAt( lastRequestAt.get() )
                                           .build();
         }
+    }
+
+    public record MetricsSnapshot(
+            GlobalSnapshot global,
+            List<EndpointMetricsResponse> endpoints,
+            List<SlowRequestResponse> slowRequests ) {
+    }
+
+    @lombok.Value
+    @lombok.Builder
+    public static class GlobalSnapshot {
+
+        long totalRequests;
+        long errorRequests;
+        double averageDurationMs;
+        long maxDurationMs;
+        LocalDateTime lastRequestAt;
     }
 }

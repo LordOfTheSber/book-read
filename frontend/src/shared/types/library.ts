@@ -167,6 +167,13 @@ export interface MonitoringGlobalMetrics {
   lastRequestAt?: string | null;
 }
 
+export interface MonitoringSettings {
+  metricsEnabled: boolean;
+  pingIntervalSeconds: number;
+  pingPath: string;
+  updatedAt?: string;
+}
+
 export interface EndpointMetrics {
   method: string;
   path: string;
@@ -186,10 +193,17 @@ export interface SlowRequest {
   occurredAt: string;
 }
 
-export interface MonitoringMetrics {
-  enabled: boolean;
+export interface NodeMetricsSnapshot {
+  nodeKey: string;
+  capturedAt: string;
   global: MonitoringGlobalMetrics;
   endpoints: EndpointMetrics[];
   slowRequests: SlowRequest[];
+}
+
+export interface MonitoringMetrics {
+  enabled: boolean;
+  settings: MonitoringSettings;
+  nodes: NodeMetricsSnapshot[];
   generatedAt: string;
 }

@@ -10,9 +10,8 @@ import lombok.Value;
 public class MonitoringMetricsResponse {
 
     boolean enabled;
-    GlobalMetricsResponse global;
-    List<EndpointMetricsResponse> endpoints;
-    List<SlowRequestResponse> slowRequests;
+    MonitoringSettingsResponse settings;
+    List<NodeMetricsSnapshotResponse> nodes;
     LocalDateTime generatedAt;
 
     @Value

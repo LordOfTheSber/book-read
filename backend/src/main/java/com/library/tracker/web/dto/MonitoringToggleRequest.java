@@ -3,7 +3,7 @@ package com.library.tracker.web.dto;
 import lombok.Data;
 
 @Data
-public class MonitoringSettingsRequest {
+public class MonitoringToggleRequest {
 
     private boolean enabled;
 }

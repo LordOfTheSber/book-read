@@ -9,5 +9,7 @@ import lombok.Value;
 public class MonitoringSettingsResponse {
 
     boolean metricsEnabled;
+    Integer pingIntervalSeconds;
+    String pingPath;
     LocalDateTime updatedAt;
 }
