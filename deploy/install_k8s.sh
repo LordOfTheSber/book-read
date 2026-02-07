@@ -52,6 +52,7 @@ ensure_command() {
 
 ensure_command kubectl kubectl
 ensure_command docker docker.io
+ensure_command python3 python3
 
 if command -v ufw >/dev/null 2>&1; then
   echo "Allowing inbound TCP/9443 via ufw..."
@@ -89,7 +90,7 @@ echo "Deploying to Kubernetes namespace ${NAMESPACE}..."
 template="${SCRIPT_DIR}/k8s/manifest.yaml"
 rendered="$(mktemp)"
 
-python - "${template}" > "${rendered}" <<'PY'
+python3 - "${template}" > "${rendered}" <<'PY'
 import os
 import sys
 
