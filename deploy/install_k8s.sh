@@ -16,7 +16,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 
 export NAMESPACE="${NAMESPACE:-book-read}"
-export DOMAIN="${DOMAIN:-localhost}"
+export DOMAIN="${DOMAIN:-23.26.124.71}"
 export VITE_API_URL="${VITE_API_URL:-/api/v1}"
 export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
 export POSTGRES_DB="${POSTGRES_DB:-library}"
@@ -60,71 +60,71 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 if [[ "${SKIP_CLUSTER_CHECK:-false}" != "true" ]]; then
-  if ! kubectl cluster-info --request-timeout=5s >/dev/null 2>&1; then
+  current_context="$(kubectl config current-context 2>/dev/null || true)"
+  if [[ -z "${current_context}" ]] && [[ -f /etc/rancher/k3s/k3s.yaml ]]; then
+    export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
     current_context="$(kubectl config current-context 2>/dev/null || true)"
-    if [[ -n "${current_context}" ]]; then
-      echo "Unable to reach the Kubernetes cluster for context '${current_context}'." >&2
-    else
+    if [[ -z "${current_context}" ]]; then
       contexts="$(kubectl config get-contexts -o name 2>/dev/null || true)"
       context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
       if [[ "${context_count}" == "1" ]]; then
         selected_context="$(printf "%s" "${contexts}" | head -n 1)"
-        echo "No current context configured; using the only available context '${selected_context}'." >&2
+        echo "No current context configured; using k3s context '${selected_context}' from /etc/rancher/k3s/k3s.yaml." >&2
         kubectl config use-context "${selected_context}" >/dev/null
         current_context="${selected_context}"
-      else
-        if [[ -z "${current_context}" ]] && [[ -f /etc/rancher/k3s/k3s.yaml ]]; then
-          export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
-          k3s_current_context="$(kubectl config current-context 2>/dev/null || true)"
-          if [[ -n "${k3s_current_context}" ]]; then
-            echo "No current context configured; using k3s context '${k3s_current_context}' from /etc/rancher/k3s/k3s.yaml." >&2
-            current_context="${k3s_current_context}"
-          else
-            contexts="$(kubectl config get-contexts -o name 2>/dev/null || true)"
-            context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
-            if [[ "${context_count}" == "1" ]]; then
-              selected_context="$(printf "%s" "${contexts}" | head -n 1)"
-              echo "No current context configured; using k3s context '${selected_context}' from /etc/rancher/k3s/k3s.yaml." >&2
-              kubectl config use-context "${selected_context}" >/dev/null
-              current_context="${selected_context}"
-            fi
-          fi
-        fi
-        if command -v kind >/dev/null 2>&1; then
-          kind_cluster="$(kind get clusters 2>/dev/null | head -n 1 || true)"
-          if [[ -n "${kind_cluster}" ]]; then
-            selected_context="kind-${kind_cluster}"
-            echo "No current context configured; selecting kind context '${selected_context}'." >&2
-            kubectl config use-context "${selected_context}" >/dev/null
-            current_context="${selected_context}"
-          fi
-        fi
-        if [[ -z "${current_context}" ]] && command -v minikube >/dev/null 2>&1; then
-          if minikube status >/dev/null 2>&1; then
-            selected_context="minikube"
-            echo "No current context configured; selecting minikube context '${selected_context}'." >&2
-            kubectl config use-context "${selected_context}" >/dev/null
-            current_context="${selected_context}"
-          fi
-        fi
-        if [[ -z "${current_context}" ]]; then
-          echo "Unable to reach the Kubernetes cluster (no current context configured)." >&2
-          if [[ "${context_count}" -gt 1 ]]; then
-            echo "Available contexts:" >&2
-            printf "%s\n" "${contexts}" >&2
-          fi
-        fi
+      fi
+    else
+      echo "No current context configured; using k3s context '${current_context}' from /etc/rancher/k3s/k3s.yaml." >&2
+    fi
+  fi
+
+  if [[ -z "${current_context}" ]]; then
+    contexts="$(kubectl config get-contexts -o name 2>/dev/null || true)"
+    context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
+    if [[ "${context_count}" == "1" ]]; then
+      selected_context="$(printf "%s" "${contexts}" | head -n 1)"
+      echo "No current context configured; using the only available context '${selected_context}'." >&2
+      kubectl config use-context "${selected_context}" >/dev/null
+      current_context="${selected_context}"
+    fi
+  fi
+
+  if [[ -z "${current_context}" ]] && command -v kind >/dev/null 2>&1; then
+    kind_cluster="$(kind get clusters 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${kind_cluster}" ]]; then
+      selected_context="kind-${kind_cluster}"
+      echo "No current context configured; selecting kind context '${selected_context}'." >&2
+      kubectl config use-context "${selected_context}" >/dev/null
+      current_context="${selected_context}"
+    fi
+  fi
+
+  if [[ -z "${current_context}" ]] && command -v minikube >/dev/null 2>&1; then
+    if minikube status >/dev/null 2>&1; then
+      selected_context="minikube"
+      echo "No current context configured; selecting minikube context '${selected_context}'." >&2
+      kubectl config use-context "${selected_context}" >/dev/null
+      current_context="${selected_context}"
+    fi
+  fi
+
+  if [[ -z "${current_context}" ]]; then
+    echo "Unable to reach the Kubernetes cluster (no current context configured)." >&2
+    if [[ -n "${contexts:-}" ]]; then
+      context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
+      if [[ "${context_count}" -gt 1 ]]; then
+        echo "Available contexts:" >&2
+        printf "%s\n" "${contexts}" >&2
       fi
     fi
-    if [[ -z "${current_context}" ]]; then
-      echo "Configure kubectl (e.g., 'kubectl config use-context <name>' or start your cluster) or set SKIP_CLUSTER_CHECK=true to skip." >&2
-      exit 1
-    fi
-    if ! kubectl cluster-info --request-timeout=5s >/dev/null 2>&1; then
-      echo "Unable to reach the Kubernetes cluster for context '${current_context}'." >&2
-      echo "Configure kubectl (e.g., 'kubectl config use-context <name>' or start your cluster) or set SKIP_CLUSTER_CHECK=true to skip." >&2
-      exit 1
-    fi
+    echo "Configure kubectl (e.g., 'kubectl config use-context <name>' or start your cluster) or set SKIP_CLUSTER_CHECK=true to skip." >&2
+    exit 1
+  fi
+
+  if ! kubectl cluster-info --request-timeout=5s >/dev/null 2>&1; then
+    echo "Unable to reach the Kubernetes cluster for context '${current_context}'." >&2
+    echo "Configure kubectl (e.g., 'kubectl config use-context <name>' or start your cluster) or set SKIP_CLUSTER_CHECK=true to skip." >&2
+    exit 1
   fi
 fi
 

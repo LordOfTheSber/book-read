@@ -83,7 +83,7 @@ The script applies manifests with validation disabled to avoid OpenAPI fetch fai
 ### Defaults and overrides
 You can tune the rollout using environment variables:
 - `NAMESPACE` — Kubernetes namespace to create/use (default `book-read`).
-- `DOMAIN` — domain for the frontend TLS certificate (default `localhost`).
+- `DOMAIN` — domain for the frontend TLS certificate (default `23.26.124.71`).
 - `VITE_API_URL` — API base path for the frontend build (default `/api/v1`).
 - `SPRING_PROFILES_ACTIVE` — backend Spring profile (default `prod`).
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
@@ -102,5 +102,5 @@ kubectl port-forward service/frontend 8080:80 -n book-read
 ```
 For HTTPS access, forward port 9443:
 ```bash
-kubectl port-forward service/frontend 9443:443 -n book-read
+kubectl port-forward service/frontend 9443:9443 -n book-read
 ```
