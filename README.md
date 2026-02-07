@@ -92,6 +92,7 @@ You can tune the rollout using environment variables:
 - `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`LoadBalancer` by default).
 - `IMAGE_TAG` — Docker tag for built images (default `local`).
 - `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
+- `SKIP_CLUSTER_CHECK` — skip the pre-flight `kubectl cluster-info` check (default `false`).
 
 ### Access
 If you are running locally without a LoadBalancer, consider port-forwarding:

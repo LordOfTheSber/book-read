@@ -59,6 +59,13 @@ if command -v ufw >/dev/null 2>&1; then
   ${SUDO} ufw allow 9443/tcp
 fi
 
+if [[ "${SKIP_CLUSTER_CHECK:-false}" != "true" ]]; then
+  if ! kubectl cluster-info --request-timeout=5s >/dev/null 2>&1; then
+    echo "Unable to reach the Kubernetes cluster. Ensure kubectl context is configured or set SKIP_CLUSTER_CHECK=true to skip." >&2
+    exit 1
+  fi
+fi
+
 echo "Building backend image ${BACKEND_IMAGE}..."
 docker build -f "${APP_ROOT}/backend/Dockerfile" -t "${BACKEND_IMAGE}" "${APP_ROOT}"
 
