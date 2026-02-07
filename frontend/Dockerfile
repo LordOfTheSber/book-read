@@ -33,4 +33,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 ENV SSL_CERT_PATH=/etc/nginx/certs/fullchain.pem
 ENV SSL_KEY_PATH=/etc/nginx/certs/privkey.pem
 EXPOSE 80
-EXPOSE 443
+EXPOSE 9443

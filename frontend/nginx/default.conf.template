@@ -1,11 +1,11 @@
 server {
     listen 80;
     server_name ${DOMAIN};
-    return 301 https://$host$request_uri;
+    return 301 https://${DOMAIN}:9443$request_uri;
 }
 
 server {
-    listen 443 ssl;
+    listen 9443 ssl;
     server_name ${DOMAIN};
 
     ssl_certificate ${SSL_CERT_PATH};
