@@ -69,3 +69,35 @@ Tune behavior with environment variables:
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database configuration for the bundled PostgreSQL container.
 - `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
 - `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
+
+## Kubernetes deployment
+The Kubernetes rollout is automated via a script that builds images, loads or pushes them, renders manifests, and applies them to the cluster.
+If `kubectl` or `docker` are missing, the script attempts to install them via `apt` (requires sudo/root).
+
+### Run
+```bash
+./deploy/install_k8s.sh
+```
+
+### Defaults and overrides
+You can tune the rollout using environment variables:
+- `NAMESPACE` — Kubernetes namespace to create/use (default `book-read`).
+- `DOMAIN` — domain for the frontend TLS certificate (default `localhost`).
+- `VITE_API_URL` — API base path for the frontend build (default `/api/v1`).
+- `SPRING_PROFILES_ACTIVE` — backend Spring profile (default `prod`).
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
+- `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
+- `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
+- `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`LoadBalancer` by default).
+- `IMAGE_TAG` — Docker tag for built images (default `local`).
+- `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
+
+### Access
+If you are running locally without a LoadBalancer, consider port-forwarding:
+```bash
+kubectl port-forward service/frontend 8080:80 -n book-read
+```
+For HTTPS access, forward port 9443:
+```bash
+kubectl port-forward service/frontend 9443:443 -n book-read
+```
