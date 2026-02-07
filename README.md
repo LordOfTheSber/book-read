@@ -93,7 +93,7 @@ You can tune the rollout using environment variables:
 - `IMAGE_TAG` — Docker tag for built images (default `local`).
 - `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
 - `SKIP_CLUSTER_CHECK` — skip the pre-flight `kubectl cluster-info` check (default `false`).
-If no current kubectl context is configured and only one context exists, the script auto-selects it.
+If no current kubectl context is configured and only one context exists, the script auto-selects it. When no contexts exist, it will try to select a running `kind` or `minikube` context automatically.
 
 ### Access
 If you are running locally without a LoadBalancer, consider port-forwarding:

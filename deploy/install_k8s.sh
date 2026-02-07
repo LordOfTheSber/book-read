@@ -73,10 +73,29 @@ if [[ "${SKIP_CLUSTER_CHECK:-false}" != "true" ]]; then
         kubectl config use-context "${selected_context}" >/dev/null
         current_context="${selected_context}"
       else
-        echo "Unable to reach the Kubernetes cluster (no current context configured)." >&2
-        if [[ "${context_count}" -gt 1 ]]; then
-          echo "Available contexts:" >&2
-          printf "%s\n" "${contexts}" >&2
+        if command -v kind >/dev/null 2>&1; then
+          kind_cluster="$(kind get clusters 2>/dev/null | head -n 1 || true)"
+          if [[ -n "${kind_cluster}" ]]; then
+            selected_context="kind-${kind_cluster}"
+            echo "No current context configured; selecting kind context '${selected_context}'." >&2
+            kubectl config use-context "${selected_context}" >/dev/null
+            current_context="${selected_context}"
+          fi
+        fi
+        if [[ -z "${current_context}" ]] && command -v minikube >/dev/null 2>&1; then
+          if minikube status >/dev/null 2>&1; then
+            selected_context="minikube"
+            echo "No current context configured; selecting minikube context '${selected_context}'." >&2
+            kubectl config use-context "${selected_context}" >/dev/null
+            current_context="${selected_context}"
+          fi
+        fi
+        if [[ -z "${current_context}" ]]; then
+          echo "Unable to reach the Kubernetes cluster (no current context configured)." >&2
+          if [[ "${context_count}" -gt 1 ]]; then
+            echo "Available contexts:" >&2
+            printf "%s\n" "${contexts}" >&2
+          fi
         fi
       fi
     fi
