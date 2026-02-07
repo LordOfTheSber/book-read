@@ -101,7 +101,7 @@ with open(template_path, "r", encoding="utf-8") as handle:
 sys.stdout.write(os.path.expandvars(data))
 PY
 
-kubectl apply -f "${rendered}"
+kubectl apply --validate=false -f "${rendered}"
 
 rm -f "${rendered}"
 

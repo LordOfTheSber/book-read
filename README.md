@@ -73,6 +73,7 @@ Tune behavior with environment variables:
 ## Kubernetes deployment
 The Kubernetes rollout is automated via a script that builds images, loads or pushes them, renders manifests, and applies them to the cluster.
 If `kubectl` or `docker` are missing, the script attempts to install them via `apt` (requires sudo/root).
+The script applies manifests with validation disabled to avoid OpenAPI fetch failures on local clusters.
 
 ### Run
 ```bash
