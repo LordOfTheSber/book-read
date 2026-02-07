@@ -75,13 +75,19 @@ if [[ "${SKIP_CLUSTER_CHECK:-false}" != "true" ]]; then
       else
         if [[ -z "${current_context}" ]] && [[ -f /etc/rancher/k3s/k3s.yaml ]]; then
           export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
-          contexts="$(kubectl config get-contexts -o name 2>/dev/null || true)"
-          context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
-          if [[ "${context_count}" == "1" ]]; then
-            selected_context="$(printf "%s" "${contexts}" | head -n 1)"
-            echo "No current context configured; using k3s context '${selected_context}' from /etc/rancher/k3s/k3s.yaml." >&2
-            kubectl config use-context "${selected_context}" >/dev/null
-            current_context="${selected_context}"
+          k3s_current_context="$(kubectl config current-context 2>/dev/null || true)"
+          if [[ -n "${k3s_current_context}" ]]; then
+            echo "No current context configured; using k3s context '${k3s_current_context}' from /etc/rancher/k3s/k3s.yaml." >&2
+            current_context="${k3s_current_context}"
+          else
+            contexts="$(kubectl config get-contexts -o name 2>/dev/null || true)"
+            context_count="$(printf "%s" "${contexts}" | sed '/^$/d' | wc -l | tr -d ' ')"
+            if [[ "${context_count}" == "1" ]]; then
+              selected_context="$(printf "%s" "${contexts}" | head -n 1)"
+              echo "No current context configured; using k3s context '${selected_context}' from /etc/rancher/k3s/k3s.yaml." >&2
+              kubectl config use-context "${selected_context}" >/dev/null
+              current_context="${selected_context}"
+            fi
           fi
         fi
         if command -v kind >/dev/null 2>&1; then
