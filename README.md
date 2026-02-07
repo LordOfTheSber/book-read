@@ -92,6 +92,7 @@ You can tune the rollout using environment variables:
 - `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`LoadBalancer` by default).
 - `IMAGE_TAG` — Docker tag for built images (default `local`).
 - `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
+- `ROLLOUT_TIMEOUT` — rollout wait timeout (default `180s`).
 - `SKIP_CLUSTER_CHECK` — skip the pre-flight `kubectl cluster-info` check (default `false`).
 If no current kubectl context is configured and only one context exists, the script auto-selects it. When no contexts exist, it will try to use a local k3s kubeconfig (`/etc/rancher/k3s/k3s.yaml`) and its current context, then select a running `kind` or `minikube` context automatically.
 

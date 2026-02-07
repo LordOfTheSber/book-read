@@ -28,6 +28,7 @@ export FRONTEND_REPLICAS="${FRONTEND_REPLICAS:-1}"
 export FRONTEND_SERVICE_TYPE="${FRONTEND_SERVICE_TYPE:-LoadBalancer}"
 export IMAGE_TAG="${IMAGE_TAG:-local}"
 export IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+export ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-180s}"
 
 export BACKEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-backend:${IMAGE_TAG}"
 export FRONTEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-frontend:${IMAGE_TAG}"
@@ -171,8 +172,19 @@ kubectl apply --validate=false -f "${rendered}"
 rm -f "${rendered}"
 
 echo "Waiting for deployments to be ready..."
-kubectl rollout status deployment/db -n "${NAMESPACE}"
-kubectl rollout status deployment/backend -n "${NAMESPACE}"
-kubectl rollout status deployment/frontend -n "${NAMESPACE}"
+rollout_status() {
+  local name="$1"
+  if ! kubectl rollout status "deployment/${name}" -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"; then
+    echo "Deployment '${name}' did not become ready within ${ROLLOUT_TIMEOUT}." >&2
+    kubectl get pods -n "${NAMESPACE}" -o wide >&2 || true
+    kubectl describe "deployment/${name}" -n "${NAMESPACE}" >&2 || true
+    kubectl logs -n "${NAMESPACE}" -l "app=${name}" --all-containers=true --tail=200 >&2 || true
+    return 1
+  fi
+}
+
+rollout_status db
+rollout_status backend
+rollout_status frontend
 
 echo "Deployment complete."
