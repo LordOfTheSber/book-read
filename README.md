@@ -89,7 +89,7 @@ You can tune the rollout using environment variables:
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
 - `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
 - `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
-- `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`LoadBalancer` by default).
+- `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`ClusterIP` by default).
 - `IMAGE_TAG` — Docker tag for built images (default `local`).
 - `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
 - `ROLLOUT_TIMEOUT` — rollout wait timeout (default `180s`).
@@ -97,7 +97,7 @@ You can tune the rollout using environment variables:
 If no current kubectl context is configured and only one context exists, the script auto-selects it. When no contexts exist, it will try to use a local k3s kubeconfig (`/etc/rancher/k3s/k3s.yaml`) and its current context, then select a running `kind` or `minikube` context automatically.
 
 ### Access
-If you are running locally without a LoadBalancer, consider port-forwarding:
+If you are running with `ClusterIP` (default), consider port-forwarding:
 ```bash
 kubectl port-forward service/frontend 8080:80 -n book-read
 ```
