@@ -29,6 +29,7 @@ public class LibraryItemResponse {
     BigDecimal rating;
     boolean favorite;
     ReadingStatus status;
+    String readUrl;
     OffsetDateTime createdAt;
     OffsetDateTime updatedAt;
 }

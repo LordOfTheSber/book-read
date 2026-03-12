@@ -62,4 +62,7 @@ public class LibraryItem extends BaseAuditEntity {
     @Enumerated( EnumType.STRING )
     @Column( name = "status", nullable = false )
     private ReadingStatus status = ReadingStatus.PLANNED;
+
+    @Column( name = "read_url", length = 2000 )
+    private String readUrl;
 }

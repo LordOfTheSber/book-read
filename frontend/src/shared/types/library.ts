@@ -24,8 +24,28 @@ export interface LibraryItem {
   rating?: number;
   favorite: boolean;
   status: ReadingStatus;
+  readUrl?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface NovelChapter {
+  title: string;
+  author: string;
+  description: string;
+  chapterTitle: string;
+  currentChapter: number;
+  totalChapters: number;
+  chapters: ChapterInfo[];
+  textHtml: string;
+  nextChapterUrl: string | null;
+  prevChapterUrl: string | null;
+}
+
+export interface ChapterInfo {
+  number: number;
+  title: string;
+  url: string;
 }
 
 export interface Source {

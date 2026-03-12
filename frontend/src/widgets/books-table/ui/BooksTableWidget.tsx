@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Drawer, Modal, Space, Table, Tag, message, Form, Input, Select, Switch, Tooltip, Flex, Rate, Grid, List, Typography, Pagination } from 'antd';
 import { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import { DeleteOutlined, EditOutlined, PlusOutlined, StarFilled, SearchOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, StarFilled, SearchOutlined, ReadOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { deleteBookThunk, updateBookThunk, createBookThunk } from '@/entities/book';
@@ -54,6 +55,7 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(filters.q ?? '');
   const [form] = Form.useForm();
+  const navigate = useNavigate();
   const styles = useBooksTableWidgetStyles(isMobile);
   const isAdmin = isAdminLike(role);
   const canEdit = canEditBooks(role);
@@ -133,6 +135,18 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
                 const canDelete = canDeleteBook(role, user?.id, record.createdById);
                 return (
                   <Space size="small">
+                    {record.readUrl && (
+                      <Tooltip title="Читать">
+                        <Button
+                          size="small"
+                          type="text"
+                          shape="circle"
+                          icon={<ReadOutlined />}
+                          onClick={() => navigate(`/reader/${record.id}`)}
+                          aria-label="Читать"
+                        />
+                      </Tooltip>
+                    )}
                     {canEdit && (
                       <Tooltip title="Редактировать">
                         <Button
@@ -305,22 +319,25 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
                     )}
                   </div>
                 </div>
-                {(canEdit || canDeleteBook(role, user?.id, item.createdById)) && (
-                  <div style={{ marginTop: 10 }}>
-                    <Space style={styles.mobileActions} wrap>
-                      {canEdit && (
-                        <Button size="small" type="primary" onClick={() => openEdit(item)}>
-                          Редактировать
-                        </Button>
-                      )}
-                      {canDeleteBook(role, user?.id, item.createdById) && (
-                        <Button size="small" danger onClick={() => confirmDelete(item.id)}>
-                          Удалить
-                        </Button>
-                      )}
-                    </Space>
-                  </div>
-                )}
+                <div style={{ marginTop: 10 }}>
+                  <Space style={styles.mobileActions} wrap>
+                    {item.readUrl && (
+                      <Button size="small" icon={<ReadOutlined />} onClick={() => navigate(`/reader/${item.id}`)}>
+                        Читать
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button size="small" type="primary" onClick={() => openEdit(item)}>
+                        Редактировать
+                      </Button>
+                    )}
+                    {canDeleteBook(role, user?.id, item.createdById) && (
+                      <Button size="small" danger onClick={() => confirmDelete(item.id)}>
+                        Удалить
+                      </Button>
+                    )}
+                  </Space>
+                </div>
               </div>
             )}
           />
@@ -402,6 +419,9 @@ export const BooksTableWidget: React.FC<Props> = ({ onChangePage }) => {
           </Form.Item>
           <Form.Item name="favorite" label="Избранное" valuePropName="checked">
             <Switch />
+          </Form.Item>
+          <Form.Item name="readUrl" label="Ссылка для чтения" style={{ gridColumn: '1 / -1' }}>
+            <Input placeholder="https://www.fanfiction.net/s/14536087/1/" />
           </Form.Item>
           <Form.Item name="comment" label="Комментарий" style={{ gridColumn: '1 / -1' }}>
             <Input.TextArea rows={3} />

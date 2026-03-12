@@ -20,17 +20,19 @@ export const PageLayout: React.FC = () => {
     () =>
       location.pathname.startsWith('/profile')
         ? ''
-        : location.pathname.startsWith('/types')
-          ? 'types'
-          : location.pathname.startsWith('/sources')
-            ? 'sources'
-            : location.pathname.startsWith('/users')
-              ? 'users'
-              : location.pathname.startsWith('/nodes')
-                ? 'nodes'
-                : location.pathname.startsWith('/analytics')
-                  ? 'analytics'
-                  : 'books',
+        : location.pathname.startsWith('/reader')
+          ? ''
+          : location.pathname.startsWith('/types')
+            ? 'types'
+            : location.pathname.startsWith('/sources')
+              ? 'sources'
+              : location.pathname.startsWith('/users')
+                ? 'users'
+                : location.pathname.startsWith('/nodes')
+                  ? 'nodes'
+                  : location.pathname.startsWith('/analytics')
+                    ? 'analytics'
+                    : 'books',
     [location.pathname]
   );
   const { mode, setMode } = useThemeMode();
