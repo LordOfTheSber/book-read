@@ -69,3 +69,39 @@ Tune behavior with environment variables:
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database configuration for the bundled PostgreSQL container.
 - `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
 - `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
+
+## Kubernetes deployment
+The Kubernetes rollout is automated via a script that builds images, loads or pushes them, renders manifests, and applies them to the cluster.
+If `kubectl` or `docker` are missing, the script attempts to install them via `apt` (requires sudo/root).
+The script applies manifests with validation disabled to avoid OpenAPI fetch failures on local clusters.
+
+### Run
+```bash
+./deploy/install_k8s.sh
+```
+
+### Defaults and overrides
+You can tune the rollout using environment variables:
+- `NAMESPACE` — Kubernetes namespace to create/use (default `book-read`).
+- `DOMAIN` — domain for the frontend TLS certificate (default `23.26.124.71`).
+- `VITE_API_URL` — API base path for the frontend build (default `/api/v1`).
+- `SPRING_PROFILES_ACTIVE` — backend Spring profile (default `prod`).
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
+- `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
+- `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
+- `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`ClusterIP` by default).
+- `IMAGE_TAG` — Docker tag for built images (default `local`).
+- `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
+- `ROLLOUT_TIMEOUT` — rollout wait timeout (default `180s`).
+- `SKIP_CLUSTER_CHECK` — skip the pre-flight `kubectl cluster-info` check (default `false`).
+If no current kubectl context is configured and only one context exists, the script auto-selects it. When no contexts exist, it will try to use a local k3s kubeconfig (`/etc/rancher/k3s/k3s.yaml`) and its current context, then select a running `kind` or `minikube` context automatically.
+
+### Access
+If you are running with `ClusterIP` (default), consider port-forwarding:
+```bash
+kubectl port-forward service/frontend 8080:80 -n book-read
+```
+For HTTPS access, forward port 9443:
+```bash
+kubectl port-forward service/frontend 9443:9443 -n book-read
+```
