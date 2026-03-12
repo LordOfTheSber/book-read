@@ -14,6 +14,7 @@ import { NodeDetailPage } from '@/pages/node-detail-page';
 import { fetchCurrentUser } from '@/entities/auth';
 import { AnalyticsPage } from '@/pages/analytics-page';
 import { ProfilePage } from '@/pages/profile-page';
+import { ReaderPage } from '@/pages/reader-page';
 import { isAdminLike } from '@/shared/lib/roles';
 
 const RequireAuth: React.FC = () => {
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
           { path: 'profile', element: <ProfilePage /> },
           { path: 'types', element: <TypesPage /> },
           { path: 'sources', element: <SourcesPage /> },
+          { path: 'reader/:bookId', element: <ReaderPage /> },
           {
             path: 'users',
             element: <RequireAdmin />,

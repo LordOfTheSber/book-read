@@ -36,4 +36,6 @@ public class LibraryItemRequest {
     private boolean favorite;
 
     private ReadingStatus status = ReadingStatus.PLANNED;
+
+    private String readUrl;
 }

@@ -142,6 +142,7 @@ public class LibraryItemService {
         item.setRating( request.getRating() );
         item.setFavorite( request.isFavorite() );
         item.setStatus( request.getStatus() );
+        item.setReadUrl( request.getReadUrl() );
         if ( request.getTypeId() != null ) {
             BookType type = bookTypeRepository.findById( request.getTypeId() )
                                               .orElseThrow( () -> new IllegalArgumentException( "Type not found" ) );
@@ -234,6 +235,7 @@ public class LibraryItemService {
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )
                                   .status( item.getStatus() )
+                                  .readUrl( item.getReadUrl() )
                                   .createdAt( toOffsetDateTime( item.getCreatedAt() ) )
                                   .updatedAt( toOffsetDateTime( item.getUpdatedAt() ) )
                                   .build();
