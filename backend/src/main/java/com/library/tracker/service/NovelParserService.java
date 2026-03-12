@@ -10,7 +10,13 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,13 +29,23 @@ public class NovelParserService {
     private static final Pattern FANFICTION_URL_PATTERN =
             Pattern.compile( "https?://(?:www\\.)?fanfiction\\.net/s/(\\d+)/(\\d+)(?:/(.*))?$" );
 
+    private final HttpClient httpClient;
+
+    public NovelParserService() {
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy( CookiePolicy.ACCEPT_ALL );
+        this.httpClient = HttpClient.newBuilder()
+                                    .cookieHandler( cookieManager )
+                                    .followRedirects( HttpClient.Redirect.NORMAL )
+                                    .connectTimeout( Duration.ofSeconds( 15 ) )
+                                    .build();
+    }
+
     public NovelChapterResponse parseChapter( String url ) throws IOException {
         validateUrl( url );
 
-        Document doc = Jsoup.connect( url )
-                            .userAgent( "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" )
-                            .timeout( 15_000 )
-                            .get();
+        String html = fetchPage( url );
+        Document doc = Jsoup.parse( html, url );
 
         Matcher matcher = FANFICTION_URL_PATTERN.matcher( url );
         if ( matcher.matches() ) {
@@ -37,6 +53,48 @@ public class NovelParserService {
         }
 
         return parseGeneric( doc, url );
+    }
+
+    private String fetchPage( String url ) throws IOException {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                                             .uri( URI.create( url ) )
+                                             .timeout( Duration.ofSeconds( 15 ) )
+                                             .header( "User-Agent",
+                                                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                                                      "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                                                      "Chrome/131.0.0.0 Safari/537.36" )
+                                             .header( "Accept",
+                                                      "text/html,application/xhtml+xml,application/xml;q=0.9," +
+                                                      "image/avif,image/webp,image/apng,*/*;q=0.8" )
+                                             .header( "Accept-Language", "en-US,en;q=0.9" )
+                                             .header( "Accept-Encoding", "identity" )
+                                             .header( "Cache-Control", "no-cache" )
+                                             .header( "Pragma", "no-cache" )
+                                             .header( "Sec-Ch-Ua",
+                                                      "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"" )
+                                             .header( "Sec-Ch-Ua-Mobile", "?0" )
+                                             .header( "Sec-Ch-Ua-Platform", "\"Windows\"" )
+                                             .header( "Sec-Fetch-Dest", "document" )
+                                             .header( "Sec-Fetch-Mode", "navigate" )
+                                             .header( "Sec-Fetch-Site", "none" )
+                                             .header( "Sec-Fetch-User", "?1" )
+                                             .header( "Upgrade-Insecure-Requests", "1" )
+                                             .GET()
+                                             .build();
+
+            HttpResponse<String> response = httpClient.send( request, HttpResponse.BodyHandlers.ofString() );
+
+            int status = response.statusCode();
+            if ( status >= 400 ) {
+                throw new IOException( "HTTP error " + status + " fetching URL: " + url );
+            }
+
+            return response.body();
+        } catch ( InterruptedException e ) {
+            Thread.currentThread().interrupt();
+            throw new IOException( "Request interrupted: " + url, e );
+        }
     }
 
     private void validateUrl( String url ) {
@@ -83,7 +141,6 @@ public class NovelParserService {
 
         List<ChapterInfo> chapters = new ArrayList<>();
         Elements chapterOptions = doc.select( "select#chap_select option" );
-        // Only process the first select (there are two duplicates on the page)
         int totalChapters = 1;
         if ( !chapterOptions.isEmpty() ) {
             int halfSize = chapterOptions.size() / 2;
