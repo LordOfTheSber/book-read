@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping( "/api/v1/novel-reader" )
 @RequiredArgsConstructor
@@ -19,16 +21,19 @@ public class NovelReaderController {
     private final NovelParserService novelParserService;
 
     @GetMapping( "/parse" )
-    public ResponseEntity<NovelChapterResponse> parseChapter( @RequestParam String url ) {
+    public ResponseEntity<?> parseChapter( @RequestParam String url ) {
         try {
             NovelChapterResponse response = novelParserService.parseChapter( url );
             return ResponseEntity.ok( response );
         } catch ( IllegalArgumentException e ) {
             log.warn( "Invalid novel URL: {}", e.getMessage() );
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                                 .body( Map.of( "message", e.getMessage() ) );
         } catch ( Exception e ) {
             log.error( "Failed to parse novel chapter from URL: {}", url, e );
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                                 .body( Map.of( "message",
+                                                "Не удалось загрузить страницу: " + e.getMessage() ) );
         }
     }
 }

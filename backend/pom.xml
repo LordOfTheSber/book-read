@@ -110,11 +110,6 @@
             <artifactId>jsoup</artifactId>
             <version>1.18.1</version>
         </dependency>
-        <dependency>
-            <groupId>net.sourceforge.htmlunit</groupId>
-            <artifactId>htmlunit</artifactId>
-            <version>4.7.0</version>
-        </dependency>
     </dependencies>
 
     <build>

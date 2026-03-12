@@ -42,8 +42,9 @@ export const ReaderPage: React.FC = () => {
     try {
       const data = await parseNovelChapter(url);
       setChapter(data);
-    } catch {
-      message.error('Не удалось загрузить главу');
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message;
+      message.error(serverMsg || 'Не удалось загрузить главу');
     } finally {
       setLoading(false);
       setChapterLoading(false);

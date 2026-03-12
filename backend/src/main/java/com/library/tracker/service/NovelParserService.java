@@ -3,9 +3,6 @@ package com.library.tracker.service;
 import com.library.tracker.web.dto.NovelChapterResponse;
 import com.library.tracker.web.dto.NovelChapterResponse.ChapterInfo;
 import lombok.extern.slf4j.Slf4j;
-import org.htmlunit.BrowserVersion;
-import org.htmlunit.WebClient;
-import org.htmlunit.html.HtmlPage;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -13,7 +10,13 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -26,10 +29,22 @@ public class NovelParserService {
     private static final Pattern FANFICTION_URL_PATTERN =
             Pattern.compile( "https?://(?:www\\.)?fanfiction\\.net/s/(\\d+)/(\\d+)(?:/(.*))?$" );
 
+    private final HttpClient httpClient;
+
+    public NovelParserService() {
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy( CookiePolicy.ACCEPT_ALL );
+        this.httpClient = HttpClient.newBuilder()
+                                    .cookieHandler( cookieManager )
+                                    .followRedirects( HttpClient.Redirect.NORMAL )
+                                    .connectTimeout( Duration.ofSeconds( 15 ) )
+                                    .build();
+    }
+
     public NovelChapterResponse parseChapter( String url ) throws IOException {
         validateUrl( url );
 
-        String html = fetchPageWithHtmlUnit( url );
+        String html = fetchPage( url );
         Document doc = Jsoup.parse( html, url );
 
         Matcher matcher = FANFICTION_URL_PATTERN.matcher( url );
@@ -40,31 +55,44 @@ public class NovelParserService {
         return parseGeneric( doc, url );
     }
 
-    private String fetchPageWithHtmlUnit( String url ) throws IOException {
-        try ( WebClient webClient = new WebClient( BrowserVersion.CHROME ) ) {
-            webClient.getOptions().setCssEnabled( false );
-            webClient.getOptions().setThrowExceptionOnScriptError( false );
-            webClient.getOptions().setThrowExceptionOnFailingStatusCode( false );
-            webClient.getOptions().setPrintContentOnFailingStatusCode( false );
-            webClient.getOptions().setTimeout( 20_000 );
-            webClient.getOptions().setRedirectEnabled( true );
-            webClient.getOptions().setJavaScriptEnabled( true );
-            webClient.getOptions().setDownloadImages( false );
+    private String fetchPage( String url ) throws IOException {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                                             .uri( URI.create( url ) )
+                                             .timeout( Duration.ofSeconds( 15 ) )
+                                             .header( "User-Agent",
+                                                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                                                      "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                                                      "Chrome/131.0.0.0 Safari/537.36" )
+                                             .header( "Accept",
+                                                      "text/html,application/xhtml+xml,application/xml;q=0.9," +
+                                                      "image/avif,image/webp,image/apng,*/*;q=0.8" )
+                                             .header( "Accept-Language", "en-US,en;q=0.9" )
+                                             .header( "Accept-Encoding", "identity" )
+                                             .header( "Sec-Ch-Ua",
+                                                      "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"" )
+                                             .header( "Sec-Ch-Ua-Mobile", "?0" )
+                                             .header( "Sec-Ch-Ua-Platform", "\"Windows\"" )
+                                             .header( "Sec-Fetch-Dest", "document" )
+                                             .header( "Sec-Fetch-Mode", "navigate" )
+                                             .header( "Sec-Fetch-Site", "none" )
+                                             .header( "Sec-Fetch-User", "?1" )
+                                             .header( "Upgrade-Insecure-Requests", "1" )
+                                             .GET()
+                                             .build();
 
-            log.debug( "Fetching page with HtmlUnit: {}", url );
-            HtmlPage page = webClient.getPage( url );
+            HttpResponse<String> response = httpClient.send( request, HttpResponse.BodyHandlers.ofString() );
 
-            // Wait for JS to execute (Cloudflare challenge, dynamic content)
-            webClient.waitForBackgroundJavaScript( 5_000 );
-
-            String html = page.asXml();
-
-            int statusCode = page.getWebResponse().getStatusCode();
-            if ( statusCode >= 400 ) {
-                log.warn( "HtmlUnit got status {} for URL: {}, trying to use content anyway", statusCode, url );
+            int status = response.statusCode();
+            if ( status >= 400 ) {
+                throw new IOException( "HTTP " + status + " при загрузке " + url +
+                                       ". Возможно, сайт заблокирован прокси или требует другой подход." );
             }
 
-            return html;
+            return response.body();
+        } catch ( InterruptedException e ) {
+            Thread.currentThread().interrupt();
+            throw new IOException( "Запрос прерван: " + url, e );
         }
     }
 
