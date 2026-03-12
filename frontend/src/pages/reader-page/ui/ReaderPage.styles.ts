@@ -1,13 +1,29 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { theme } from 'antd';
 
-export const useReaderPageStyles = (isMobile: boolean) => {
+export type ReaderFontOption = 'serif' | 'sans-serif' | 'monospace';
+
+export type ReaderSettings = {
+  fontSize: number;
+  lineHeight: number;
+  paragraphSpacing: number;
+  fontFamily: ReaderFontOption;
+  contentWidth: number;
+};
+
+const fontFamilyMap: Record<ReaderFontOption, string> = {
+  serif: 'Georgia, "Times New Roman", serif',
+  'sans-serif': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  monospace: '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace'
+};
+
+export const useReaderPageStyles = (isMobile: boolean, settings: ReaderSettings) => {
   const { token } = theme.useToken();
 
   return useMemo(
     () => ({
       wrapper: {
-        maxWidth: 900,
+        maxWidth: settings.contentWidth,
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column' as const,
@@ -63,12 +79,25 @@ export const useReaderPageStyles = (isMobile: boolean) => {
       contentBody: {
         padding: isMobile ? '16px 12px' : '32px 40px'
       },
-      storyText: {
-        fontSize: isMobile ? 15 : 17,
-        lineHeight: 1.8,
-        color: token.colorText,
-        wordBreak: 'break-word' as const
+      settingsPanel: {
+        marginBottom: 24,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorBgLayout,
+        borderRadius: 12,
+        padding: isMobile ? 12 : 16
       },
+      settingsTitle: {
+        display: 'block',
+        marginBottom: 12
+      },
+      storyText: {
+        fontSize: settings.fontSize,
+        lineHeight: settings.lineHeight,
+        color: token.colorText,
+        wordBreak: 'break-word' as const,
+        fontFamily: fontFamilyMap[settings.fontFamily],
+        '--reader-paragraph-spacing': `${settings.paragraphSpacing}px`
+      } as CSSProperties,
       footerCard: {
         borderRadius: 14,
         boxShadow: token.boxShadowSecondary,
@@ -92,6 +121,6 @@ export const useReaderPageStyles = (isMobile: boolean) => {
         margin: '0 auto'
       }
     }),
-    [isMobile, token]
+    [isMobile, settings, token]
   );
 };
