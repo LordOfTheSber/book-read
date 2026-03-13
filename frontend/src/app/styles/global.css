@@ -13,3 +13,11 @@ body {
 .ant-card {
   margin-bottom: 16px;
 }
+
+.reader-story-text p {
+  margin-bottom: var(--reader-paragraph-spacing, 16px);
+}
+
+.reader-story-text p:last-child {
+  margin-bottom: 0;
+}
