@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Select, Slider, Space, Spin, Typography, Grid, message } from 'antd';
-import { ArrowLeftOutlined, LeftOutlined, RightOutlined, HomeOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, LeftOutlined, RightOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons';
 import { parseNovelChapter } from '@/shared/api/novelReaderApi';
 import { httpClient } from '@/shared/api/httpClient';
 import { LibraryItem, NovelChapter } from '@/shared/types/library';
@@ -29,6 +29,7 @@ export const ReaderPage: React.FC = () => {
   const [chapter, setChapter] = useState<NovelChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [chapterLoading, setChapterLoading] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem('reader-settings-v1');
@@ -194,66 +195,78 @@ export const ReaderPage: React.FC = () => {
 
       <Card style={styles.contentCard} bodyStyle={styles.contentBody}>
         <div style={styles.settingsPanel}>
-          <Text strong style={styles.settingsTitle}>Настройки чтения</Text>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <div>
-              <Text>Размер текста: {readerSettings.fontSize}px</Text>
-              <Slider
-                min={13}
-                max={30}
-                value={readerSettings.fontSize}
-                onChange={(value) => updateSetting('fontSize', value)}
-              />
-            </div>
+          <div style={styles.settingsHeader}>
+            <Text strong style={styles.settingsTitle}>Настройки чтения</Text>
+            <Button
+              icon={<SettingOutlined />}
+              size="small"
+              onClick={() => setSettingsVisible((prev) => !prev)}
+            >
+              {settingsVisible ? 'Скрыть' : 'Показать'}
+            </Button>
+          </div>
 
-            <div>
-              <Text>Межстрочный интервал: {readerSettings.lineHeight.toFixed(1)}</Text>
-              <Slider
-                min={1.2}
-                max={2.8}
-                step={0.1}
-                value={readerSettings.lineHeight}
-                onChange={(value) => updateSetting('lineHeight', value)}
-              />
-            </div>
+          {settingsVisible && (
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <div>
+                <Text>Размер текста: {readerSettings.fontSize}px</Text>
+                <Slider
+                  min={13}
+                  max={30}
+                  value={readerSettings.fontSize}
+                  onChange={(value) => updateSetting('fontSize', value)}
+                />
+              </div>
 
-            <div>
-              <Text>Расстояние между абзацами: {readerSettings.paragraphSpacing}px</Text>
-              <Slider
-                min={0}
-                max={40}
-                value={readerSettings.paragraphSpacing}
-                onChange={(value) => updateSetting('paragraphSpacing', value)}
-              />
-            </div>
+              <div>
+                <Text>Межстрочный интервал: {readerSettings.lineHeight.toFixed(1)}</Text>
+                <Slider
+                  min={1.2}
+                  max={2.8}
+                  step={0.1}
+                  value={readerSettings.lineHeight}
+                  onChange={(value) => updateSetting('lineHeight', value)}
+                />
+              </div>
 
-            <div>
-              <Text>Максимальная ширина текста: {readerSettings.contentWidth}px</Text>
-              <Slider
-                min={640}
-                max={1200}
-                step={20}
-                value={readerSettings.contentWidth}
-                onChange={(value) => updateSetting('contentWidth', value)}
-              />
-            </div>
+              <div>
+                <Text>Расстояние между абзацами: {readerSettings.paragraphSpacing}px</Text>
+                <Slider
+                  min={0}
+                  max={40}
+                  value={readerSettings.paragraphSpacing}
+                  onChange={(value) => updateSetting('paragraphSpacing', value)}
+                />
+              </div>
 
-            <div>
-              <Text>Шрифт</Text>
-              <Select
-                value={readerSettings.fontFamily}
-                onChange={(value) => updateSetting('fontFamily', value)}
-                style={{ width: '100%', marginTop: 8 }}
-                options={[
-                  { label: 'Serif (книжный)', value: 'serif' },
-                  { label: 'Sans-serif (современный)', value: 'sans-serif' },
-                  { label: 'Monospace (моноширинный)', value: 'monospace' }
-                ]}
-              />
-            </div>
+              <div>
+                <Text>Максимальная ширина текста: {readerSettings.contentWidth}px</Text>
+                <Slider
+                  min={640}
+                  max={1200}
+                  step={20}
+                  value={readerSettings.contentWidth}
+                  onChange={(value) => updateSetting('contentWidth', value)}
+                />
+              </div>
 
-            <Button onClick={resetSettings}>Сбросить по умолчанию</Button>
-          </Space>
+              <div>
+                <Text>Шрифт</Text>
+                <Select
+                  value={readerSettings.fontFamily}
+                  onChange={(value) => updateSetting('fontFamily', value)}
+                  style={{ width: '100%', marginTop: 8 }}
+                  options={[
+                    { label: 'Serif (книжный)', value: 'serif' },
+                    { label: 'Sans-serif (современный)', value: 'sans-serif' },
+                    { label: 'Monospace (моноширинный)', value: 'monospace' }
+                  ]}
+                />
+              </div>
+
+              <Button onClick={resetSettings}>Сбросить по умолчанию</Button>
+            </Space>
+          )}
         </div>
 
         {chapterLoading ? (

@@ -86,9 +86,15 @@ export const useReaderPageStyles = (isMobile: boolean, settings: ReaderSettings)
         borderRadius: 12,
         padding: isMobile ? 12 : 16
       },
-      settingsTitle: {
-        display: 'block',
+      settingsHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 12,
         marginBottom: 12
+      },
+      settingsTitle: {
+        display: 'block'
       },
       storyText: {
         fontSize: settings.fontSize,
