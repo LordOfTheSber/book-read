@@ -79,22 +79,8 @@ export const useReaderPageStyles = (isMobile: boolean, settings: ReaderSettings)
       contentBody: {
         padding: isMobile ? '16px 12px' : '32px 40px'
       },
-      settingsPanel: {
-        marginBottom: 24,
-        border: `1px solid ${token.colorBorderSecondary}`,
-        background: token.colorBgLayout,
-        borderRadius: 12,
-        padding: isMobile ? 12 : 16
-      },
-      settingsHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 12
-      },
-      settingsTitle: {
-        display: 'block'
+      settingsDrawerContent: {
+        width: '100%'
       },
       storyText: {
         fontSize: settings.fontSize,
