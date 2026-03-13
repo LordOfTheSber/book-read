@@ -21,9 +21,10 @@ public class NovelReaderController {
     private final NovelParserService novelParserService;
 
     @GetMapping( "/parse" )
-    public ResponseEntity<?> parseChapter( @RequestParam String url ) {
+    public ResponseEntity<?> parseChapter( @RequestParam String url,
+                                         @RequestParam( defaultValue = "3" ) int maxAttempts ) {
         try {
-            NovelChapterResponse response = novelParserService.parseChapter( url );
+            NovelChapterResponse response = novelParserService.parseChapter( url, maxAttempts );
             return ResponseEntity.ok( response );
         } catch ( IllegalArgumentException e ) {
             log.warn( "Invalid novel URL: {}", e.getMessage() );
