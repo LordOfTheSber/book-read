@@ -30,6 +30,7 @@ export const ReaderPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [chapterLoading, setChapterLoading] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [maxAttempts, setMaxAttempts] = useState(3);
 
   useEffect(() => {
     const saved = localStorage.getItem('reader-settings-v1');
@@ -46,6 +47,20 @@ export const ReaderPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('reader-settings-v1', JSON.stringify(readerSettings));
   }, [readerSettings]);
+
+  useEffect(() => {
+    const savedAttempts = localStorage.getItem('reader-max-attempts-v1');
+    if (!savedAttempts) return;
+
+    const parsedAttempts = Number(savedAttempts);
+    if (!Number.isFinite(parsedAttempts)) return;
+
+    setMaxAttempts(Math.min(10, Math.max(1, Math.round(parsedAttempts))));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('reader-max-attempts-v1', String(maxAttempts));
+  }, [maxAttempts]);
 
   useEffect(() => {
     if (!bookId) return;
@@ -66,16 +81,16 @@ export const ReaderPage: React.FC = () => {
   const loadChapter = useCallback(async (url: string) => {
     setChapterLoading(true);
     try {
-      const data = await parseNovelChapter(url);
+      const data = await parseNovelChapter(url, maxAttempts);
       setChapter(data);
     } catch (err: any) {
       const serverMsg = err?.response?.data?.message;
-      message.error(serverMsg || 'Не удалось загрузить главу');
+      message.error(serverMsg || `Не удалось загрузить главу за ${maxAttempts} попыток`);
     } finally {
       setLoading(false);
       setChapterLoading(false);
     }
-  }, []);
+  }, [maxAttempts]);
 
   const handleChapterChange = (chapterNumber: number) => {
     if (!chapter) return;
@@ -106,6 +121,7 @@ export const ReaderPage: React.FC = () => {
 
   const resetSettings = () => {
     setReaderSettings(defaultReaderSettings);
+    setMaxAttempts(3);
   };
 
   if (loading) {
@@ -247,6 +263,18 @@ export const ReaderPage: React.FC = () => {
               step={20}
               value={readerSettings.contentWidth}
               onChange={(value) => updateSetting('contentWidth', value)}
+            />
+          </div>
+
+
+          <div>
+            <Text>Попыток загрузки страницы: {maxAttempts}</Text>
+            <Slider
+              min={1}
+              max={10}
+              step={1}
+              value={maxAttempts}
+              onChange={(value) => setMaxAttempts(typeof value === 'number' ? value : value[0])}
             />
           </div>
 
