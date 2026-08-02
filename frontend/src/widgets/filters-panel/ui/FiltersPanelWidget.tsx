@@ -1,97 +1,174 @@
 import React, { useEffect } from 'react';
-import { Button, Form, InputNumber, Select, Switch, Flex } from 'antd';
+import { Button, Divider, Drawer, Form, Grid, InputNumber, Select, Space, Switch, Tag, Typography, theme } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
-import { setFilters } from '@/features/book/set-book-filters';
-import { loadBooks } from '@/entities/book';
-import { loadBookTypes } from '@/entities/book-type';
-import { loadUsers } from '@/entities/user';
-import { useFiltersPanelStyles } from './FiltersPanelWidget.styles';
+import { resetFilters, setFilters } from '@/features/book/set-book-filters';
 import { isAdminLike } from '@/shared/lib/roles';
 
-export const FiltersPanelWidget: React.FC = () => {
+interface Props {
+  open: boolean;
+  onClose: () => void;
+}
+
+interface FiltersFormValues {
+  typeId?: string;
+  status?: string;
+  favorite?: boolean;
+  minRating?: number;
+  maxRating?: number;
+  userId?: string;
+}
+
+/** Чипы статуса вместо Segmented: подписи не обрезаются и переносятся по строкам. */
+const StatusChips: React.FC<{ value?: string; onChange?: (value?: string) => void }> = ({ value, onChange }) => {
+  const { token } = theme.useToken();
+  const options = [{ label: 'Любой', value: '' }, ...statusOptions.map((s) => ({ label: s.label, value: s.value }))];
+
+  return (
+    <Space size={[8, 8]} wrap>
+      {options.map((option) => {
+        const checked = (value ?? '') === option.value;
+        return (
+          <Tag.CheckableTag
+            key={option.value || 'any'}
+            checked={checked}
+            onChange={() => onChange?.(option.value || undefined)}
+            style={{
+              borderRadius: 999,
+              paddingInline: 14,
+              paddingBlock: 5,
+              fontSize: 14,
+              border: `1px solid ${checked ? 'transparent' : token.colorBorder}`,
+              background: checked ? token.colorPrimary : 'transparent'
+            }}
+          >
+            {option.label}
+          </Tag.CheckableTag>
+        );
+      })}
+    </Space>
+  );
+};
+
+/**
+ * Фильтры вынесены в drawer: они нужны эпизодически и не должны постоянно
+ * отъедать треть ширины у списка книг.
+ */
+export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const users = useAppSelector((state) => state.users.list);
-  const usersLoaded = useAppSelector((state) => state.users.loaded);
   const usersLoading = useAppSelector((state) => state.users.loading);
   const role = useAppSelector((state) => state.auth.user?.role);
-  const [form] = Form.useForm();
-  const styles = useFiltersPanelStyles();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const [form] = Form.useForm<FiltersFormValues>();
   const isAdmin = isAdminLike(role);
 
+  // Drawer открывается с актуальным состоянием фильтров, а не с тем, что было.
   useEffect(() => {
-    dispatch(loadBookTypes());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (isAdmin && !usersLoaded && !usersLoading) {
-      dispatch(loadUsers());
+    if (open) {
+      form.setFieldsValue({
+        typeId: filters.typeId,
+        status: filters.status ?? '',
+        favorite: filters.favorite ?? false,
+        minRating: filters.minRating,
+        maxRating: filters.maxRating,
+        userId: filters.userId
+      });
     }
-  }, [dispatch, isAdmin, usersLoaded, usersLoading]);
+  }, [open, filters, form]);
 
-  useEffect(() => {
-    dispatch(loadBooks(filters));
-  }, [dispatch, filters]);
+  const handleApply = async () => {
+    const values = await form.validateFields();
+    dispatch(
+      setFilters({
+        ...values,
+        // Пустые значения убираем из запроса, иначе уедут в URL как `status=`.
+        status: values.status || undefined,
+        favorite: values.favorite || undefined,
+        page: 0
+      })
+    );
+    onClose();
+  };
 
-  const onFinish = (values: any) => {
-    dispatch(setFilters({ ...filters, ...values, page: 0 }));
+  const handleReset = () => {
+    form.resetFields();
+    dispatch(resetFilters());
+    onClose();
   };
 
   return (
-    <Form layout="vertical" form={form} initialValues={filters} onFinish={onFinish}>
-      <Flex gap={styles.formGap} vertical>
-        <Flex gap={24} wrap>
-          <Form.Item name="typeId" label="Тип" style={styles.field(180)}>
-            <Select
-              placeholder="Все типы"
-              allowClear
-              options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
-            />
-          </Form.Item>
-          <Form.Item name="status" label="Статус" style={styles.field(180)}>
-            <Select placeholder="Любой" allowClear options={statusOptions.map((s) => ({ label: s.label, value: s.value }))} />
-          </Form.Item>
-          <Form.Item name="favorite" label="Избранное" valuePropName="checked" style={styles.narrowField}>
-            <Switch />
-          </Form.Item>
-          <Form.Item name="minRating" label="Минимальная оценка" style={styles.field(160)}>
-            <InputNumber min={0} max={10} step={0.5} style={styles.numberInput} />
-          </Form.Item>
-          <Form.Item name="maxRating" label="Максимальная оценка" style={styles.field(160)}>
-            <InputNumber min={0} max={10} step={0.5} style={styles.numberInput} />
-          </Form.Item>
-          <Form.Item name="sort" label="Сортировка" style={styles.field(200)}>
-            <Select
-              placeholder="Выберите порядок"
-              options={[
-                { label: 'Обновлено ↓', value: 'updatedAt,desc' },
-                { label: 'Обновлено ↑', value: 'updatedAt,asc' },
-                { label: 'Название ↑', value: 'title,asc' },
-                { label: 'Название ↓', value: 'title,desc' },
-                { label: 'Оценка ↓', value: 'rating,desc' },
-                { label: 'Оценка ↑', value: 'rating,asc' }
-              ]}
-            />
-          </Form.Item>
-          {isAdmin && (
-            <Form.Item name="userId" label="Пользователь" style={styles.field(220)}>
-              <Select
-                allowClear
-                placeholder="Все пользователи"
-                loading={usersLoading}
-                options={users.map((u) => ({ label: u.username, value: u.id }))}
-              />
-            </Form.Item>
-          )}
-        </Flex>
-        <Flex justify="flex-start" style={styles.actions}>
-          <Button type="primary" htmlType="submit" block style={styles.button}>
-            Применить фильтры
+    <Drawer
+      title="Фильтры"
+      placement="right"
+      open={open}
+      onClose={onClose}
+      width={isMobile ? '100%' : 400}
+      footer={
+        <div style={{ display: 'flex', gap: 12, padding: '12px 24px' }}>
+          <Button onClick={handleReset} block>
+            Сбросить
           </Button>
-        </Flex>
-      </Flex>
-    </Form>
+          <Button type="primary" onClick={handleApply} block>
+            Применить
+          </Button>
+        </div>
+      }
+    >
+      <Form layout="vertical" form={form}>
+        <Form.Item name="status" label="Статус">
+          <StatusChips />
+        </Form.Item>
+
+        <Form.Item name="typeId" label="Тип">
+          <Select
+            placeholder="Все типы"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
+          />
+        </Form.Item>
+
+        <Divider style={{ margin: '8px 0 16px' }} />
+
+        <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          Оценка
+        </Typography.Text>
+        <Space.Compact style={{ width: '100%', marginTop: 8 }}>
+          <Form.Item name="minRating" noStyle>
+            <InputNumber min={0} max={10} step={0.5} placeholder="от" style={{ width: '50%' }} />
+          </Form.Item>
+          <Form.Item name="maxRating" noStyle>
+            <InputNumber min={0} max={10} step={0.5} placeholder="до" style={{ width: '50%' }} />
+          </Form.Item>
+        </Space.Compact>
+
+        <Form.Item
+          name="favorite"
+          label="Только избранное"
+          valuePropName="checked"
+          style={{ marginTop: 24 }}
+        >
+          <Switch />
+        </Form.Item>
+
+        {isAdmin && (
+          <Form.Item name="userId" label="Пользователь">
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Все пользователи"
+              loading={usersLoading}
+              options={users.map((u) => ({ label: u.username, value: u.id }))}
+            />
+          </Form.Item>
+        )}
+      </Form>
+    </Drawer>
   );
 };
