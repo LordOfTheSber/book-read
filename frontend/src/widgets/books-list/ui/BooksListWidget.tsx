@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import {
+  App,
   Button,
   Card,
   Col,
   Empty,
-  Modal,
   Pagination,
   Row,
   Skeleton,
@@ -12,8 +12,7 @@ import {
   Table,
   Tag,
   Tooltip,
-  Typography,
-  message
+  Typography
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import {
@@ -24,12 +23,12 @@ import {
   StarFilled,
   StarOutlined
 } from '@ant-design/icons';
-import { AxiosError } from 'axios';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { deleteBookThunk } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
+import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
 import { useBooksListStyles } from './BooksListWidget.styles';
 
@@ -63,6 +62,8 @@ export const BooksListWidget: React.FC<Props> = ({
   onResetFilters
 }) => {
   const dispatch = useAppDispatch();
+  const { message, modal } = App.useApp();
+  const showRequestError = useRequestError();
   const { items, page, size, total, loading } = useAppSelector((state) => state.books);
   const filters = useAppSelector((state) => state.bookFilters);
   const user = useAppSelector((state) => state.auth.user);
@@ -72,7 +73,7 @@ export const BooksListWidget: React.FC<Props> = ({
   const canEdit = canEditBooks(role);
 
   const confirmDelete = (item: LibraryItem) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Удалить книгу?',
       content: `«${item.title}» будет удалена без возможности восстановления.`,
       okText: 'Удалить',
@@ -83,12 +84,7 @@ export const BooksListWidget: React.FC<Props> = ({
           await dispatch(deleteBookThunk(item.id)).unwrap();
           message.success('Книга удалена');
         } catch (error) {
-          const axiosError = error as AxiosError<{ message?: string }>;
-          message.error(
-            axiosError.response?.status === 403
-              ? 'Нет прав для выполнения действия'
-              : axiosError.response?.data?.message || 'Не удалось удалить книгу'
-          );
+          showRequestError(error, 'Не удалось удалить книгу');
         }
       }
     });

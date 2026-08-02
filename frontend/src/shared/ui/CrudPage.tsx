@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Empty, Form, Input, Modal, Space, Table, Tooltip, Typography, message, theme } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Space, Table, Tooltip, Typography, theme } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { AxiosError } from 'axios';
+import { useRequestError } from '@/shared/lib/errors';
 import { PageHeader } from './PageHeader';
 
 export interface CrudPageLabels {
@@ -44,15 +44,6 @@ interface Props<T extends { id: string }, V> {
   deleteContent?: (item: T) => React.ReactNode;
 }
 
-const showRequestError = (error: unknown, fallback: string) => {
-  const axiosError = error as AxiosError<{ message?: string }>;
-  message.error(
-    axiosError.response?.status === 403
-      ? 'Нет прав для выполнения действия'
-      : axiosError.response?.data?.message || fallback
-  );
-};
-
 /**
  * Шаблон страницы-справочника: заголовок, поиск, таблица и модальная форма.
  * Типы и Источники устроены одинаково и различаются только колонками,
@@ -75,6 +66,8 @@ export function CrudPage<T extends { id: string }, V = Record<string, unknown>>(
   deleteContent
 }: Props<T, V>) {
   const { token } = theme.useToken();
+  const { message, modal } = App.useApp();
+  const showRequestError = useRequestError();
   const [form] = Form.useForm<V>();
   const [editing, setEditing] = useState<T | null>(null);
   const [open, setOpen] = useState(false);
@@ -112,7 +105,7 @@ export function CrudPage<T extends { id: string }, V = Record<string, unknown>>(
   };
 
   const confirmDelete = (item: T) => {
-    Modal.confirm({
+    modal.confirm({
       title: labels.deleteTitle,
       content: deleteContent?.(item),
       okText: 'Удалить',

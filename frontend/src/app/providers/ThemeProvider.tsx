@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { ConfigProvider, theme as antdTheme, ThemeConfig } from 'antd';
+import { App as AntdApp, ConfigProvider, theme as antdTheme, ThemeConfig } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 
 export type ThemeMode = 'light' | 'dark' | 'teal';
@@ -118,7 +118,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ThemeContext.Provider value={value}>
       <ConfigProvider theme={themeConfig} locale={ruRU}>
-        {children}
+        {/* App даёт message/modal/notification через контекст: статические
+            вызовы antd не видят тему и рисуют светлые окна поверх тёмной. */}
+        <AntdApp component={false}>{children}</AntdApp>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

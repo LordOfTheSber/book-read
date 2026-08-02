@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { Button, Col, Drawer, Form, Grid, Input, Rate, Row, Select, Switch, message } from 'antd';
-import { AxiosError } from 'axios';
+import { App, Button, Col, Drawer, Form, Grid, Input, Rate, Row, Select, Switch } from 'antd';
 import { LibraryItem } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookThunk, updateBookThunk } from '@/entities/book';
+import { useRequestError } from '@/shared/lib/errors';
 
 interface Props {
   open: boolean;
@@ -19,6 +19,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const sources = useAppSelector((state) => state.sources.list);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const { message } = App.useApp();
+  const showRequestError = useRequestError();
   const [form] = Form.useForm();
   const [saving, setSaving] = React.useState(false);
 
@@ -44,12 +46,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       }
       onClose();
     } catch (error) {
-      const axiosError = error as AxiosError<{ message?: string }>;
-      message.error(
-        axiosError.response?.status === 403
-          ? 'Нет прав для выполнения действия'
-          : axiosError.response?.data?.message || 'Не удалось сохранить книгу'
-      );
+      showRequestError(error, 'Не удалось сохранить книгу');
     } finally {
       setSaving(false);
     }
