@@ -21,7 +21,7 @@ export const useNodesPageStyles = () => {
         padding: 18
       },
       tableWrapper: {
-        overflowX: 'auto'
+        overflowX: 'auto' as const
       },
       mobileList: {
         display: 'flex',

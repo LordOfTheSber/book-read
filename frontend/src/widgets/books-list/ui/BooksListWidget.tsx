@@ -29,6 +29,7 @@ import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { deleteBookThunk } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
+import { formatDate, formatDateTime } from '@/shared/lib/date';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
 import { useBooksListStyles } from './BooksListWidget.styles';
 
@@ -50,26 +51,6 @@ const dash = '—';
 const formatRating = (rating?: number | null) => {
   if (rating === undefined || rating === null) return null;
   return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
-};
-
-const formatDate = (value?: string) => {
-  if (!value) return dash;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return dash;
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
-};
-
-const formatDateTime = (value?: string) => {
-  if (!value) return dash;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return dash;
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
 };
 
 export const BooksListWidget: React.FC<Props> = ({

@@ -34,7 +34,7 @@ export const useUsersPageStyles = (isMobile: boolean) => {
         alignItems: 'flex-end'
       },
       tableWrapper: {
-        overflowX: 'auto'
+        overflowX: 'auto' as const
       },
       mobileList: {
         display: 'flex',
