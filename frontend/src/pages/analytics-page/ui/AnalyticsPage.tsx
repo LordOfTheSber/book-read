@@ -1,24 +1,37 @@
 import React, { useEffect } from 'react';
-import { Card, Col, Empty, Flex, Grid, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Alert, Card, Col, Empty, Row, Select, Skeleton, Space, Typography, theme } from 'antd';
+import {
+  BookOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  ReadOutlined,
+  StarOutlined,
+  StopOutlined
+} from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { analyticsActions, loadBookAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
-import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
-import { ReadingStatus, User } from '@/shared/types/library';
+import { PageHeader } from '@/shared/ui/PageHeader';
+import { StatTile } from '@/shared/ui/StatTile';
+import { statusMeta } from '@/shared/constants/status';
+import { ReadingStatus } from '@/shared/types/library';
 import { isAdminLike } from '@/shared/lib/roles';
+import { BarList } from './BarList';
+import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
 
-const statusColorMap: Record<ReadingStatus, string> = {
-  READING: 'blue',
-  COMPLETED: 'green',
-  PLANNED: 'default',
-  DROPPED: 'red'
+const statusOrder: ReadingStatus[] = ['READING', 'COMPLETED', 'PLANNED', 'DROPPED'];
+
+const statusIcons: Record<ReadingStatus, React.ReactNode> = {
+  READING: <ReadOutlined />,
+  COMPLETED: <CheckCircleOutlined />,
+  PLANNED: <ClockCircleOutlined />,
+  DROPPED: <StopOutlined />
 };
 
 export const AnalyticsPage: React.FC = () => {
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
-  const styles = useAnalyticsPageStyles(isMobile);
   const dispatch = useAppDispatch();
+  const { token } = theme.useToken();
+  const styles = useAnalyticsPageStyles();
   const { data, loading, error, currentUserId } = useAppSelector((state) => state.analytics);
   const { list: users, loaded: usersLoaded, loading: usersLoading } = useAppSelector((state) => state.users);
   const user = useAppSelector((state) => state.auth.user);
@@ -34,165 +47,137 @@ export const AnalyticsPage: React.FC = () => {
     }
   }, [dispatch, isAdmin, usersLoaded, usersLoading]);
 
-  useEffect(() => {
-    if (error) {
-      message.error(error);
-    }
-  }, [error]);
+  const total = data?.totalItems ?? 0;
+  const statusCount = (status: ReadingStatus) => data?.statusBreakdown?.[status] ?? 0;
+  const isEmpty = !loading && (!data || total === 0);
 
-  const handleUserChange = (value?: string) => {
-    dispatch(analyticsActions.setTargetUser(value));
-  };
-
-  const statusData = data
-    ? Object.entries(data.statusBreakdown || {}).map(([status, count]) => ({
-        status: status as ReadingStatus,
-        count
-      }))
-    : [];
-
-  const sourceData = data?.topSources ?? [];
+  const scopeLabel = currentUserId
+    ? `Статистика пользователя ${users.find((u) => u.id === currentUserId)?.username ?? ''}`.trim()
+    : isAdmin
+      ? 'Сводная статистика по всем пользователям'
+      : 'Статистика по вашей коллекции';
 
   return (
-    <Card title="Аналитика" style={styles.pageCard} headStyle={styles.pageHead} bodyStyle={styles.pageBody}>
-      <Flex gap={styles.contentWrapper.gap} align={styles.contentWrapper.alignItems} vertical={isMobile}>
-        <Flex flex={1} vertical gap={18} style={styles.heroCard as React.CSSProperties}>
-          <Typography.Title level={4} style={styles.heroTitle}>
-            Аналитика по книгам
-          </Typography.Title>
-          <Typography.Paragraph style={styles.heroDescription}>
-            Следите за прогрессом чтения, популярностью источников и распределением статусов в едином отчёте.
-          </Typography.Paragraph>
+    <div style={styles.page}>
+      <PageHeader
+        title="Аналитика"
+        subtitle={scopeLabel}
+        actions={
+          isAdmin && (
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Все пользователи"
+              style={{ minWidth: 220 }}
+              size="large"
+              loading={usersLoading}
+              value={currentUserId}
+              onChange={(value?: string) => dispatch(analyticsActions.setTargetUser(value))}
+              options={users.map((u) => ({ label: u.username, value: u.id }))}
+            />
+          )
+        }
+      />
 
-          {loading && (
-            <Flex justify="center" style={{ padding: 32 }}>
-              <Spin size="large" />
-            </Flex>
-          )}
+      {error && <Alert type="error" showIcon message="Не удалось загрузить аналитику" description={error} style={styles.alert} />}
 
-          {!loading && data && (
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div style={styles.cards}>
-                <Card>
-                  <Statistic title="Всего книг" value={data.totalItems} />
-                </Card>
-                <Card>
-                  <Statistic title="Избранные" value={data.favoriteItems} />
-                </Card>
-                <Card>
-                  <Statistic
-                    title="Средний рейтинг"
-                    precision={1}
-                    value={data.averageRating ?? 0}
-                    suffix="/ 10"
-                    valueStyle={!data.averageRating ? { color: '#999' } : undefined}
-                  />
-                </Card>
-              </div>
+      <div style={styles.stats}>
+        <StatTile label="Всего книг" value={total} icon={<BookOutlined />} loading={loading && !data} />
+        {statusOrder.map((status) => (
+          <StatTile
+            key={status}
+            label={statusMeta[status].label}
+            value={statusCount(status)}
+            hint={total ? `${Math.round((statusCount(status) / total) * 100)}%` : undefined}
+            icon={statusIcons[status]}
+            accent={token[statusMeta[status].token]}
+            loading={loading && !data}
+          />
+        ))}
+        <StatTile
+          label="Избранное"
+          value={data?.favoriteItems ?? 0}
+          hint={data?.averageRating ? `средняя оценка ${data.averageRating.toFixed(1)}` : 'оценок пока нет'}
+          icon={<StarOutlined />}
+          accent={token.colorWarning}
+          loading={loading && !data}
+        />
+      </div>
 
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Card title="Статусы чтения" extra={<Tag>Всего: {data.totalItems}</Tag>}>
-                    {statusData.length === 0 ? (
-                      <Empty description="Данных пока нет" />
-                    ) : (
-                      <Table
-                        size="small"
-                        scroll={{ x: true }}
-                        rowKey={(row) => row.status}
-                        dataSource={statusData}
-                        pagination={false}
-                        columns={[
-                          {
-                            title: 'Статус',
-                            dataIndex: 'status',
-                            render: (status: ReadingStatus) => (
-                              <Tag color={statusColorMap[status]}>{status}</Tag>
-                            )
-                          },
-                          { title: 'Количество', dataIndex: 'count' }
-                        ]}
-                      />
-                    )}
-                  </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Card title="Популярные типы">
-                    {data.topTypes.length === 0 ? (
-                      <Empty description="Типы ещё не добавлены" />
-                    ) : (
-                      <Table
-                        size="small"
-                        scroll={{ x: true }}
-                        rowKey={(row) => row.typeId}
-                        dataSource={data.topTypes}
-                        pagination={false}
-                        columns={[
-                          { title: 'Тип', dataIndex: 'typeName' },
-                          { title: 'Количество', dataIndex: 'count' }
-                        ]}
-                      />
-                    )}
-                  </Card>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Card title="Популярные источники">
-                    {sourceData.length === 0 ? (
-                      <Empty description="Источники ещё не добавлены" />
-                    ) : (
-                      <Table
-                        size="small"
-                        scroll={{ x: true }}
-                        rowKey={(row) => row.sourceId}
-                        dataSource={sourceData}
-                        pagination={false}
-                        columns={[
-                          { title: 'Источник', dataIndex: 'sourceName' },
-                          { title: 'Количество', dataIndex: 'count' }
-                        ]}
-                      />
-                    )}
-                  </Card>
-                </Col>
-              </Row>
-            </Space>
-          )}
-
-          {!loading && !data && (
-            <Empty description="Аналитика недоступна. Добавьте книги, чтобы увидеть статистику." />
-          )}
-        </Flex>
-
-        <Card style={styles.filtersCard} bodyStyle={styles.filtersCardBodyStyle} bordered={false}>
-          <div style={styles.filtersCardBody}>
-            <Typography.Title level={5} style={styles.filtersTitle}>
-              Параметры отчёта
-            </Typography.Title>
-            <Typography.Paragraph style={styles.filtersDescription}>
-              Выберите пользователя или оставьте пустым, чтобы увидеть общую статистику.
-            </Typography.Paragraph>
-
-            {isAdmin ? (
-              <Select
-                allowClear
-                placeholder="Все пользователи"
-                style={{ width: '100%' }}
-                loading={usersLoading}
-                value={currentUserId}
-                onChange={handleUserChange}
-                options={users.map((u: User) => ({ label: u.username, value: u.id }))}
-              />
-            ) : (
-              <Typography.Text type="secondary">
-                Доступна аналитика только по вашему аккаунту.
-              </Typography.Text>
-            )}
-          </div>
+      {isEmpty ? (
+        <Card style={styles.card} styles={{ body: styles.emptyBody }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <Space direction="vertical" size={4}>
+                <Typography.Text strong>Пока нечего показывать</Typography.Text>
+                <Typography.Text type="secondary">
+                  Добавьте книги в библиотеку — статистика соберётся автоматически.
+                </Typography.Text>
+              </Space>
+            }
+          />
         </Card>
-      </Flex>
-    </Card>
+      ) : (
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={8}>
+            <Card title="Распределение по статусам" style={styles.card} styles={{ body: styles.cardBody }}>
+              {loading && !data ? (
+                <Skeleton active paragraph={{ rows: 4 }} />
+              ) : (
+                <BarList
+                  total={total}
+                  items={statusOrder.map((status) => ({
+                    key: status,
+                    label: statusMeta[status].label,
+                    value: statusCount(status),
+                    color: token[statusMeta[status].token]
+                  }))}
+                />
+              )}
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={8}>
+            <Card title="Популярные типы" style={styles.card} styles={{ body: styles.cardBody }}>
+              {loading && !data ? (
+                <Skeleton active paragraph={{ rows: 4 }} />
+              ) : (
+                <BarList
+                  total={total}
+                  emptyText="Типы ещё не добавлены"
+                  items={(data?.topTypes ?? []).map((type) => ({
+                    key: type.typeId,
+                    label: type.typeName,
+                    value: type.count,
+                    color: token.colorPrimary
+                  }))}
+                />
+              )}
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={8}>
+            <Card title="Популярные источники" style={styles.card} styles={{ body: styles.cardBody }}>
+              {loading && !data ? (
+                <Skeleton active paragraph={{ rows: 4 }} />
+              ) : (
+                <BarList
+                  total={total}
+                  emptyText="Источники ещё не добавлены"
+                  items={(data?.topSources ?? []).map((source) => ({
+                    key: source.sourceId,
+                    label: source.sourceName,
+                    value: source.count,
+                    color: token.colorInfo
+                  }))}
+                />
+              )}
+            </Card>
+          </Col>
+        </Row>
+      )}
+    </div>
   );
 };

@@ -42,6 +42,7 @@ export const useBooksListStyles = () => {
 
       card: {
         height: '100%',
+        marginBottom: 0,
         borderRadius: token.borderRadiusLG,
         borderColor: token.colorBorderSecondary
       } as CSSProperties,

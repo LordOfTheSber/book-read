@@ -314,7 +314,7 @@ export const BooksListWidget: React.FC<Props> = ({
         <Row gutter={[16, 16]}>
           {Array.from({ length: 6 }).map((_, index) => (
             <Col key={index} xs={24} sm={12} xl={8} xxl={6}>
-              <Card style={styles.card} bodyStyle={styles.cardBody}>
+              <Card style={styles.card} styles={{ body: styles.cardBody }}>
                 <Skeleton active paragraph={{ rows: 3 }} />
               </Card>
             </Col>
@@ -332,7 +332,7 @@ export const BooksListWidget: React.FC<Props> = ({
         <Row gutter={[16, 16]}>
           {items.map((item) => (
             <Col key={item.id} xs={24} sm={12} xl={8} xxl={6}>
-              <Card style={styles.card} bodyStyle={styles.cardBody} hoverable={canEdit} onClick={canEdit ? () => onEdit(item) : undefined}>
+              <Card style={styles.card} styles={{ body: styles.cardBody }} hoverable={canEdit} onClick={canEdit ? () => onEdit(item) : undefined}>
                 <div style={styles.cardTop}>
                   <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
                     {getStatusLabel(item.status)}

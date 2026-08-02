@@ -60,7 +60,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       title={editing ? 'Редактирование книги' : 'Новая книга'}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={isMobile ? '100%' : 640}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>

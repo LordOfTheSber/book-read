@@ -1,8 +1,9 @@
-import { Avatar, Button, Drawer, Grid, Layout, Menu, Segmented, Space, Spin, Tag, Tooltip } from 'antd';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import React, { useMemo, useState } from 'react';
-import { BulbOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
-import { useThemeMode } from '@/app/providers/ThemeProvider';
+import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Space, Spin, Typography } from 'antd';
+import type { MenuProps } from 'antd';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { BgColorsOutlined, CheckOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
+import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -11,68 +12,85 @@ import { isAdminLike } from '@/shared/lib/roles';
 
 const { Header, Content } = Layout;
 
+interface NavItem {
+  key: string;
+  label: string;
+  path: string;
+  adminOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { key: 'books', label: 'Книги', path: '/' },
+  { key: 'analytics', label: 'Аналитика', path: '/analytics' },
+  { key: 'types', label: 'Типы', path: '/types' },
+  { key: 'sources', label: 'Источники', path: '/sources' },
+  { key: 'users', label: 'Пользователи', path: '/users', adminOnly: true },
+  { key: 'nodes', label: 'Узлы', path: '/nodes', adminOnly: true }
+];
+
 export const PageLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const selected = useMemo(
-    () =>
-      location.pathname.startsWith('/profile')
-        ? ''
-        : location.pathname.startsWith('/types')
-          ? 'types'
-          : location.pathname.startsWith('/sources')
-            ? 'sources'
-            : location.pathname.startsWith('/users')
-              ? 'users'
-              : location.pathname.startsWith('/nodes')
-                ? 'nodes'
-                : location.pathname.startsWith('/analytics')
-                  ? 'analytics'
-                  : 'books',
-    [location.pathname]
-  );
-  const { mode, setMode } = useThemeMode();
   const styles = usePageLayoutStyles(isMobile);
+  const { mode, setMode } = useThemeMode();
   const user = useAppSelector((state) => state.auth.user);
   const loadingUser = useAppSelector((state) => state.auth.loadingUser);
   const token = useAppSelector((state) => state.auth.token);
   const dispatch = useAppDispatch();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
 
-  const themeColorMap: Record<typeof mode, string> = {
-    light: '#f5f5f5',
-    teal: '#0fbf9f',
-    dark: '#1f1f1f'
-  };
-  const themeOrder = ['light', 'teal', 'dark'] as const;
-  const handleToggleTheme = () => {
-    const currentIndex = themeOrder.indexOf(mode);
-    const nextMode = themeOrder[(currentIndex + 1) % themeOrder.length];
-    setMode(nextMode);
-  };
+  const visibleNav = useMemo(
+    () => navItems.filter((item) => !item.adminOnly || isAdminLike(user?.role)),
+    [user?.role]
+  );
+
+  // Профиль не соответствует ни одному пункту меню — там подсветка снимается.
+  const selectedKey = useMemo(() => {
+    if (location.pathname.startsWith('/profile')) return undefined;
+    const match = visibleNav
+      .filter((item) => item.path !== '/' && location.pathname.startsWith(item.path))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+
+    return match?.key ?? 'books';
+  }, [location.pathname, visibleNav]);
+
+  const menuItems: MenuProps['items'] = visibleNav.map((item) => ({
+    key: item.key,
+    label: <Link to={item.path}>{item.label}</Link>
+  }));
 
   const handleLogout = () => {
     dispatch(authActions.logout());
     navigate('/login');
   };
 
-  const avatarSrc = user?.avatar && user.avatarContentType ? `data:${user.avatarContentType};base64,${user.avatar}` : undefined;
-  const closeDrawer = () => setDrawerOpen(false);
+  const avatarSrc =
+    user?.avatar && user.avatarContentType ? `data:${user.avatarContentType};base64,${user.avatar}` : undefined;
 
-  const menuItems = [
-    { key: 'books', label: <Link to="/">Книги</Link> },
-    { key: 'analytics', label: <Link to="/analytics">Аналитика</Link> },
-    { key: 'types', label: <Link to="/types">Типы</Link> },
-    { key: 'sources', label: <Link to="/sources">Источники</Link> },
-    ...(isAdminLike(user?.role)
-      ? [
-          { key: 'users', label: <Link to="/users">Пользователи</Link> },
-          { key: 'nodes', label: <Link to="/nodes">Узлы</Link> }
-        ]
-      : [])
-  ];
+  const themeMenu: MenuProps = {
+    selectable: false,
+    items: themeOptions.map((option) => ({
+      key: option.value,
+      onClick: () => setMode(option.value),
+      label: (
+        <Space size={10}>
+          <span style={{ ...styles.swatch, background: option.swatch }} />
+          <span style={{ flex: 1 }}>{option.label}</span>
+          {mode === option.value && <CheckOutlined style={styles.checkIcon} />}
+        </Space>
+      )
+    }))
+  };
+
+  const userMenu: MenuProps = {
+    items: [
+      { key: 'profile', icon: <UserOutlined />, label: 'Профиль', onClick: () => navigate('/profile') },
+      { type: 'divider' },
+      { key: 'logout', icon: <LogoutOutlined />, label: 'Выйти', danger: true, onClick: handleLogout }
+    ]
+  };
 
   if (token && (loadingUser || !user)) {
     return (
@@ -82,216 +100,96 @@ export const PageLayout: React.FC = () => {
     );
   }
 
+  const themeButton = (
+    <Dropdown menu={themeMenu} trigger={['click']} placement="bottomRight">
+      <Button type="text" icon={<BgColorsOutlined />} aria-label="Сменить тему" />
+    </Dropdown>
+  );
+
   return (
     <Layout style={styles.layout}>
       <Header style={styles.header}>
-        <div style={styles.headerContent}>
-          <div style={styles.headerTopRow}>
-            <div style={styles.brand}>
-              <Logo />
-              <div style={styles.brandText}>
-                <div style={styles.brandTitle}>BookRead</div>
-                <div style={styles.brandSubtitle}>Личная библиотека</div>
-              </div>
-            </div>
-
-            {isMobile ? (
-              <Space align="center" size={10}>
-                <Tooltip title="Сменить тему" placement="bottom">
-                  <Button
-                    shape="circle"
-                    icon={
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: themeColorMap[mode],
-                          boxShadow: '0 0 0 1px rgba(0,0,0,0.08) inset'
-                        }}
-                      />
-                    }
-                    onClick={handleToggleTheme}
-                    style={styles.mobileThemeButton}
-                    aria-label="Сменить тему"
-                  />
-                </Tooltip>
-                <Tooltip title="Меню">
-                  <Button
-                    icon={<MenuOutlined />}
-                    shape="circle"
-                    style={styles.mobileMenuButton}
-                    onClick={() => setDrawerOpen(true)}
-                    aria-label="Меню навигации"
-                  />
-                </Tooltip>
-              </Space>
-            ) : (
-              <div style={styles.menuContainer}>
-                <Menu
-                  style={styles.menu}
-                  theme="dark"
-                  mode="horizontal"
-                  selectedKeys={selected ? [selected] : undefined}
-                  items={menuItems}
-                />
-              </div>
-            )}
-          </div>
+        <div style={styles.headerInner}>
+          <Link to="/" style={styles.brand}>
+            <Logo size={30} />
+            <span style={styles.brandTitle}>BookRead</span>
+          </Link>
 
           {!isMobile && (
-            <div style={styles.headerExtra}>
-              {user ? (
-                <Space align="center" size={8} wrap>
-                  <Tooltip title="Сменить тему" placement="bottom">
-                    <Button
-                      shape="circle"
-                      icon={
-                        <div
-                          style={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: '50%',
-                            background: themeColorMap[mode],
-                            boxShadow: '0 0 0 1px rgba(0,0,0,0.08) inset'
-                          }}
-                        />
-                      }
-                      onClick={handleToggleTheme}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        minWidth: 36,
-                        padding: 0,
-                        borderColor: 'rgba(255,255,255,0.55)',
-                        background: 'rgba(255,255,255,0.12)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
-                      }}
-                    />
-                  </Tooltip>
-                  <Button
-                    onClick={() => navigate('/profile')}
-                    shape="round"
-                    icon={<Avatar size="small" src={avatarSrc} icon={<UserOutlined />} />}
-                    style={{
-                      color: '#fff',
-                      height: 36,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      paddingInline: 12,
-                      borderColor: 'rgba(255,255,255,0.45)',
-                      background: 'rgba(255,255,255,0.08)'
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{user.username}</span>
-                  </Button>
-                  <Tooltip title="Выйти">
-                    <Button
-                      shape="round"
-                      icon={<LogoutOutlined />}
-                      onClick={handleLogout}
-                      style={{
-                        height: 36,
-                        paddingInline: 14,
-                        color: '#ff4d4f',
-                        borderColor: '#ff7a7c',
-                        background: 'rgba(255,77,79,0.08)',
-                        fontWeight: 600
-                      }}
-                    >
-                      Выйти
-                    </Button>
-                  </Tooltip>
-                </Space>
-              ) : (
-                <Space>
-                  <Button type="primary" onClick={() => navigate('/login')}>
-                    Войти
-                  </Button>
-                  <Button onClick={() => navigate('/register')}>Регистрация</Button>
-                  <span style={styles.toggleLabel}>Тема</span>
-                  <Segmented
-                    value={mode}
-                    onChange={(value) => setMode(value as typeof mode)}
-                    size="small"
-                    options={[
-                      { label: 'Светлая', value: 'light' },
-                      { label: 'Бирюзовая', value: 'teal' },
-                      { label: 'Тёмная', value: 'dark' }
-                    ]}
-                  />
-                </Space>
-              )}
-            </div>
+            <Menu
+              mode="horizontal"
+              style={styles.menu}
+              selectedKeys={selectedKey ? [selectedKey] : []}
+              items={menuItems}
+            />
           )}
+
+          <Space size={4} style={styles.headerActions}>
+            {themeButton}
+            {user ? (
+              isMobile ? (
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Меню навигации"
+                />
+              ) : (
+                <Dropdown menu={userMenu} trigger={['click']} placement="bottomRight">
+                  <Button type="text" style={styles.userButton}>
+                    <Avatar size={24} src={avatarSrc} icon={<UserOutlined />} />
+                    <span style={styles.userName}>{user.username}</span>
+                  </Button>
+                </Dropdown>
+              )
+            ) : (
+              <Button type="primary" onClick={() => navigate('/login')}>
+                Войти
+              </Button>
+            )}
+          </Space>
         </div>
       </Header>
+
       <Drawer
         placement="right"
         open={isDrawerOpen}
-        onClose={closeDrawer}
-        bodyStyle={styles.mobileDrawerBody}
-        width={320}
-        destroyOnClose
-        styles={{ header: { display: 'none' } }}
-        closable={false}
+        onClose={() => setDrawerOpen(false)}
+        width={300}
+        title={
+          user && (
+            <Space>
+              <Avatar size={32} src={avatarSrc} icon={<UserOutlined />} />
+              <Typography.Text strong>{user.username}</Typography.Text>
+            </Space>
+          )
+        }
+        styles={{ body: styles.drawerBody }}
       >
         <Menu
-          style={styles.mobileMenu}
           mode="inline"
-          selectedKeys={selected ? [selected] : undefined}
+          style={styles.drawerMenu}
+          selectedKeys={selectedKey ? [selectedKey] : []}
           items={menuItems}
           onClick={() => setDrawerOpen(false)}
         />
-        <div style={styles.mobileMenuFooter}>
-          {user ? (
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
-              <Button
-                onClick={() => {
-                  navigate('/profile');
-                  closeDrawer();
-                }}
-                icon={<Avatar size="small" src={avatarSrc} icon={<UserOutlined />} />}
-                block
-              >
-                Профиль
-              </Button>
-              <Button
-                type="primary"
-                icon={<LogoutOutlined />}
-                danger
-                onClick={() => {
-                  handleLogout();
-                  closeDrawer();
-                }}
-                block
-              >
-                Выйти
-              </Button>
-            </Space>
-          ) : (
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Button type="primary" onClick={() => navigate('/login')} block>
-                Войти
-              </Button>
-              <Button onClick={() => navigate('/register')} block>
-                Регистрация
-              </Button>
-              <Segmented
-                value={mode}
-                onChange={(value) => setMode(value as typeof mode)}
-                size="middle"
-                options={[
-                  { label: 'Светлая', value: 'light' },
-                  { label: 'Бирюзовая', value: 'teal' },
-                  { label: 'Тёмная', value: 'dark' }
-                ]}
-              />
-            </Space>
-          )}
+        <div style={styles.drawerFooter}>
+          <Button
+            block
+            icon={<UserOutlined />}
+            onClick={() => {
+              navigate('/profile');
+              setDrawerOpen(false);
+            }}
+          >
+            Профиль
+          </Button>
+          <Button block danger icon={<LogoutOutlined />} onClick={handleLogout}>
+            Выйти
+          </Button>
         </div>
       </Drawer>
+
       <Content style={styles.content}>
         <Outlet />
       </Content>
