@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { type CSSProperties, useMemo } from 'react';
 import { theme } from 'antd';
 
 export const useNodeDetailPageStyles = () => {
@@ -6,63 +6,46 @@ export const useNodeDetailPageStyles = () => {
 
   return useMemo(
     () => ({
-      container: {
+      page: {
+        maxWidth: 1440,
+        margin: '0 auto',
+        width: '100%'
+      } as CSSProperties,
+      backLink: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 12
+      } as CSSProperties,
+      stats: {
         display: 'flex',
-        flexDirection: 'column' as const,
-        gap: 16
-      },
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 20
+      } as CSSProperties,
+      alert: { marginBottom: 16 } as CSSProperties,
       card: {
-        border: 'none',
-        borderRadius: 14,
-        boxShadow: token.boxShadow,
-        background: token.colorBgContainer
-      },
-      cardHead: {
-        padding: '14px 18px',
-        fontSize: 18,
-        fontWeight: 600
-      },
-      cardBody: {
-        padding: 18
-      },
-      memoryCard: {
+        height: '100%',
+        marginBottom: 0,
+        borderRadius: token.borderRadiusLG,
+        borderColor: token.colorBorderSecondary
+      } as CSSProperties,
+      cardBody: { padding: 20 } as CSSProperties,
+      table: {
+        background: token.colorBgContainer,
+        borderRadius: token.borderRadiusLG,
         border: `1px solid ${token.colorBorderSecondary}`,
-        borderRadius: 12,
-        padding: 16,
-        background: token.colorBgLayout
-      },
-      memoryItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 0',
-        borderBottom: `1px solid ${token.colorBorderSecondary}`
-      },
-      memoryItemLast: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 0'
-      },
-      memoryLabel: {
-        color: token.colorTextSecondary
-      },
-      memoryValue: {
-        fontWeight: 600,
-        fontFamily: 'monospace'
-      },
-      backButton: {
-        marginBottom: 16
-      },
-      headerRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap' as const,
-        gap: 12
-      },
-      v8Section: {
-        marginTop: 16
+        overflow: 'hidden'
+      } as CSSProperties,
+      meterBlock: { marginBottom: 16 } as CSSProperties,
+      sectionTitle: { marginTop: 20, marginBottom: 8 } as CSSProperties,
+      hint: { fontSize: 12 } as CSSProperties,
+      tabularNumbers: { fontVariantNumeric: 'tabular-nums' } as CSSProperties,
+      accents: {
+        ok: token.colorSuccess,
+        warning: token.colorWarning,
+        error: token.colorError,
+        uptime: token.colorInfo
       }
     }),
     [token]

@@ -28,6 +28,16 @@ export const formatDuration = (seconds?: number | null) => {
   return `${minutes}м`;
 };
 
+/** 184 320 — с неразрывными разделителями разрядов. */
+export const formatNumber = (value?: number | null) =>
+  value === undefined || value === null ? DASH : new Intl.NumberFormat('ru-RU').format(value);
+
+/** 320 мс / 1.25 с */
+export const formatMs = (value?: number | null) => {
+  if (value === undefined || value === null) return DASH;
+  return value >= 1000 ? `${(value / 1000).toFixed(2)} с` : `${Math.round(value)} мс`;
+};
+
 export const calculateUsed = (total?: number | null, free?: number | null) =>
   total !== undefined && total !== null && free !== undefined && free !== null ? total - free : undefined;
 
