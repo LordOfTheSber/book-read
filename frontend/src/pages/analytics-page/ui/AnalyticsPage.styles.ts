@@ -1,69 +1,32 @@
+import { type CSSProperties, useMemo } from 'react';
 import { theme } from 'antd';
 
-export const useAnalyticsPageStyles = (isMobile: boolean) => {
+export const useAnalyticsPageStyles = () => {
   const { token } = theme.useToken();
-  return {
-    pageCard: {
-      border: 'none',
-      borderRadius: 16,
-      boxShadow: token.boxShadow,
-      background: token.colorBgLayout
-    },
-    pageHead: {
-      padding: '16px 24px',
-      fontSize: 20,
-      fontWeight: 600
-    },
-    pageBody: {
-      padding: 24
-    },
-    contentWrapper: {
-      gap: 24,
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'stretch' : 'flex-start'
-    },
-    heroCard: {
-      background: token.colorBgContainer,
-      borderRadius: 14,
-      boxShadow: token.boxShadowSecondary,
-      padding: 18
-    },
-    heroTitle: {
-      marginTop: 0,
-      marginBottom: 8
-    },
-    heroDescription: {
-      marginBottom: 18,
-      color: token.colorTextSecondary
-    },
-    filtersCard: {
-      background: token.colorBgContainer,
-      borderRadius: 14,
-      boxShadow: token.boxShadowSecondary,
-      padding: 0,
-      position: isMobile ? 'static' : ('sticky' as const),
-      top: isMobile ? undefined : 24,
-      maxWidth: isMobile ? '100%' : 340,
-      minWidth: isMobile ? 'auto' : 300,
-      width: isMobile ? '100%' : 'auto'
-    },
-    filtersCardBodyStyle: { padding: 0 },
-    filtersCardBody: {
-      padding: 18
-    },
-    filtersTitle: {
-      marginTop: 0,
-      marginBottom: 8
-    },
-    filtersDescription: {
-      marginBottom: 18,
-      color: token.colorTextSecondary
-    },
-    cards: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-      gap: 16,
-      marginBottom: 16
-    }
-  };
+
+  return useMemo(
+    () => ({
+      page: {
+        maxWidth: 1440,
+        margin: '0 auto',
+        width: '100%'
+      } as CSSProperties,
+      stats: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 20
+      } as CSSProperties,
+      alert: { marginBottom: 20 } as CSSProperties,
+      card: {
+        height: '100%',
+        marginBottom: 0,
+        borderRadius: token.borderRadiusLG,
+        borderColor: token.colorBorderSecondary
+      } as CSSProperties,
+      cardBody: { padding: 20 } as CSSProperties,
+      emptyBody: { padding: '48px 24px' } as CSSProperties
+    }),
+    [token]
+  );
 };

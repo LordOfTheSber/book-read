@@ -4,12 +4,15 @@ html {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  scrollbar-gutter: stable;
   min-height: 100%;
-  overflow-y: auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
+/* Отступ между карточками, которые страницы кладут друг под друга без сетки.
+   Карточки внутри Row/Col задают marginBottom: 0 сами. */
 .ant-card {
   margin-bottom: 16px;
 }

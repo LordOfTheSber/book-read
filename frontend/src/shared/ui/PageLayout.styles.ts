@@ -1,187 +1,107 @@
 import { type CSSProperties, useMemo } from 'react';
 import { theme } from 'antd';
 
-interface PageLayoutStyles {
-  layout: CSSProperties;
-  loader: CSSProperties;
-  header: CSSProperties;
-  headerContent: CSSProperties;
-  headerTopRow: CSSProperties;
-  brand: CSSProperties;
-  brandText: CSSProperties;
-  brandTitle: CSSProperties;
-  brandSubtitle: CSSProperties;
-  menuContainer: CSSProperties;
-  menu: CSSProperties;
-  mobileMenu: CSSProperties;
-  headerExtra: CSSProperties;
-  toggleLabel: CSSProperties;
-  content: CSSProperties;
-  mobileMenuButton: CSSProperties;
-  mobileThemeButton: CSSProperties;
-  mobileDrawerBody: CSSProperties;
-  mobileMenuFooter: CSSProperties;
-}
-
 export const usePageLayoutStyles = (isMobile: boolean) => {
   const { token } = theme.useToken();
 
   return useMemo(
     () => ({
+      // Скроллит страница целиком: липкая шапка и липкие заголовки таблиц
+      // работают только без внутреннего контейнера с overflow.
       layout: {
         minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        maxHeight: '100vh',
-        overflow: 'hidden'
-      },
+        background: token.colorBgLayout
+      } as CSSProperties,
       loader: {
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: token.colorBgLayout,
-        padding: 24
-      },
+        background: token.colorBgLayout
+      } as CSSProperties,
       header: {
-        padding: isMobile ? '6px 0' : 0,
         position: 'sticky',
         top: 0,
-        zIndex: 10,
-        height: isMobile ? 'auto' : 60,
-        minHeight: 60,
-        background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 50%, ${token.blue || '#1677ff'} 100%)`,
-        boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
-        fontFamily: token.fontFamily,
-        overflow: 'hidden'
-      },
-      headerContent: {
-        width: '100%',
-        display: 'flex',
-        alignItems: isMobile ? 'stretch' : 'center',
-        justifyContent: 'flex-start',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 10 : 12,
-        paddingInline: isMobile ? 12 : 14,
-        paddingBlock: isMobile ? 6 : 0,
-        height: isMobile ? 'auto' : 60,
-        flexWrap: isMobile ? 'wrap' : 'nowrap',
-        boxSizing: 'border-box'
-      },
-      headerTopRow: {
+        zIndex: 20,
+        height: 60,
+        lineHeight: 'normal',
+        paddingInline: isMobile ? 12 : 24,
+        background: token.colorBgContainer,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`
+      } as CSSProperties,
+      headerInner: {
+        height: 60,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 10,
-        width: '100%'
-      },
+        gap: isMobile ? 8 : 24,
+        maxWidth: 1440,
+        margin: '0 auto'
+      } as CSSProperties,
       brand: {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        color: token.colorWhite,
-        paddingInline: 4,
-        flex: isMobile ? '1 1 auto' : '0 1 auto',
-        minWidth: 0
-      },
-      brandText: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        lineHeight: 1.1,
-        minWidth: 0
-      },
+        flexShrink: 0,
+        color: token.colorText
+      } as CSSProperties,
       brandTitle: {
+        fontSize: 17,
         fontWeight: 700,
-        fontSize: 16,
-        letterSpacing: 0.3,
-        lineHeight: 1.1,
-        color: token.colorWhite,
-        fontFamily: token.fontFamily
-      },
-      brandSubtitle: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.82)',
-        marginTop: 0,
-        fontFamily: token.fontFamily
-      },
-      menuContainer: {
-        flex: '1 1 320px',
-        minWidth: 220,
-        display: isMobile ? 'none' : 'flex',
-        justifyContent: 'flex-start',
-        alignItems: 'stretch',
-        height: '100%'
-      },
+        letterSpacing: -0.2,
+        color: token.colorText
+      } as CSSProperties,
       menu: {
-        background: 'transparent',
         flex: 1,
         minWidth: 0,
         borderBottom: 'none',
-        borderRadius: 10,
-        paddingInline: 8,
+        background: 'transparent',
+        lineHeight: '58px'
+      } as CSSProperties,
+      headerActions: {
+        marginLeft: 'auto',
+        flexShrink: 0
+      } as CSSProperties,
+      userButton: {
         display: 'flex',
         alignItems: 'center',
-        overflow: 'hidden',
-        height: '100%'
-      },
-      mobileMenu: {
-        background: token.colorBgContainer,
-        borderRadius: 12,
-        paddingInline: 6,
-        paddingBlock: 6
-      },
-      headerExtra: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: isMobile ? 'flex-start' : 'flex-end',
         gap: 8,
-        color: token.colorWhite,
-        flex: '0 0 auto',
-        minWidth: 0,
-        width: isMobile ? '100%' : 'auto',
-        height: '100%',
-        flexWrap: isMobile ? 'wrap' : 'nowrap'
-      },
-      toggleLabel: {
-        fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.6,
-        color: 'rgba(255,255,255,0.78)'
-      },
-      content: {
-        padding: isMobile ? '16px 12px 24px' : '24px',
-        flex: 1,
-        overflow: 'auto'
-      },
-      mobileMenuButton: {
-        borderColor: 'rgba(255,255,255,0.4)',
-        color: token.colorWhite,
-        background: 'rgba(255,255,255,0.15)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-      },
-      mobileThemeButton: {
-        width: 36,
-        height: 36,
-        minWidth: 36,
-        padding: 0,
-        borderColor: 'rgba(255,255,255,0.5)',
-        background: 'rgba(255,255,255,0.18)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
-      },
-      mobileDrawerBody: {
+        paddingInline: 8
+      } as CSSProperties,
+      userName: {
+        fontWeight: 600,
+        maxWidth: 140,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      } as CSSProperties,
+      swatch: {
+        display: 'inline-block',
+        width: 14,
+        height: 14,
+        borderRadius: '50%',
+        border: `1px solid ${token.colorBorder}`
+      } as CSSProperties,
+      checkIcon: { color: token.colorPrimary, fontSize: 12 } as CSSProperties,
+      drawerBody: {
         padding: 12,
         display: 'flex',
         flexDirection: 'column',
-        gap: 12
-      },
-      mobileMenuFooter: {
+        justifyContent: 'space-between',
+        gap: 16
+      } as CSSProperties,
+      drawerMenu: {
+        border: 'none',
+        background: 'transparent'
+      } as CSSProperties,
+      drawerFooter: {
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
-        padding: 4
-      }
-    } satisfies PageLayoutStyles),
+        gap: 8
+      } as CSSProperties,
+      content: {
+        padding: isMobile ? '16px 12px 32px' : '28px 24px 48px'
+      } as CSSProperties
+    }),
     [isMobile, token]
   );
 };
