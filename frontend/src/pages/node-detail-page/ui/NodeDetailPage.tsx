@@ -32,32 +32,8 @@ import {
 import { fetchMonitoringMetrics, updateMonitoringMetricsEnabled, updateMonitoringSettings } from '@/entities/monitoring/api/monitoringApi';
 import { isAdminLike, isSuperAdmin } from '@/shared/lib/roles';
 import { parseServerDate } from '@/shared/lib/date';
+import { formatBytes, formatDuration, formatPercent } from '@/shared/lib/format';
 import { useNodeDetailPageStyles } from './NodeDetailPage.styles';
-
-const formatBytes = (value?: number) => {
-  if (value === undefined || value === null) return '—';
-  if (value === 0) return '0 Б';
-  const units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
-  const exponent = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
-  const num = value / 1024 ** exponent;
-  return `${num.toFixed(num >= 10 ? 0 : 1)} ${units[exponent]}`;
-};
-
-const formatPercent = (used?: number, total?: number) => {
-  if (used === undefined || total === undefined || total <= 0) return undefined;
-  const percent = Math.max(0, Math.min(100, (used / total) * 100));
-  return Number(percent.toFixed(2));
-};
-
-const formatDuration = (seconds?: number) => {
-  if (seconds === undefined || seconds === null) return '—';
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days}д ${hours}ч`;
-  if (hours > 0) return `${hours}ч ${minutes}м`;
-  return `${minutes}м`;
-};
 
 const formatMs = (value?: number) => {
   if (value === undefined || value === null) return '—';

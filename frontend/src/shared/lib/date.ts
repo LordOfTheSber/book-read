@@ -21,3 +21,7 @@ export const formatDate = (value?: string | null) =>
 /** 10.01.2026, 12:30 */
 export const formatDateTime = (value?: string | null) =>
   format(value, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+/** 12:30:45 */
+export const formatTime = (value?: string | null) =>
+  format(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
