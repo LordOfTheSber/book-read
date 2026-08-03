@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint . --ext .ts,.tsx,.cjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.3",
@@ -22,6 +23,8 @@
     "@types/node": "^20.12.7",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",

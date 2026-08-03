@@ -1,20 +1,37 @@
 module.exports = {
+  root: true,
   env: {
     browser: true,
     es2021: true
   },
+  ignorePatterns: ['dist', 'node_modules'],
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended'
   ],
   parserOptions: {
     ecmaVersion: 'latest',
-    sourceType: 'module'
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
   settings: {
     react: {
       version: '18.2'
     }
   },
-  rules: {}
+  rules: {
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+  },
+  overrides: [
+    {
+      files: ['*.cjs'],
+      env: { node: true },
+      parserOptions: { sourceType: 'script' }
+    }
+  ]
 };

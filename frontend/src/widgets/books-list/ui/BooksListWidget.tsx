@@ -15,6 +15,7 @@ import {
   Typography
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { SorterResult } from 'antd/es/table/interface';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -237,9 +238,14 @@ export const BooksListWidget: React.FC<Props> = ({
     [isAdmin, canEdit, role, user?.id, styles]
   );
 
-  const onTableChange = (pagination: TablePaginationConfig, _f: unknown, sorter: any) => {
-    const sortValue = sorter?.order
-      ? `${sorter.field},${sorter.order === 'descend' ? 'desc' : 'asc'}`
+  const onTableChange = (
+    pagination: TablePaginationConfig,
+    _f: unknown,
+    sorter: SorterResult<LibraryItem> | SorterResult<LibraryItem>[]
+  ) => {
+    const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    const sortValue = activeSorter?.order
+      ? `${String(activeSorter.field)},${activeSorter.order === 'descend' ? 'desc' : 'asc'}`
       : filters.sort;
     onChangePage((pagination.current || 1) - 1, pagination.pageSize || size, sortValue);
   };

@@ -28,6 +28,11 @@ export const register = async (payload: AuthRequest): Promise<AuthResponse> => {
   return data;
 };
 
+/** Завершает серверную сессию. Ошибку глушим: локальный выход должен произойти в любом случае. */
+export const logout = async (): Promise<void> => {
+  await httpClient.post('/auth/logout').catch(() => undefined);
+};
+
 export const fetchMe = async (): Promise<User> => {
   const { data } = await httpClient.get<User>('/users/me');
   return data;

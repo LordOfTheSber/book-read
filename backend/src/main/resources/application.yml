@@ -17,6 +17,17 @@ spring:
 server:
   port: ${PORT:8080}
 
+security:
+  jwt:
+    # Обязателен в профиле prod: приложение не стартует без него.
+    # Вне прода при пустом значении генерируется временный секрет.
+    secret: ${SECURITY_JWT_SECRET:}
+    expiration-ms: ${SECURITY_JWT_EXPIRATION_MS:1800000}
+  cookie:
+    # В профиле prod переопределяется на true (см. application-prod.yml).
+    secure: ${SECURITY_COOKIE_SECURE:false}
+    same-site: ${SECURITY_COOKIE_SAME_SITE:Lax}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

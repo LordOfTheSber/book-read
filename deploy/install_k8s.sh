@@ -29,6 +29,7 @@ export FRONTEND_SERVICE_TYPE="${FRONTEND_SERVICE_TYPE:-ClusterIP}"
 export IMAGE_TAG="${IMAGE_TAG:-local}"
 export IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
 export ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-180s}"
+export SECURITY_COOKIE_SECURE="${SECURITY_COOKIE_SECURE:-true}"
 
 export BACKEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-backend:${IMAGE_TAG}"
 export FRONTEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-frontend:${IMAGE_TAG}"
@@ -54,6 +55,7 @@ ensure_command() {
 ensure_command kubectl kubectl
 ensure_command docker docker.io
 ensure_command python3 python3
+ensure_command openssl openssl
 
 if command -v ufw >/dev/null 2>&1; then
   echo "Allowing inbound TCP/9443 via ufw..."
@@ -150,6 +152,18 @@ else
     echo "Skipping image load: using local images if supported by the cluster." >&2
   fi
 fi
+
+# Секрет подписи JWT не хранится в репозитории. Переиспользуем уже развёрнутый в кластере,
+# иначе генерируем новый: смена секрета разлогинивает всех пользователей.
+if [[ -z "${SECURITY_JWT_SECRET:-}" ]]; then
+  SECURITY_JWT_SECRET="$(kubectl get secret book-read-backend -n "${NAMESPACE}" \
+    -o jsonpath='{.data.SECURITY_JWT_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || true)"
+fi
+if [[ -z "${SECURITY_JWT_SECRET:-}" ]]; then
+  echo "SECURITY_JWT_SECRET is not set — generating a new one..."
+  SECURITY_JWT_SECRET="$(openssl rand -base64 48)"
+fi
+export SECURITY_JWT_SECRET
 
 echo "Deploying to Kubernetes namespace ${NAMESPACE}..."
 

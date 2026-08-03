@@ -22,6 +22,8 @@ import org.springframework.security.access.AccessDeniedException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith( MockitoExtension.class )
@@ -111,6 +113,106 @@ class LibraryItemServiceTest {
         assertThatThrownBy( () -> service.delete( item.getId() ) )
                 .isInstanceOf( AccessDeniedException.class )
                 .hasMessageContaining( "Вы можете удалять только свои книги" );
+    }
+
+    @Test
+    void updateRejectsNonOwners() {
+        LibraryItemService service = new LibraryItemService(
+                libraryItemRepository,
+                bookTypeRepository,
+                sourceRepository,
+                userService
+        );
+        User currentUser = new User();
+        currentUser.setId( UUID.randomUUID() );
+        currentUser.setRole( Role.USER );
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        User owner = new User();
+        owner.setId( UUID.randomUUID() );
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.setTitle( "Чужая книга" );
+        item.setCreatedBy( owner );
+
+        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Перезаписано" );
+
+        assertThatThrownBy( () -> service.update( item.getId(), request ) )
+                .isInstanceOf( AccessDeniedException.class )
+                .hasMessageContaining( "Вы можете редактировать только свои книги" );
+
+        assertThat( item.getTitle() ).isEqualTo( "Чужая книга" );
+        verify( libraryItemRepository, never() ).save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) );
+    }
+
+    @Test
+    void updateAllowsOwner() {
+        LibraryItemService service = new LibraryItemService(
+                libraryItemRepository,
+                bookTypeRepository,
+                sourceRepository,
+                userService
+        );
+        User currentUser = new User();
+        currentUser.setId( UUID.randomUUID() );
+        currentUser.setRole( Role.USER );
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.setTitle( "Своя книга" );
+        item.setCreatedBy( currentUser );
+
+        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Обновлено" );
+
+        var response = service.update( item.getId(), request );
+
+        assertThat( response ).isPresent();
+        assertThat( response.get().getTitle() ).isEqualTo( "Обновлено" );
+    }
+
+    @Test
+    void updateAllowsAdminOnForeignItem() {
+        LibraryItemService service = new LibraryItemService(
+                libraryItemRepository,
+                bookTypeRepository,
+                sourceRepository,
+                userService
+        );
+        User currentUser = new User();
+        currentUser.setId( UUID.randomUUID() );
+        currentUser.setRole( Role.ADMIN );
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( true );
+
+        User owner = new User();
+        owner.setId( UUID.randomUUID() );
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.setTitle( "Чужая книга" );
+        item.setCreatedBy( owner );
+
+        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Обновлено администратором" );
+
+        var response = service.update( item.getId(), request );
+
+        assertThat( response ).isPresent();
+        assertThat( response.get().getTitle() ).isEqualTo( "Обновлено администратором" );
     }
 
     @Test

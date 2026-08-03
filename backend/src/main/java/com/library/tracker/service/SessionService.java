@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,12 @@ public class SessionService {
 
     private final SessionRepository sessionRepository;
     private final SessionSettingsService sessionSettingsService;
+
+    @Value( "${security.cookie.secure:false}" )
+    private boolean secureCookie;
+
+    @Value( "${security.cookie.same-site:Lax}" )
+    private String sameSite;
 
     private Cache<UUID, Session> sessionCache;
 
@@ -75,10 +82,23 @@ public class SessionService {
             return Optional.empty();
         }
         Session session = findCached( sessionId ).orElse( null );
-        if ( session == null ) {
+        if ( session == null || !session.getUser().getUsername().equalsIgnoreCase( expectedUsername ) ) {
             return Optional.empty();
         }
-        if ( !session.getUser().getUsername().equalsIgnoreCase( expectedUsername ) ) {
+        return renew( sessionId );
+    }
+
+    /**
+     * Продлевает живую сессию по её идентификатору. В отличие от
+     * {@link #validateAndRefresh(UUID, String)} не требует имени пользователя: используется при
+     * обновлении access-токена, когда прежний JWT уже истёк и разобрать его нельзя.
+     */
+    public Optional<Session> renew( UUID sessionId ) {
+        if ( sessionId == null ) {
+            return Optional.empty();
+        }
+        Session session = findCached( sessionId ).orElse( null );
+        if ( session == null ) {
             return Optional.empty();
         }
         if ( isExpired( session ) ) {
@@ -105,10 +125,21 @@ public class SessionService {
         }
         return ResponseCookie.from( SESSION_COOKIE, session.getId().toString() )
                              .httpOnly( true )
-                             .secure( false )
+                             .secure( secureCookie )
                              .path( "/" )
-                             .sameSite( "Lax" )
+                             .sameSite( sameSite )
                              .maxAge( ttl )
+                             .build();
+    }
+
+    /** Кука с нулевым сроком жизни: браузер удаляет сессионную куку при выходе. */
+    public ResponseCookie buildExpiredCookie() {
+        return ResponseCookie.from( SESSION_COOKIE, "" )
+                             .httpOnly( true )
+                             .secure( secureCookie )
+                             .path( "/" )
+                             .sameSite( sameSite )
+                             .maxAge( Duration.ZERO )
                              .build();
     }
 

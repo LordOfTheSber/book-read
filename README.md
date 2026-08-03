@@ -19,6 +19,17 @@ Database defaults:
 ## Backend
 Located in `/backend` (Spring Boot).
 
+### Security configuration
+| Variable | Default | Description |
+|---|---|---|
+| `SECURITY_JWT_SECRET` | — | JWT signing key, at least 32 bytes. **Required in the `prod` profile**: the application refuses to start without it. Outside `prod` an ephemeral key is generated per start (tokens do not survive a restart). Generate with `openssl rand -base64 48`. |
+| `SECURITY_JWT_EXPIRATION_MS` | `1800000` (30 min) | Access token lifetime. Clients renew it via `POST /api/v1/auth/refresh` using the server-side session cookie. |
+| `SECURITY_COOKIE_SECURE` | `false` (`true` in `prod`) | `Secure` flag of the session cookie. Keep `true` behind TLS. |
+| `SECURITY_COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the session cookie. |
+
+The deployment scripts generate `SECURITY_JWT_SECRET` when it is not supplied and reuse the previously
+deployed value on subsequent runs — changing the key signs every user out.
+
 ### Run
 ```bash
 cd backend
@@ -46,10 +57,17 @@ npm run dev
 ```
 The app expects API at `http://localhost:8080/api/v1`. Override with `VITE_API_URL`.
 
-### Build
+### Lint, type check and build
 ```bash
+npm run lint
+npm run typecheck
 npm run build
 ```
+`npm run build` is a plain `vite build` without type checking, so `npm run typecheck` is a separate step.
+
+## Continuous integration
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `release/**`:
+backend `mvn test`, frontend `npm run lint`, `npm run typecheck` and `npm run build`.
 
 ## Ubuntu 22 deployment script (Docker)
 Run the provided script as root (or via `sudo`) on the target server to build Docker images, start containers (frontend + backend + PostgreSQL), and expose the app at `https://book.read.katernyuk.s.m`:
@@ -66,6 +84,8 @@ Tune behavior with environment variables:
 - `APP_SRC` — path to the repository to deploy (default current directory).
 - `VITE_API_URL` — API base path during frontend build (default `/api`).
 - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_PROFILES_ACTIVE` — backend environment.
+- `SECURITY_JWT_SECRET` — JWT signing key; generated on the first run and reused from `deploy/.env` afterwards.
+- `SECURITY_COOKIE_SECURE` — `Secure` flag of the session cookie (default `true`; the deployment terminates TLS).
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database configuration for the bundled PostgreSQL container.
 - `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
 - `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
@@ -86,6 +106,8 @@ You can tune the rollout using environment variables:
 - `DOMAIN` — domain for the frontend TLS certificate (default `23.26.124.71`).
 - `VITE_API_URL` — API base path for the frontend build (default `/api/v1`).
 - `SPRING_PROFILES_ACTIVE` — backend Spring profile (default `prod`).
+- `SECURITY_JWT_SECRET` — JWT signing key; generated on the first rollout and reused from the `book-read-backend` Secret afterwards.
+- `SECURITY_COOKIE_SECURE` — `Secure` flag of the session cookie (default `true`).
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
 - `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
 - `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
