@@ -1,87 +1,81 @@
+import { type CSSProperties, useMemo } from 'react';
 import { theme } from 'antd';
 
-export const useProfilePageStyles = (isMobile: boolean) => {
+export const useProfilePageStyles = () => {
   const { token } = theme.useToken();
-  return {
-    pageCard: {
-      border: 'none',
-      borderRadius: 16,
-      boxShadow: token.boxShadow,
-      background: token.colorBgLayout
-    },
-    pageHead: {
-      padding: '16px 24px',
-      fontSize: 20,
-      fontWeight: 600
-    },
-    pageBody: {
-      padding: 24
-    },
-    contentWrapper: {
-      gap: 24,
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'stretch' : 'flex-start'
-    },
-    heroCard: {
-      background: token.colorBgContainer,
-      borderRadius: 14,
-      boxShadow: token.boxShadowSecondary,
-      padding: 18,
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 18
-    },
-    heroBanner: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-      flexWrap: 'wrap' as const,
-      width: '100%',
-      minWidth: 0,
-      padding: 14,
-      borderRadius: 12,
-      background: `linear-gradient(120deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 70%, ${token.colorInfo} 100%)`,
-      color: token.colorWhite
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-      gap: 12
-    },
-    achievementsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-      gap: 12
-    },
-    achievementCard: {
-      height: '100%',
-      borderRadius: 12
-    },
-    badgeImage: {
-      width: 72,
-      height: 72,
-      borderRadius: 12,
-      boxShadow: token.boxShadowSecondary
-    },
-    sideCard: {
-      background: token.colorBgContainer,
-      borderRadius: 14,
-      boxShadow: token.boxShadowSecondary,
-      padding: 0,
-      position: isMobile ? ('static' as const) : ('sticky' as const),
-      top: isMobile ? undefined : 24,
-      minWidth: isMobile ? 'auto' : 300,
-      maxWidth: isMobile ? '100%' : 360,
-      width: isMobile ? '100%' : 'auto'
-    },
-    sideCardBody: {
-      padding: 18
-    },
-    sectionTitle: {
-      margin: '0 0 6px'
-    },
-    secondaryText: {
-      color: token.colorTextSecondary
-    }
-  };
+
+  return useMemo(
+    () => ({
+      page: {
+        maxWidth: 1440,
+        margin: '0 auto',
+        width: '100%'
+      } as CSSProperties,
+      stats: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 20
+      } as CSSProperties,
+      alert: { marginBottom: 16 } as CSSProperties,
+      card: {
+        height: '100%',
+        marginBottom: 0,
+        borderRadius: token.borderRadiusLG,
+        borderColor: token.colorBorderSecondary
+      } as CSSProperties,
+      cardBody: { padding: 20 } as CSSProperties,
+      identity: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+        flexWrap: 'wrap'
+      } as CSSProperties,
+      identityMeta: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        minWidth: 0,
+        flex: '1 1 240px'
+      } as CSSProperties,
+      identityActions: {
+        display: 'flex',
+        gap: 8,
+        flexWrap: 'wrap'
+      } as CSSProperties,
+      avatar: { cursor: 'pointer', flexShrink: 0 } as CSSProperties,
+      username: { margin: 0, fontSize: 24, lineHeight: 1.2 } as CSSProperties,
+      tag: { fontWeight: 600, borderRadius: 999, paddingInline: 10 } as CSSProperties,
+      hint: { fontSize: 12 } as CSSProperties,
+      sectionTitle: { marginTop: 0, marginBottom: 12 } as CSSProperties,
+      achievements: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: 16
+      } as CSSProperties,
+      achievementCard: (earned: boolean): CSSProperties => ({
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+        padding: 16,
+        borderRadius: token.borderRadiusLG,
+        border: `1px solid ${earned ? token.colorBorderSecondary : token.colorBorder}`,
+        borderStyle: earned ? 'solid' : 'dashed',
+        background: earned ? token.colorBgContainer : 'transparent'
+      }),
+      achievementIcon: (color: string, earned: boolean): CSSProperties => ({
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        flexShrink: 0,
+        borderRadius: '50%',
+        fontSize: 20,
+        background: earned ? `${color}1f` : token.colorFillQuaternary,
+        color: earned ? color : token.colorTextQuaternary
+      })
+    }),
+    [token]
+  );
 };

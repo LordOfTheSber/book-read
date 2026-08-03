@@ -16,7 +16,7 @@ import { StatTile } from '@/shared/ui/StatTile';
 import { statusMeta } from '@/shared/constants/status';
 import { ReadingStatus } from '@/shared/types/library';
 import { isAdminLike } from '@/shared/lib/roles';
-import { BarList } from './BarList';
+import { BarList } from '@/shared/ui/BarList';
 import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
 
 const statusOrder: ReadingStatus[] = ['READING', 'COMPLETED', 'PLANNED', 'DROPPED'];
