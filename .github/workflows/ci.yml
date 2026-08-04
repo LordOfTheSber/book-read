@@ -24,6 +24,11 @@ jobs:
           distribution: temurin
           cache: maven
 
+      # Интеграционные тесты поднимают PostgreSQL в Testcontainers и без Docker молча
+      # пропускаются — на CI пропуск должен быть падением, а не тишиной.
+      - name: Check Docker is available for Testcontainers
+        run: docker version
+
       - name: Run tests
         run: mvn -B test
 

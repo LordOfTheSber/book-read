@@ -11,6 +11,7 @@ import com.library.tracker.web.dto.SourceRequest;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
@@ -18,8 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
+// Без этого Spring Boot подменил бы контейнер встроенной БД.
+@AutoConfigureTestDatabase( replace = AutoConfigureTestDatabase.Replace.NONE )
 @Import( { SourceService.class, JpaConfig.class } )
-class SourceServiceIntegrationTest {
+class SourceServiceIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private SourceService sourceService;

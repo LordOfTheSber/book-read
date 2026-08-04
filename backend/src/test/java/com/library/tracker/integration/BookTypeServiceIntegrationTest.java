@@ -10,14 +10,17 @@ import com.library.tracker.service.BookTypeService;
 import com.library.tracker.web.dto.BookTypeRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
+// Без этого Spring Boot подменил бы контейнер встроенной БД.
+@AutoConfigureTestDatabase( replace = AutoConfigureTestDatabase.Replace.NONE )
 @Import( { BookTypeService.class, JpaConfig.class } )
-class BookTypeServiceIntegrationTest {
+class BookTypeServiceIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private BookTypeService bookTypeService;

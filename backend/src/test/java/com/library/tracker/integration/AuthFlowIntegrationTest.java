@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** Сквозная проверка жизненного цикла сессии: регистрация → обновление токена → выход. */
 @SpringBootTest( webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT )
-class AuthFlowIntegrationTest {
+class AuthFlowIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;

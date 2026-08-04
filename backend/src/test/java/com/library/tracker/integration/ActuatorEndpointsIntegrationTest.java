@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 // Spring Boot глушит экспорт метрик в тестах — здесь он и есть предмет проверки.
 @AutoConfigureObservability
-class ActuatorEndpointsIntegrationTest {
+class ActuatorEndpointsIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private MockMvc mockMvc;

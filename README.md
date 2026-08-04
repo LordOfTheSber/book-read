@@ -54,6 +54,9 @@ mvn spring-boot:run
 cd backend
 mvn test
 ```
+Integration tests run against PostgreSQL 16 in Testcontainers, with the schema built by Flyway — the same
+migrations the production database gets. They need a working Docker daemon; without one they are reported as
+skipped rather than failing, and CI checks `docker version` before the test step so a skip cannot pass silently.
 
 ## Frontend
 Located in `/frontend` (Vite + React + Ant Design, FSD layout).
