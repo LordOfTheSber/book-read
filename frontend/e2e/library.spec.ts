@@ -51,6 +51,29 @@ test('добавленная книга появляется в списке и 
   await expect(page.getByText(title)).toBeVisible();
 });
 
+/**
+ * Автор — сущность, а не строка: в карточку он вводится именем, а на странице авторов
+ * появляется со счётчиком произведений.
+ */
+test('введённый в карточке автор заводится и попадает на страницу авторов', async ({ page }) => {
+  await registerNewUser(page);
+  const author = `Лю Цысинь ${Date.now()}`;
+  const title = `Тёмный лес ${Date.now()}`;
+
+  await page.getByRole('button', { name: 'Добавить книгу' }).first().click();
+  await page.getByLabel('Название', { exact: true }).fill(title);
+  await page.getByLabel('Авторы').fill(author);
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
+
+  // В списке автор идёт подписью под названием.
+  await expect(page.getByText(author).first()).toBeVisible();
+
+  await page.getByRole('link', { name: 'Авторы' }).click();
+  await expect(page.getByText(author)).toBeVisible();
+  await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
+});
+
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {
   const username = await registerNewUser(page);
 

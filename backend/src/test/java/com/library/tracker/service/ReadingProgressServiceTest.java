@@ -79,9 +79,17 @@ class ReadingProgressServiceTest {
                 .thenReturn( Optional.of( open ) );
         when( readingLogRepository.save( any( ReadingLog.class ) ) ).thenAnswer( inv -> inv.getArgument( 0 ) );
 
+        item.setRating( new java.math.BigDecimal( "9.0" ) );
+        item.setRatingPlot( new java.math.BigDecimal( "9.5" ) );
+        item.setReview( "Лучшая твёрдая фантастика за десятилетие" );
+
         service.applyStatusTransition( item, ReadingStatus.READING, TODAY );
 
         assertThat( item.getFinishedAt() ).isEqualTo( TODAY );
+        // Оценка снимается в проход: при перечитывании она обычно другая, а старая должна остаться.
+        assertThat( open.getRating() ).isEqualByComparingTo( "9.0" );
+        assertThat( open.getRatingPlot() ).isEqualByComparingTo( "9.5" );
+        assertThat( open.getComment() ).isEqualTo( "Лучшая твёрдая фантастика за десятилетие" );
         // Дочитанное произведение стоит на конце шкалы, иначе полоса застыла бы на 90%.
         assertThat( item.getProgressCurrent() ).isEqualTo( 400 );
         assertThat( open.getFinishedAt() ).isEqualTo( TODAY );

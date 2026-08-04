@@ -22,6 +22,7 @@ import { LibraryItem } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
 import { formatOptions } from '@/shared/constants/format';
 import { mediaKindOptions } from '@/shared/constants/mediaKind';
+import { ratingCriteria } from '@/shared/constants/ratingCriteria';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookThunk, updateBookThunk } from '@/entities/book';
 import { loadAuthors } from '@/entities/author';
@@ -30,6 +31,7 @@ import { useRequestError } from '@/shared/lib/errors';
 import { CoverField } from './CoverField';
 import { ProgressTab } from './ProgressTab';
 import { QuotesTab } from './QuotesTab';
+import { ReviewBlock } from './ReviewBlock';
 import { progressUnitOptions } from '@/shared/constants/format';
 import { loadBooks } from '@/entities/book';
 
@@ -178,6 +180,28 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         <Form.Item name="rating" label="Оценка" tooltip="Полшага доступны — 7.5 тоже валидная оценка">
           <Rate allowClear allowHalf count={10} style={{ fontSize: 20 }} />
         </Form.Item>
+
+        {/* Критерии по желанию: общая оценка от них не считается, вес у каждого свой. */}
+        <Collapse
+          ghost
+          items={[
+            {
+              key: 'criteria',
+              label: 'Оценка по критериям',
+              children: (
+                <Row gutter={16}>
+                  {ratingCriteria.map((criterion) => (
+                    <Col xs={24} sm={12} key={criterion.key}>
+                      <Form.Item name={criterion.key} label={criterion.label}>
+                        <Rate allowClear allowHalf count={10} style={{ fontSize: 16 }} />
+                      </Form.Item>
+                    </Col>
+                  ))}
+                </Row>
+              )
+            }
+          ]}
+        />
         {/* Даты обычно проставляет сама смена статуса; здесь их можно поправить или задать срок. */}
         <Row gutter={16}>
           <Col xs={24} sm={8}>
@@ -197,8 +221,21 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
           </Col>
         </Row>
 
-        <Form.Item name="comment" label="Комментарий">
-          <Input.TextArea rows={4} placeholder="Заметки, впечатления, на чём остановились" />
+        {/* Заметка и отзыв разделены: первая для себя, второй — то, что не стыдно показать. */}
+        <Form.Item name="note" label="Заметка" tooltip="Видна только вам">
+          <Input.TextArea rows={3} placeholder="На чём остановились, что купить, о чём не забыть" />
+        </Form.Item>
+
+        <Form.Item name="review" label="Отзыв" tooltip="Публичная часть — без спойлеров">
+          <Input.TextArea rows={4} placeholder="Впечатление, которое можно показать другим" />
+        </Form.Item>
+
+        <Form.Item
+          name="reviewSpoiler"
+          label="Отзыв: под спойлер-катом"
+          tooltip="Эта часть в интерфейсе скрыта, пока её не раскроют"
+        >
+          <Input.TextArea rows={3} placeholder="Развязка, повороты, финал" />
         </Form.Item>
 
         {/* Издательские поля нужны не всегда, поэтому лежат свёрнутыми и не мешают быстрому вводу. */}
@@ -331,6 +368,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
                 <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
               )
             },
+            { key: 'review', label: 'Отзыв', children: <ReviewBlock item={editing} /> },
             { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> }
           ]}
         />

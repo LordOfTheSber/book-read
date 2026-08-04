@@ -292,7 +292,13 @@ public class LibraryItemService {
         item.setProgressUnit( request.getProgressUnit() );
         item.setBookcase( trimToNull( request.getBookcase() ) );
         item.setShelf( trimToNull( request.getShelf() ) );
-        item.setComment( request.getComment() );
+        item.setNote( request.getNote() );
+        item.setReview( request.getReview() );
+        item.setReviewSpoiler( request.getReviewSpoiler() );
+        item.setRatingPlot( request.getRatingPlot() );
+        item.setRatingStyle( request.getRatingStyle() );
+        item.setRatingCharacters( request.getRatingCharacters() );
+        item.setRatingEnding( request.getRatingEnding() );
         item.setRating( request.getRating() );
         item.setFavorite( request.isFavorite() );
         item.setStatus( request.getStatus() );
@@ -440,7 +446,13 @@ public class LibraryItemService {
                                   .createdById( item.getCreatedBy() != null ? item.getCreatedBy().getId() : null )
                                   .createdByUsername(
                                           item.getCreatedBy() != null ? item.getCreatedBy().getUsername() : null )
-                                  .comment( item.getComment() )
+                                  .note( item.getNote() )
+                                  .review( item.getReview() )
+                                  .reviewSpoiler( item.getReviewSpoiler() )
+                                  .ratingPlot( item.getRatingPlot() )
+                                  .ratingStyle( item.getRatingStyle() )
+                                  .ratingCharacters( item.getRatingCharacters() )
+                                  .ratingEnding( item.getRatingEnding() )
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )
                                   .status( item.getStatus() )

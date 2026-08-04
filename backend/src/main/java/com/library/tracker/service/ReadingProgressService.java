@@ -95,7 +95,14 @@ public class ReadingProgressService {
         if ( log.getStartedAt() == null ) {
             log.setStartedAt( item.getStartedAt() );
         }
+        // Оценка снимается с карточки в момент завершения: при перечитывании она обычно другая,
+        // и старая должна остаться в своём проходе.
         log.setRating( item.getRating() );
+        log.setRatingPlot( item.getRatingPlot() );
+        log.setRatingStyle( item.getRatingStyle() );
+        log.setRatingCharacters( item.getRatingCharacters() );
+        log.setRatingEnding( item.getRatingEnding() );
+        log.setComment( item.getReview() );
         readingLogRepository.save( log );
     }
 
@@ -296,6 +303,10 @@ public class ReadingProgressService {
                                  .startedAt( log.getStartedAt() )
                                  .finishedAt( log.getFinishedAt() )
                                  .rating( log.getRating() )
+                                 .ratingPlot( log.getRatingPlot() )
+                                 .ratingStyle( log.getRatingStyle() )
+                                 .ratingCharacters( log.getRatingCharacters() )
+                                 .ratingEnding( log.getRatingEnding() )
                                  .comment( log.getComment() )
                                  .sessionCount( sessionCount )
                                  .durationDays( durationDays )

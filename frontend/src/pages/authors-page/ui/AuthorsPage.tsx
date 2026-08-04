@@ -22,7 +22,9 @@ export const AuthorsPage: React.FC = () => {
   const role = useAppSelector((state) => state.auth.user?.role);
 
   useEffect(() => {
-    dispatch(loadAuthors());
+    // Страница справочника всегда перечитывает список: он мог пополниться из карточки книги,
+    // и показывать здесь кэш — значит показывать вчерашний справочник.
+    dispatch(loadAuthors({ force: true }));
   }, [dispatch]);
 
   /** Клик по счётчику ведёт в библиотеку, уже отфильтрованную по этому автору. */

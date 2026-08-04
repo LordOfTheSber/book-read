@@ -131,11 +131,32 @@ public class LibraryItem extends BaseAuditEntity {
     @Column( name = "progress_unit", length = 32 )
     private ProgressUnit progressUnit;
 
-    @Column( name = "comment", columnDefinition = "TEXT" )
-    private String comment;
+    /** Приватная заметка: видна только владельцу. Сюда переехало прежнее поле comment. */
+    @Column( name = "note", columnDefinition = "TEXT" )
+    private String note;
+
+    /** Публичный отзыв — то, что имеет смысл показывать другим. */
+    @Column( name = "review", columnDefinition = "TEXT" )
+    private String review;
+
+    /** Спойлерная часть отзыва: отдельным полем её можно спрятать под кат, не разбирая разметку. */
+    @Column( name = "review_spoiler", columnDefinition = "TEXT" )
+    private String reviewSpoiler;
 
     @Column( name = "rating", precision = 3, scale = 1 )
     private BigDecimal rating;
+
+    @Column( name = "rating_plot", precision = 3, scale = 1 )
+    private BigDecimal ratingPlot;
+
+    @Column( name = "rating_style", precision = 3, scale = 1 )
+    private BigDecimal ratingStyle;
+
+    @Column( name = "rating_characters", precision = 3, scale = 1 )
+    private BigDecimal ratingCharacters;
+
+    @Column( name = "rating_ending", precision = 3, scale = 1 )
+    private BigDecimal ratingEnding;
 
     @Column( name = "favorite", nullable = false )
     private boolean favorite;

@@ -49,8 +49,15 @@ public class LibraryItemResponse {
     int attempt;
     UUID createdById;
     String createdByUsername;
-    String comment;
+    String note;
+    String review;
+    /** Отдельным полем, чтобы интерфейс мог спрятать спойлеры под кат. */
+    String reviewSpoiler;
     BigDecimal rating;
+    BigDecimal ratingPlot;
+    BigDecimal ratingStyle;
+    BigDecimal ratingCharacters;
+    BigDecimal ratingEnding;
     boolean favorite;
     ReadingStatus status;
     OffsetDateTime createdAt;

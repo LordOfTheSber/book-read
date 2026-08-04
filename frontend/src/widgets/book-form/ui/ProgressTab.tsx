@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { LibraryItem, ReadingLog, ReadingSession } from '@/shared/types/library';
 import { addSession, deleteSession, fetchLogs, fetchSessions } from '@/entities/book';
 import { progressUnitLabel } from '@/shared/constants/format';
+import { ratingCriteria } from '@/shared/constants/ratingCriteria';
 import { formatDate } from '@/shared/lib/date';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
@@ -213,6 +214,14 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
                   {log.rating !== undefined && log.rating !== null && (
                     <Typography.Text type="secondary">оценка {log.rating}</Typography.Text>
                   )}
+                  {/* История оценок: при перечитывании они обычно расходятся. */}
+                  {ratingCriteria
+                    .filter((criterion) => log[criterion.key] !== undefined && log[criterion.key] !== null)
+                    .map((criterion) => (
+                      <Typography.Text type="secondary" key={criterion.key}>
+                        {criterion.label.toLowerCase()} {log[criterion.key]}
+                      </Typography.Text>
+                    ))}
                 </Space>
               </List.Item>
             )}

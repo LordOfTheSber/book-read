@@ -89,12 +89,39 @@ public class LibraryItemRequest {
 
     private ProgressUnit progressUnit;
 
-    private String comment;
+    /** Приватная заметка: видна только владельцу. */
+    private String note;
+
+    /** Публичный отзыв — то, что имеет смысл показывать другим. */
+    private String review;
+
+    /** Часть отзыва со спойлерами: интерфейс прячет её под кат. */
+    private String reviewSpoiler;
 
     @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
     @DecimalMax( value = "10.0", message = "Rating must be at most 10" )
     @Digits( integer = 2, fraction = 1, message = "Rating must have at most one decimal place" )
     private BigDecimal rating;
+
+    @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
+    @DecimalMax( value = "10.0", message = "Rating must be at most 10" )
+    @Digits( integer = 2, fraction = 1, message = "Rating must have at most one decimal place" )
+    private BigDecimal ratingPlot;
+
+    @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
+    @DecimalMax( value = "10.0", message = "Rating must be at most 10" )
+    @Digits( integer = 2, fraction = 1, message = "Rating must have at most one decimal place" )
+    private BigDecimal ratingStyle;
+
+    @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
+    @DecimalMax( value = "10.0", message = "Rating must be at most 10" )
+    @Digits( integer = 2, fraction = 1, message = "Rating must have at most one decimal place" )
+    private BigDecimal ratingCharacters;
+
+    @DecimalMin( value = "0.0", message = "Rating must be at least 0" )
+    @DecimalMax( value = "10.0", message = "Rating must be at most 10" )
+    @Digits( integer = 2, fraction = 1, message = "Rating must have at most one decimal place" )
+    private BigDecimal ratingEnding;
 
     private boolean favorite;
 

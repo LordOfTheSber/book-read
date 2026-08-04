@@ -48,6 +48,19 @@ public class ReadingLog extends BaseAuditEntity {
     @Column( name = "rating", precision = 3, scale = 1 )
     private BigDecimal rating;
 
+    /** Критерии сохраняются в проходе: при перечитывании оценки обычно расходятся. */
+    @Column( name = "rating_plot", precision = 3, scale = 1 )
+    private BigDecimal ratingPlot;
+
+    @Column( name = "rating_style", precision = 3, scale = 1 )
+    private BigDecimal ratingStyle;
+
+    @Column( name = "rating_characters", precision = 3, scale = 1 )
+    private BigDecimal ratingCharacters;
+
+    @Column( name = "rating_ending", precision = 3, scale = 1 )
+    private BigDecimal ratingEnding;
+
     @Column( name = "comment", columnDefinition = "TEXT" )
     private String comment;
 }

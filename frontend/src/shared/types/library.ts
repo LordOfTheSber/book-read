@@ -41,6 +41,10 @@ export interface ReadingLog {
   startedAt?: string;
   finishedAt?: string;
   rating?: number;
+  ratingPlot?: number;
+  ratingStyle?: number;
+  ratingCharacters?: number;
+  ratingEnding?: number;
   comment?: string;
   sessionCount: number;
   durationDays?: number;
@@ -123,8 +127,17 @@ export interface LibraryItem {
   attempt: number;
   createdById?: string;
   createdByUsername?: string;
-  comment?: string;
+  /** Приватная заметка: видна только владельцу. */
+  note?: string;
+  /** Публичный отзыв. */
+  review?: string;
+  /** Часть отзыва со спойлерами — интерфейс прячет её под кат. */
+  reviewSpoiler?: string;
   rating?: number;
+  ratingPlot?: number;
+  ratingStyle?: number;
+  ratingCharacters?: number;
+  ratingEnding?: number;
   favorite: boolean;
   status: ReadingStatus;
   createdAt: string;

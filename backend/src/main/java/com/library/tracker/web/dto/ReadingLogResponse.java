@@ -17,6 +17,11 @@ public class ReadingLogResponse {
     LocalDate startedAt;
     LocalDate finishedAt;
     BigDecimal rating;
+    /** Критерии этого прохода: при перечитывании оценки обычно расходятся. */
+    BigDecimal ratingPlot;
+    BigDecimal ratingStyle;
+    BigDecimal ratingCharacters;
+    BigDecimal ratingEnding;
     String comment;
     long sessionCount;
     /** Сколько дней занял проход; null, пока он не закрыт. */

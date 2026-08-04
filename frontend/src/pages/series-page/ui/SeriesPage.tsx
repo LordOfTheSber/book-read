@@ -22,7 +22,9 @@ export const SeriesPage: React.FC = () => {
   const role = useAppSelector((state) => state.auth.user?.role);
 
   useEffect(() => {
-    dispatch(loadSeries());
+    // Страница справочника всегда перечитывает список: он мог пополниться из карточки книги,
+    // и показывать здесь кэш — значит показывать вчерашний справочник.
+    dispatch(loadSeries({ force: true }));
   }, [dispatch]);
 
   const showBooksOf = (series: Series) => {
