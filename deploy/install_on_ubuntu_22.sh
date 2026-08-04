@@ -16,6 +16,7 @@ SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
 POSTGRES_DB="${POSTGRES_DB:-library}"
 POSTGRES_USER="${POSTGRES_USER:-library}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-library}"
+SECURITY_COOKIE_SECURE="${SECURITY_COOKIE_SECURE:-true}"
 CERT_DIR="${CERT_DIR:-${APP_ROOT}/deploy/certs}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 USE_LETSENCRYPT="${USE_LETSENCRYPT:-false}"
@@ -41,7 +42,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli contai
 
 echo "Syncing repository to ${APP_ROOT}..."
 mkdir -p "${APP_ROOT}"
-rsync -a --delete "${APP_SRC}/" "${APP_ROOT}/"
+# deploy/.env хранит сгенерированный JWT-секрет прошлой установки — его нельзя затирать.
+rsync -a --delete --exclude 'deploy/.env' "${APP_SRC}/" "${APP_ROOT}/"
 
 cd "${APP_ROOT}"
 
@@ -68,6 +70,17 @@ else
 fi
 
 ENV_FILE="deploy/.env"
+
+# Секрет подписи JWT не хранится в репозитории. Берём его из окружения, иначе переиспользуем
+# значение с прошлой установки, иначе генерируем: смена секрета разлогинивает всех пользователей.
+if [[ -z "${SECURITY_JWT_SECRET:-}" && -f "${ENV_FILE}" ]]; then
+  SECURITY_JWT_SECRET="$(sed -n 's/^SECURITY_JWT_SECRET=//p' "${ENV_FILE}" | head -n 1)"
+fi
+if [[ -z "${SECURITY_JWT_SECRET:-}" ]]; then
+  echo "SECURITY_JWT_SECRET is not set — generating a new one..."
+  SECURITY_JWT_SECRET="$(openssl rand -base64 48)"
+fi
+
 echo "Writing ${ENV_FILE}..."
 cat >"${ENV_FILE}" <<EOF
 DOMAIN=${DOMAIN}
@@ -76,6 +89,8 @@ SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
 SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
 SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
 SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+SECURITY_JWT_SECRET=${SECURITY_JWT_SECRET}
+SECURITY_COOKIE_SECURE=${SECURITY_COOKIE_SECURE}
 POSTGRES_DB=${POSTGRES_DB}
 POSTGRES_USER=${POSTGRES_USER}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

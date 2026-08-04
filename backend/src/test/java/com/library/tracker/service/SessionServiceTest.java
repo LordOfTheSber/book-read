@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseCookie;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +39,7 @@ class SessionServiceTest {
     @BeforeEach
     void setUp() {
         sessionService = new SessionService( sessionRepository, sessionSettingsService );
+        ReflectionTestUtils.setField( sessionService, "sameSite", "Lax" );
         sessionService.init();
     }
 
@@ -105,6 +107,40 @@ class SessionServiceTest {
 
         assertThat( cookie.getMaxAge().getSeconds() ).isZero();
         assertThat( cookie.getName() ).isEqualTo( SessionService.SESSION_COOKIE );
+    }
+
+    @Test
+    void buildCookieAppliesConfiguredSecureFlag() {
+        ReflectionTestUtils.setField( sessionService, "secureCookie", true );
+        Session session = new Session();
+        session.setId( UUID.randomUUID() );
+        session.setExpiresAt( OffsetDateTime.now( ZoneOffset.UTC ).plusMinutes( 10 ) );
+
+        ResponseCookie cookie = sessionService.buildCookie( session );
+
+        assertThat( cookie.isSecure() ).isTrue();
+        assertThat( cookie.isHttpOnly() ).isTrue();
+        assertThat( cookie.getSameSite() ).isEqualTo( "Lax" );
+    }
+
+    @Test
+    void buildCookieKeepsSecureOffWhenDisabled() {
+        Session session = new Session();
+        session.setId( UUID.randomUUID() );
+        session.setExpiresAt( OffsetDateTime.now( ZoneOffset.UTC ).plusMinutes( 10 ) );
+
+        ResponseCookie cookie = sessionService.buildCookie( session );
+
+        assertThat( cookie.isSecure() ).isFalse();
+    }
+
+    @Test
+    void buildExpiredCookieClearsSessionCookie() {
+        ResponseCookie cookie = sessionService.buildExpiredCookie();
+
+        assertThat( cookie.getName() ).isEqualTo( SessionService.SESSION_COOKIE );
+        assertThat( cookie.getValue() ).isEmpty();
+        assertThat( cookie.getMaxAge().isZero() ).isTrue();
     }
 
     @Test

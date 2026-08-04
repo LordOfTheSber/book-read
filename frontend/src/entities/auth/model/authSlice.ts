@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '@/shared/types/library';
-import { fetchMe, AuthResponse, uploadAvatar } from '../api/authApi';
+import { clearAuthToken, getAuthToken, setAuthToken } from '@/shared/api/authToken';
+import { fetchMe, AuthResponse, logout, uploadAvatar } from '../api/authApi';
 
 export interface AuthState {
   user?: User;
@@ -9,10 +10,8 @@ export interface AuthState {
   updatingAvatar: boolean;
 }
 
-const storedToken = localStorage.getItem('authToken') || undefined;
-
 const initialState: AuthState = {
-  token: storedToken,
+  token: getAuthToken(),
   user: undefined,
   loadingUser: false,
   updatingAvatar: false
@@ -26,6 +25,17 @@ export const uploadAvatarThunk = createAsyncThunk<User, File>('auth/uploadAvatar
   return uploadAvatar(file);
 });
 
+/** Сначала гасит серверную сессию, затем сбрасывает локальное состояние. */
+export const logoutThunk = createAsyncThunk<void>('auth/logout', async () => {
+  await logout();
+});
+
+const clearSession = (state: AuthState) => {
+  state.user = undefined;
+  state.token = undefined;
+  clearAuthToken();
+};
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -33,13 +43,13 @@ const authSlice = createSlice({
     setCredentials(state, action: PayloadAction<AuthResponse>) {
       state.user = action.payload.user;
       state.token = action.payload.token;
-      localStorage.setItem('authToken', action.payload.token);
+      setAuthToken(action.payload.token);
     },
-    logout(state) {
-      state.user = undefined;
-      state.token = undefined;
-      localStorage.removeItem('authToken');
-    }
+    /** Токен обновлён перехватчиком httpClient — в хранилище он уже записан. */
+    tokenRefreshed(state, action: PayloadAction<string>) {
+      state.token = action.payload;
+    },
+    logout: clearSession
   },
   extraReducers: (builder) => {
     builder
@@ -52,10 +62,10 @@ const authSlice = createSlice({
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.loadingUser = false;
-        state.user = undefined;
-        state.token = undefined;
-        localStorage.removeItem('authToken');
+        clearSession(state);
       })
+      .addCase(logoutThunk.fulfilled, clearSession)
+      .addCase(logoutThunk.rejected, clearSession)
       .addCase(uploadAvatarThunk.pending, (state) => {
         state.updatingAvatar = true;
       })

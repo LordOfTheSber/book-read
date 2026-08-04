@@ -5,10 +5,11 @@ import { bookReducer } from '@/entities/book';
 import { bookTypeReducer } from '@/entities/book-type';
 import { sourceReducer } from '@/entities/source';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
-import { authReducer } from '@/entities/auth';
+import { authActions, authReducer } from '@/entities/auth';
 import { usersReducer } from '@/entities/user';
 import { nodesReducer } from '@/entities/node';
 import { analyticsReducer } from '@/entities/analytics';
+import { setAuthEventHandlers } from '@/shared/api/httpClient';
 
 const store = configureStore({
   reducer: {
@@ -21,6 +22,12 @@ const store = configureStore({
     nodes: nodesReducer,
     analytics: analyticsReducer
   }
+});
+
+// Перехватчик httpClient работает вне React, поэтому о смене токена сообщает через колбэки.
+setAuthEventHandlers({
+  onTokenRefreshed: (token) => store.dispatch(authActions.tokenRefreshed(token)),
+  onSessionExpired: () => store.dispatch(authActions.logout())
 });
 
 export type RootState = ReturnType<typeof store.getState>;

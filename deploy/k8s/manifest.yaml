@@ -15,6 +15,15 @@ stringData:
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 ---
 apiVersion: v1
+kind: Secret
+metadata:
+  name: book-read-backend
+  namespace: ${NAMESPACE}
+type: Opaque
+stringData:
+  SECURITY_JWT_SECRET: "${SECURITY_JWT_SECRET}"
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: book-read-db
@@ -122,6 +131,13 @@ spec:
               value: jdbc:postgresql://db:5432/$(POSTGRES_DB)
             - name: SPRING_PROFILES_ACTIVE
               value: ${SPRING_PROFILES_ACTIVE}
+            - name: SECURITY_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-backend
+                  key: SECURITY_JWT_SECRET
+            - name: SECURITY_COOKIE_SECURE
+              value: "${SECURITY_COOKIE_SECURE}"
 ---
 apiVersion: v1
 kind: Service

@@ -64,7 +64,13 @@ public class LibraryItemService {
     }
 
     public Optional<LibraryItemResponse> update( UUID id, LibraryItemRequest request ) {
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+
         return libraryItemRepository.findById( id ).map( existing -> {
+            if ( !isAdmin && !isOwnedBy( existing, currentUser ) ) {
+                throw new AccessDeniedException( "Вы можете редактировать только свои книги" );
+            }
             applyRequest( existing, request );
             return toResponse( libraryItemRepository.save( existing ) );
         } );

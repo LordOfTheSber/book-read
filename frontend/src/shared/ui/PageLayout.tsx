@@ -7,7 +7,7 @@ import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { authActions } from '@/entities/auth';
+import { logoutThunk } from '@/entities/auth';
 import { isAdminLike } from '@/shared/lib/roles';
 
 const { Header, Content } = Layout;
@@ -61,8 +61,8 @@ export const PageLayout: React.FC = () => {
     label: <Link to={item.path}>{item.label}</Link>
   }));
 
-  const handleLogout = () => {
-    dispatch(authActions.logout());
+  const handleLogout = async () => {
+    await dispatch(logoutThunk());
     navigate('/login');
   };
 

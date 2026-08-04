@@ -1,5 +1,6 @@
 package com.library.tracker.web;
 
+import com.library.tracker.domain.Session;
 import com.library.tracker.domain.User;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.UserService;
@@ -9,10 +10,16 @@ import com.library.tracker.web.dto.AuthResponse;
 import com.library.tracker.web.dto.RegisterRequest;
 import com.library.tracker.web.dto.SessionResponse;
 import com.library.tracker.web.dto.UserResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
+import java.util.Optional;
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,10 +49,49 @@ public class AuthController {
 
         User user = userService.findByUsername( authentication.getName() )
                                .orElseThrow( () -> new IllegalStateException( "User not found after login" ) );
+        return authenticated( user, sessionService.createSession( user ) );
+    }
+
+    @PostMapping( "/register" )
+    public ResponseEntity<AuthResponse> register( @Valid @RequestBody RegisterRequest request ) {
+        User user = userService.register( request.getUsername(), request.getPassword() );
+        return authenticated( user, sessionService.createSession( user ) );
+    }
+
+    /**
+     * Выдаёт новый access-токен по живой серверной сессии. Прежний JWT предъявлять не нужно —
+     * к моменту обновления он, как правило, уже истёк.
+     */
+    @PostMapping( "/refresh" )
+    public ResponseEntity<AuthResponse> refresh( HttpServletRequest request ) {
+        Optional<Session> session = sessionService.extractSessionId( request.getCookies() )
+                                                  .flatMap( sessionService::renew );
+        if ( session.isEmpty() ) {
+            return unauthorized();
+        }
+
+        Optional<User> user = userService.findByUsername( session.get().getUser().getUsername() );
+        if ( user.isEmpty() || user.get().isBlocked() ) {
+            sessionService.invalidate( session.get().getId() );
+            return unauthorized();
+        }
+
+        return authenticated( user.get(), session.get() );
+    }
+
+    /** Завершает серверную сессию и стирает куку. Повторный вызов безопасен. */
+    @PostMapping( "/logout" )
+    public ResponseEntity<Void> logout( HttpServletRequest request ) {
+        sessionService.extractSessionId( request.getCookies() ).ifPresent( this::invalidateQuietly );
+        return ResponseEntity.noContent()
+                             .header( HttpHeaders.SET_COOKIE, sessionService.buildExpiredCookie().toString() )
+                             .build();
+    }
+
+    private ResponseEntity<AuthResponse> authenticated( User user, Session session ) {
         UserResponse userResponse = userService.toResponse( user );
         String jwt = jwtService.generateToken( user );
-        var session = sessionService.createSession( user );
-        var cookie = sessionService.buildCookie( session );
+        ResponseCookie cookie = sessionService.buildCookie( session );
         AuthResponse response = AuthResponse.builder()
                                             .token( jwt )
                                             .user( userResponse )
@@ -60,24 +106,18 @@ public class AuthController {
                              .body( response );
     }
 
-    @PostMapping( "/register" )
-    public ResponseEntity<AuthResponse> register( @Valid @RequestBody RegisterRequest request ) {
-        User user = userService.register( request.getUsername(), request.getPassword() );
-        String token = jwtService.generateToken( user );
-        UserResponse userResponse = userService.toResponse( user );
-        var session = sessionService.createSession( user );
-        var cookie = sessionService.buildCookie( session );
-        AuthResponse response = AuthResponse.builder()
-                                            .token( token )
-                                            .user( userResponse )
-                                            .session( SessionResponse.builder()
-                                                                      .id( session.getId() )
-                                                                      .expiresAt( session.getExpiresAt() )
-                                                                      .maxExpiresAt( session.getMaxExpiresAt() )
-                                                                      .build() )
-                                            .build();
-        return ResponseEntity.ok()
-                             .header( HttpHeaders.SET_COOKIE, cookie.toString() )
-                             .body( response );
+    private ResponseEntity<AuthResponse> unauthorized() {
+        return ResponseEntity.status( HttpStatus.UNAUTHORIZED )
+                             .header( HttpHeaders.SET_COOKIE, sessionService.buildExpiredCookie().toString() )
+                             .build();
+    }
+
+    /** Сессия могла истечь или быть удалённой параллельно — выход всё равно должен завершиться успешно. */
+    private void invalidateQuietly( UUID sessionId ) {
+        try {
+            sessionService.invalidate( sessionId );
+        } catch ( RuntimeException ignored ) {
+            // Нечего завершать: сессии уже нет.
+        }
     }
 }
