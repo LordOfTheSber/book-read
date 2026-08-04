@@ -1,5 +1,7 @@
 package com.library.tracker.service;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.SessionRepository;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
 import net.jpountz.lz4.LZ4Factory;
@@ -41,6 +44,20 @@ public class UserService implements UserDetailsService {
     private final SessionRepository sessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
+
+    /**
+     * JwtAuthenticationFilter загружает пользователя на каждом запросе, а меняется он
+     * редко. Короткий TTL ограничивает рассинхронизацию, а блокировка и смена роли сбрасывают
+     * запись явно — иначе заблокированный пользователь дожил бы до конца TTL.
+     */
+    private static final long USER_CACHE_TTL_SECONDS = 30;
+
+    private final Cache<String, AppUserDetails> userDetailsCache =
+            CacheBuilder.newBuilder()
+                        .maximumSize( 10_000 )
+                        .expireAfterWrite( USER_CACHE_TTL_SECONDS, TimeUnit.SECONDS )
+                        .build();
+
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/png",
             "image/jpeg",
@@ -52,9 +69,27 @@ public class UserService implements UserDetailsService {
     @Override
     @Transactional( readOnly = true )
     public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException {
+        String cacheKey = cacheKey( username );
+        AppUserDetails cached = userDetailsCache.getIfPresent( cacheKey );
+        if ( cached != null ) {
+            return cached;
+        }
         User user = userRepository.findByUsernameIgnoreCase( username )
                                   .orElseThrow( () -> new UsernameNotFoundException( "User not found" ) );
-        return toUserDetails( user );
+        AppUserDetails details = toUserDetails( user );
+        userDetailsCache.put( cacheKey, details );
+        return details;
+    }
+
+    /** Сбрасывает кэш после изменений, которые должны вступить в силу немедленно. */
+    public void evictFromCache( User user ) {
+        if ( user != null && user.getUsername() != null ) {
+            userDetailsCache.invalidate( cacheKey( user.getUsername() ) );
+        }
+    }
+
+    private String cacheKey( String username ) {
+        return username != null ? username.toLowerCase() : "";
     }
 
     @Transactional( readOnly = true )
@@ -137,6 +172,7 @@ public class UserService implements UserDetailsService {
             user.setAvatar( compressedAvatar );
             user.setAvatarContentType( contentType );
             User saved = userRepository.save( user );
+            evictFromCache( saved );
             return toResponse( saved );
         } catch ( Exception ex ) {
             throw new IllegalArgumentException( "Failed to save avatar" );
@@ -170,6 +206,7 @@ public class UserService implements UserDetailsService {
         user.setSessionTtlOverrideMinutes( ttlMinutes );
         user.setMaxSessionLifetimeOverrideMinutes( maxLifetimeMinutes );
         User saved = userRepository.save( user );
+        evictFromCache( saved );
         return toResponse( saved );
     }
 
@@ -179,6 +216,7 @@ public class UserService implements UserDetailsService {
         user.setSessionTtlOverrideMinutes( null );
         user.setMaxSessionLifetimeOverrideMinutes( null );
         User saved = userRepository.save( user );
+        evictFromCache( saved );
         return toResponse( saved );
     }
 
@@ -197,6 +235,7 @@ public class UserService implements UserDetailsService {
         }
         user.setRole( role );
         User saved = userRepository.save( user );
+        evictFromCache( saved );
         return toResponse( saved );
     }
 
@@ -215,6 +254,7 @@ public class UserService implements UserDetailsService {
         }
         user.setBlocked( blocked );
         User saved = userRepository.save( user );
+        evictFromCache( saved );
         if ( blocked ) {
             sessionRepository.deleteAllByUserId( userId );
         }
