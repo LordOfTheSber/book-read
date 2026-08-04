@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "//": "Нижняя граница Node совпадает с образом сборки (node:18 в Dockerfile) и с README: зависимости, требующие большего, ставить нельзя.",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -23,7 +27,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
     "@types/node": "^20.12.7",
@@ -36,7 +40,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "jsdom": "^30.0.1",
+    "jsdom": "^26.1.0",
     "typescript": "^5.4.5",
     "vite": "^5.2.0",
     "vitest": "^2.1.9"
