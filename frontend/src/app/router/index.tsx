@@ -5,6 +5,8 @@ import { PageLayout } from '@/shared/ui/PageLayout';
 import { BooksPage } from '@/pages/books-page';
 import { TypesPage } from '@/pages/types-page';
 import { SourcesPage } from '@/pages/sources-page';
+import { AuthorsPage } from '@/pages/authors-page';
+import { SeriesPage } from '@/pages/series-page';
 import { LoginPage } from '@/pages/login-page';
 import { RegisterPage } from '@/pages/register-page';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -56,6 +58,8 @@ const router = createBrowserRouter([
           { path: 'profile', element: <ProfilePage /> },
           { path: 'types', element: <TypesPage /> },
           { path: 'sources', element: <SourcesPage /> },
+          { path: 'authors', element: <AuthorsPage /> },
+          { path: 'series', element: <SeriesPage /> },
           {
             path: 'users',
             element: <RequireAdmin />,

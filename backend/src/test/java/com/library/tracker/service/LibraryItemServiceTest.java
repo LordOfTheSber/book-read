@@ -8,6 +8,7 @@ import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
+import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.web.dto.LibraryItemRequest;
 
 import java.util.Optional;
@@ -39,16 +40,25 @@ class LibraryItemServiceTest {
     private SourceRepository sourceRepository;
 
     @Mock
+    private AuthorService authorService;
+
+    @Mock
+    private SeriesService seriesService;
+
+    @Mock
+    private ObjectStorage objectStorage;
+
+    @Mock
     private UserService userService;
+
+    private LibraryItemService newService() {
+        return new LibraryItemService( libraryItemRepository, bookTypeRepository, sourceRepository, authorService,
+                                       seriesService, objectStorage, userService );
+    }
 
     @Test
     void createDefaultsToBookKindWhenNull() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         LibraryItemRequest request = new LibraryItemRequest();
         request.setTitle( "Test" );
         request.setKind( null );
@@ -67,12 +77,7 @@ class LibraryItemServiceTest {
 
     @Test
     void createFailsWhenTypeMissing() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         LibraryItemRequest request = new LibraryItemRequest();
         request.setTitle( "Test" );
         request.setTypeId( UUID.randomUUID() );
@@ -90,12 +95,7 @@ class LibraryItemServiceTest {
 
     @Test
     void deleteRejectsNonOwners() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         User currentUser = new User();
         currentUser.setId( UUID.randomUUID() );
         currentUser.setRole( Role.USER );
@@ -108,7 +108,7 @@ class LibraryItemServiceTest {
         item.setId( UUID.randomUUID() );
         item.setCreatedBy( owner );
 
-        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.findWithRelationsById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
 
         assertThatThrownBy( () -> service.delete( item.getId() ) )
                 .isInstanceOf( AccessDeniedException.class )
@@ -117,12 +117,7 @@ class LibraryItemServiceTest {
 
     @Test
     void updateRejectsNonOwners() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         User currentUser = new User();
         currentUser.setId( UUID.randomUUID() );
         currentUser.setRole( Role.USER );
@@ -151,12 +146,7 @@ class LibraryItemServiceTest {
 
     @Test
     void updateAllowsOwner() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         User currentUser = new User();
         currentUser.setId( UUID.randomUUID() );
         currentUser.setRole( Role.USER );
@@ -183,12 +173,7 @@ class LibraryItemServiceTest {
 
     @Test
     void updateAllowsAdminOnForeignItem() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         User currentUser = new User();
         currentUser.setId( UUID.randomUUID() );
         currentUser.setRole( Role.ADMIN );
@@ -217,12 +202,7 @@ class LibraryItemServiceTest {
 
     @Test
     void analyticsRejectsUnauthorizedUserAccess() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         User currentUser = new User();
         currentUser.setId( UUID.randomUUID() );
         currentUser.setRole( Role.USER );
@@ -236,12 +216,7 @@ class LibraryItemServiceTest {
 
     @Test
     void createUsesTypeAndSourceWhenProvided() {
-        LibraryItemService service = new LibraryItemService(
-                libraryItemRepository,
-                bookTypeRepository,
-                sourceRepository,
-                userService
-        );
+        LibraryItemService service = newService();
         LibraryItemRequest request = new LibraryItemRequest();
         request.setTitle( "Test" );
         request.setTypeId( UUID.randomUUID() );

@@ -1,5 +1,6 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.Author;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
@@ -7,6 +8,9 @@ import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
+import com.library.tracker.storage.ObjectStorage;
+import com.library.tracker.storage.StoredObject;
+import com.library.tracker.web.dto.AuthorSummary;
 import com.library.tracker.web.dto.BookAnalyticsResponse;
 import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
@@ -14,11 +18,17 @@ import com.library.tracker.web.dto.LibraryItemResponse;
 import com.library.tracker.web.dto.SourceCountResponse;
 import com.library.tracker.web.dto.TypeCountResponse;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -29,23 +39,54 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class LibraryItemService {
 
+    /** Обложка не должна раздувать ни БД, ни трафик выборки списка. */
+    private static final long MAX_COVER_BYTES = 5L * 1024 * 1024;
+
+    private static final Set<String> ALLOWED_COVER_TYPES =
+            Set.of( "image/png", "image/jpeg", "image/jpg", "image/webp" );
+
     private final LibraryItemRepository libraryItemRepository;
     private final BookTypeRepository bookTypeRepository;
     private final SourceRepository sourceRepository;
+    private final AuthorService authorService;
+    private final SeriesService seriesService;
+    private final ObjectStorage objectStorage;
     private final UserService userService;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
         PageRequest pageRequest = PageRequest.of( filter.page(), filter.size(), filter.sort() );
         User currentUser = userService.getCurrentUser();
         boolean isAdmin = userService.isAdmin( currentUser );
-        return libraryItemRepository.findAll( buildSpecification( filter, currentUser, isAdmin ), pageRequest )
-                                    .map( this::toResponse );
+        Page<LibraryItem> page =
+                libraryItemRepository.findAll( buildSpecification( filter, currentUser, isAdmin ), pageRequest );
+
+        // Авторы — коллекция, и в графе страницы их нет: забираем одним запросом на всю страницу.
+        Map<UUID, List<AuthorSummary>> authorsByItem = loadAuthors( page.getContent() );
+        return page.map( item -> toResponse( item, authorsByItem.get( item.getId() ) ) );
+    }
+
+    private Map<UUID, List<AuthorSummary>> loadAuthors( List<LibraryItem> items ) {
+        if ( items.isEmpty() ) {
+            return Map.of();
+        }
+        List<UUID> ids = items.stream().map( LibraryItem::getId ).toList();
+        return libraryItemRepository.findAuthorsByItemIds( ids ).stream()
+                                    .collect( Collectors.groupingBy(
+                                            LibraryItemRepository.ItemAuthorRow::getItemId,
+                                            Collectors.mapping( row -> AuthorSummary.builder()
+                                                                                    .id( row.getAuthorId() )
+                                                                                    .name( row.getName() )
+                                                                                    .altName( row.getAltName() )
+                                                                                    .build(),
+                                                                Collectors.toList() ) ) );
     }
 
     public Optional<LibraryItemResponse> getById( UUID id ) {
@@ -77,17 +118,92 @@ public class LibraryItemService {
     }
 
     public void delete( UUID id ) {
+        LibraryItem item = requireWritable( id, "Вы можете удалять только свои книги" );
+
+        // Обложка живёт вне БД, поэтому за ней нужно сходить отдельно — иначе останется сиротой.
+        if ( item.getCoverKey() != null ) {
+            objectStorage.delete( item.getCoverKey() );
+        }
+        libraryItemRepository.deleteById( id );
+    }
+
+    /**
+     * Заменяет обложку. Ключ детерминированный, поэтому повторная загрузка перезаписывает объект,
+     * не оставляя мусора в хранилище.
+     */
+    public LibraryItemResponse updateCover( UUID id, MultipartFile file ) {
+        LibraryItem item = requireWritable( id, "Вы можете менять только свои книги" );
+        validateCover( file );
+
+        String key = coverKey( id );
+        try {
+            objectStorage.put( key, file.getBytes(), file.getContentType() );
+        } catch ( IOException ex ) {
+            throw new IllegalArgumentException( "Не удалось прочитать файл обложки" );
+        }
+        item.setCoverKey( key );
+        item.setCoverContentType( file.getContentType() );
+        return toResponse( libraryItemRepository.save( item ) );
+    }
+
+    @Transactional( readOnly = true )
+    public Optional<StoredObject> getCover( UUID id ) {
         User currentUser = userService.getCurrentUser();
         boolean isAdmin = userService.isAdmin( currentUser );
 
-        LibraryItem item = libraryItemRepository.findById( id )
+        return libraryItemRepository.findById( id )
+                                    .filter( item -> isAdmin || isOwnedBy( item, currentUser ) )
+                                    .filter( item -> item.getCoverKey() != null )
+                                    .flatMap( item -> objectStorage.get( item.getCoverKey() )
+                                                                   .map( stored -> withContentType( stored, item ) ) );
+    }
+
+    public LibraryItemResponse deleteCover( UUID id ) {
+        LibraryItem item = requireWritable( id, "Вы можете менять только свои книги" );
+        if ( item.getCoverKey() != null ) {
+            objectStorage.delete( item.getCoverKey() );
+            item.setCoverKey( null );
+            item.setCoverContentType( null );
+        }
+        return toResponse( libraryItemRepository.save( item ) );
+    }
+
+    /** Находит запись и проверяет право её менять — иначе каждый метод повторял бы одно и то же. */
+    private LibraryItem requireWritable( UUID id, String denialMessage ) {
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+
+        LibraryItem item = libraryItemRepository.findWithRelationsById( id )
                 .orElseThrow( () -> new IllegalArgumentException( "Книга не найдена" ) );
 
         if ( !isAdmin && !isOwnedBy( item, currentUser ) ) {
-            throw new AccessDeniedException( "Вы можете удалять только свои книги" );
+            throw new AccessDeniedException( denialMessage );
         }
+        return item;
+    }
 
-        libraryItemRepository.deleteById( id );
+    private void validateCover( MultipartFile file ) {
+        if ( file == null || file.isEmpty() ) {
+            throw new IllegalArgumentException( "Файл обложки пуст" );
+        }
+        if ( file.getSize() > MAX_COVER_BYTES ) {
+            throw new IllegalArgumentException( "Обложка должна быть меньше 5 МБ" );
+        }
+        String contentType = file.getContentType();
+        if ( contentType == null || !ALLOWED_COVER_TYPES.contains( contentType.toLowerCase() ) ) {
+            throw new IllegalArgumentException( "Неподдерживаемый формат обложки. Допустимы PNG, JPEG, WEBP" );
+        }
+    }
+
+    private String coverKey( UUID id ) {
+        return "covers/" + id;
+    }
+
+    /** Файловое хранилище тип может и не вернуть — тогда берём сохранённый в карточке. */
+    private StoredObject withContentType( StoredObject stored, LibraryItem item ) {
+        return stored.contentType() != null
+                ? stored
+                : new StoredObject( stored.content(), item.getCoverContentType() );
     }
 
     @Transactional( readOnly = true )
@@ -144,6 +260,18 @@ public class LibraryItemService {
         item.setKind( Optional.ofNullable( request.getKind() ).orElse( MediaKind.BOOK ) );
         item.setTitle( request.getTitle() );
         item.setAltTitle( request.getAltTitle() );
+        item.setAuthors( new LinkedHashSet<>( authorService.resolveByNames( request.getAuthorNames() ) ) );
+        item.setSeries( seriesService.resolveByName( request.getSeriesName() ).orElse( null ) );
+        // Номер без серии смысла не имеет и только путал бы сортировку по циклу.
+        item.setOrderInSeries( item.getSeries() != null ? request.getOrderInSeries() : null );
+        item.setIsbn( trimToNull( request.getIsbn() ) );
+        item.setPublishedYear( request.getPublishedYear() );
+        item.setLanguage( trimToNull( request.getLanguage() ) );
+        item.setPageCount( request.getPageCount() );
+        item.setTranslator( trimToNull( request.getTranslator() ) );
+        item.setFormat( request.getFormat() );
+        item.setBookcase( trimToNull( request.getBookcase() ) );
+        item.setShelf( trimToNull( request.getShelf() ) );
         item.setComment( request.getComment() );
         item.setRating( request.getRating() );
         item.setFavorite( request.isFavorite() );
@@ -175,9 +303,17 @@ public class LibraryItemService {
             }
             if ( filter.query().isPresent() ) {
                 String like = "%" + filter.query().get().toLowerCase() + "%";
-                spec = spec.and( ( r, q, c ) -> c.or(
-                        c.like( c.lower( r.get( "title" ) ), like ),
-                        c.like( c.lower( r.get( "altTitle" ) ), like ) ) );
+                // Поиск заодно идёт по автору: искать книгу по фамилии — первое, чего от него ждут.
+                spec = spec.and( ( r, q, c ) -> {
+                    if ( q != null ) {
+                        q.distinct( true );
+                    }
+                    return c.or(
+                            c.like( c.lower( r.get( "title" ) ), like ),
+                            c.like( c.lower( r.get( "altTitle" ) ), like ),
+                            c.like( c.lower( r.join( "authors", jakarta.persistence.criteria.JoinType.LEFT )
+                                              .get( "name" ) ), like ) );
+                } );
             }
             if ( filter.typeId().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "type" ).get( "id" ), filter.typeId().get() ) );
@@ -213,6 +349,12 @@ public class LibraryItemService {
             if ( filter.kind().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.get( "kind" ), filter.kind().get() ) );
             }
+            if ( filter.authorId().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "authors" ).get( "id" ), filter.authorId().get() ) );
+            }
+            if ( filter.seriesId().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "series" ).get( "id" ), filter.seriesId().get() ) );
+            }
             if ( filter.userId().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "createdBy" ).get( "id" ), filter.userId().get() ) );
             } else if ( !isAdmin ) {
@@ -223,6 +365,22 @@ public class LibraryItemService {
     }
 
     private LibraryItemResponse toResponse( LibraryItem item ) {
+        return toResponse( item, authorsOf( item ) );
+    }
+
+    /** Авторы из самой сущности: годится там, где она загружена вместе с ними. */
+    private List<AuthorSummary> authorsOf( LibraryItem item ) {
+        return item.getAuthors().stream()
+                   .sorted( Comparator.comparing( Author::getName, String.CASE_INSENSITIVE_ORDER ) )
+                   .map( author -> AuthorSummary.builder()
+                                                .id( author.getId() )
+                                                .name( author.getName() )
+                                                .altName( author.getAltName() )
+                                                .build() )
+                   .toList();
+    }
+
+    private LibraryItemResponse toResponse( LibraryItem item, List<AuthorSummary> authors ) {
         return LibraryItemResponse.builder()
                                   .id( item.getId() )
                                   .kind( item.getKind() )
@@ -233,6 +391,19 @@ public class LibraryItemService {
                                   .sourceId( item.getSource() != null ? item.getSource().getId() : null )
                                   .sourceName( item.getSource() != null ? item.getSource().getName() : null )
                                   .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
+                                  .authors( authors != null ? authors : List.of() )
+                                  .seriesId( item.getSeries() != null ? item.getSeries().getId() : null )
+                                  .seriesName( item.getSeries() != null ? item.getSeries().getName() : null )
+                                  .orderInSeries( item.getOrderInSeries() )
+                                  .isbn( item.getIsbn() )
+                                  .publishedYear( item.getPublishedYear() )
+                                  .language( item.getLanguage() )
+                                  .pageCount( item.getPageCount() )
+                                  .translator( item.getTranslator() )
+                                  .format( item.getFormat() )
+                                  .bookcase( item.getBookcase() )
+                                  .shelf( item.getShelf() )
+                                  .hasCover( item.getCoverKey() != null )
                                   .createdById( item.getCreatedBy() != null ? item.getCreatedBy().getId() : null )
                                   .createdByUsername(
                                           item.getCreatedBy() != null ? item.getCreatedBy().getUsername() : null )
@@ -243,6 +414,10 @@ public class LibraryItemService {
                                   .createdAt( toOffsetDateTime( item.getCreatedAt() ) )
                                   .updatedAt( toOffsetDateTime( item.getUpdatedAt() ) )
                                   .build();
+    }
+
+    private String trimToNull( String value ) {
+        return StringUtils.hasText( value ) ? value.trim() : null;
     }
 
     private LocalDateTime toLocalDateTime( OffsetDateTime dateTime ) {

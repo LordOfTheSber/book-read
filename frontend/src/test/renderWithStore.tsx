@@ -7,6 +7,8 @@ import { authReducer } from '@/entities/auth';
 import { bookReducer } from '@/entities/book';
 import { bookTypeReducer } from '@/entities/book-type';
 import { sourceReducer } from '@/entities/source';
+import { authorReducer } from '@/entities/author';
+import { seriesReducer } from '@/entities/series';
 import { usersReducer } from '@/entities/user';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 
@@ -15,6 +17,8 @@ const rootReducer = combineReducers({
   books: bookReducer,
   bookTypes: bookTypeReducer,
   sources: sourceReducer,
+  authors: authorReducer,
+  series: seriesReducer,
   bookFilters: bookFilterReducer,
   users: usersReducer
 });

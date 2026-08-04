@@ -8,6 +8,8 @@ import { setFilters, resetFilters, type BookFilterState } from '@/features/book/
 import { loadBooks } from '@/entities/book';
 import { loadBookTypes } from '@/entities/book-type';
 import { loadSources } from '@/entities/source';
+import { loadAuthors } from '@/entities/author';
+import { loadSeries } from '@/entities/series';
 import { loadUsers } from '@/entities/user';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
@@ -31,6 +33,8 @@ export const BooksPage: React.FC = () => {
   const filters = useAppSelector((state) => state.bookFilters);
   const total = useAppSelector((state) => state.books.total);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
+  const authors = useAppSelector((state) => state.authors.list);
+  const series = useAppSelector((state) => state.series.list);
   const users = useAppSelector((state) => state.users.list);
   const usersLoaded = useAppSelector((state) => state.users.loaded);
   const usersLoading = useAppSelector((state) => state.users.loading);
@@ -56,6 +60,8 @@ export const BooksPage: React.FC = () => {
   useEffect(() => {
     dispatch(loadBookTypes());
     dispatch(loadSources());
+    dispatch(loadAuthors());
+    dispatch(loadSeries());
   }, [dispatch]);
 
   useEffect(() => {
@@ -90,6 +96,14 @@ export const BooksPage: React.FC = () => {
       const name = bookTypes.find((type) => type.id === filters.typeId)?.name ?? 'выбран';
       chips.push({ key: 'typeId', label: `Тип: ${name}` });
     }
+    if (filters.authorId) {
+      const name = authors.find((author) => author.id === filters.authorId)?.name ?? 'выбран';
+      chips.push({ key: 'authorId', label: `Автор: ${name}` });
+    }
+    if (filters.seriesId) {
+      const name = series.find((item) => item.id === filters.seriesId)?.name ?? 'выбрана';
+      chips.push({ key: 'seriesId', label: `Серия: ${name}` });
+    }
     if (filters.favorite) {
       chips.push({ key: 'favorite', label: 'Только избранное' });
     }
@@ -104,7 +118,7 @@ export const BooksPage: React.FC = () => {
       chips.push({ key: 'userId', label: `Пользователь: ${name}` });
     }
     return chips;
-  }, [filters, bookTypes, users]);
+  }, [filters, bookTypes, users, authors, series]);
 
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 

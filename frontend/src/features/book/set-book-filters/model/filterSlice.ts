@@ -3,6 +3,8 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 export interface BookFilterState {
   q?: string;
   typeId?: string;
+  authorId?: string;
+  seriesId?: string;
   status?: string;
   favorite?: boolean;
   minRating?: number;

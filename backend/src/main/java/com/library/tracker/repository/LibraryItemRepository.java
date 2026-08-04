@@ -3,6 +3,7 @@ package com.library.tracker.repository;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.ReadingStatus;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,17 +19,41 @@ import org.springframework.data.jpa.repository.Query;
 public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>, JpaSpecificationExecutor<LibraryItem> {
 
     /**
-     * Все три связи ленивые, а {@code toResponse} читает их у каждой строки выдачи: без графа
-     * страница из 20 записей превращается в 61 запрос. Связи только {@code *ToOne}, поэтому
-     * пагинация остаётся на стороне БД.
+     * Связи ленивые, а {@code toResponse} читает их у каждой строки выдачи: без графа страница
+     * из 20 записей превращается в 61 запрос. В графе только {@code *ToOne} — коллекция авторов
+     * сюда не входит намеренно, иначе Hibernate утащил бы пагинацию в память.
      */
     @Override
-    @EntityGraph( attributePaths = { "type", "source", "createdBy" } )
+    @EntityGraph( attributePaths = { "type", "source", "createdBy", "series" } )
     Page<LibraryItem> findAll( Specification<LibraryItem> specification, Pageable pageable );
 
-    /** Тот же граф для одиночной выдачи: карточка отдаёт имя типа, источника и владельца. */
-    @EntityGraph( attributePaths = { "type", "source", "createdBy" } )
+    /** Одиночная выдача не пагинируется, поэтому авторов можно забрать тем же графом. */
+    @EntityGraph( attributePaths = { "type", "source", "createdBy", "series", "authors" } )
     Optional<LibraryItem> findWithRelationsById( UUID id );
+
+    /**
+     * Авторы для страницы выдачи — одним запросом на всю страницу, а не по запросу на строку.
+     * Возвращается плоский список пар, сборка в карточки остаётся сервису.
+     */
+    @Query( """
+            select li.id as itemId, a.id as authorId, a.name as name, a.altName as altName
+            from LibraryItem li
+            join li.authors a
+            where li.id in :itemIds
+            order by a.name
+            """ )
+    List<ItemAuthorRow> findAuthorsByItemIds( Collection<UUID> itemIds );
+
+    interface ItemAuthorRow {
+
+        UUID getItemId();
+
+        UUID getAuthorId();
+
+        String getName();
+
+        String getAltName();
+    }
 
     boolean existsByTypeId( UUID typeId );
 
@@ -80,6 +105,57 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             order by count(li) desc
             """ )
     List<SourceCount> countBySource( UUID userId );
+
+    /**
+     * Счётчики для списка авторов одним запросом: по строке на автора вместо запроса на каждого.
+     * {@code userId = null} — режим администратора, считаем по всей базе.
+     */
+    @Query( """
+            select a.id as authorId, count(li) as count
+            from LibraryItem li
+            join li.authors a
+            where (:userId is null or li.createdBy.id = :userId)
+            group by a.id
+            """ )
+    List<AuthorCount> countByAuthor( UUID userId );
+
+    @Query( """
+            select s.id as seriesId,
+                   count(li) as count,
+                   sum(case when li.status = com.library.tracker.domain.ReadingStatus.COMPLETED then 1 else 0 end)
+                       as completedCount
+            from LibraryItem li
+            join li.series s
+            where (:userId is null or li.createdBy.id = :userId)
+            group by s.id
+            """ )
+    List<SeriesCount> countBySeries( UUID userId );
+
+    boolean existsBySeriesId( UUID seriesId );
+
+    @Query( """
+            select count(li) > 0
+            from LibraryItem li
+            join li.authors a
+            where a.id = :authorId
+            """ )
+    boolean existsByAuthorId( UUID authorId );
+
+    interface AuthorCount {
+
+        UUID getAuthorId();
+
+        long getCount();
+    }
+
+    interface SeriesCount {
+
+        UUID getSeriesId();
+
+        long getCount();
+
+        long getCompletedCount();
+    }
 
     interface StatusCount {
 

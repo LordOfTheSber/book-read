@@ -12,6 +12,8 @@ interface Props {
 
 interface FiltersFormValues {
   typeId?: string;
+  authorId?: string;
+  seriesId?: string;
   status?: string;
   favorite?: boolean;
   minRating?: number;
@@ -58,6 +60,8 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
+  const authors = useAppSelector((state) => state.authors.list);
+  const series = useAppSelector((state) => state.series.list);
   const users = useAppSelector((state) => state.users.list);
   const usersLoading = useAppSelector((state) => state.users.loading);
   const role = useAppSelector((state) => state.auth.user?.role);
@@ -71,6 +75,8 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
     if (open) {
       form.setFieldsValue({
         typeId: filters.typeId,
+        authorId: filters.authorId,
+        seriesId: filters.seriesId,
         status: filters.status ?? '',
         favorite: filters.favorite ?? false,
         minRating: filters.minRating,
@@ -134,6 +140,26 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
             showSearch
             optionFilterProp="label"
             options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="authorId" label="Автор">
+          <Select
+            placeholder="Все авторы"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={authors.map((author) => ({ label: author.name, value: author.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="seriesId" label="Серия">
+          <Select
+            placeholder="Все серии"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={series.map((item) => ({ label: item.name, value: item.id }))}
           />
         </Form.Item>
 

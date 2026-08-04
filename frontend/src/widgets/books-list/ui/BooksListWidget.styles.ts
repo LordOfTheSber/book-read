@@ -47,6 +47,14 @@ export const useBooksListStyles = () => {
         borderColor: token.colorBorderSecondary
       } as CSSProperties,
       cardBody: { padding: 16, display: 'flex', flexDirection: 'column', gap: 4, height: '100%' } as CSSProperties,
+      // Обложки приходят разного размера; cover фиксирует высоту, чтобы сетка не рвалась.
+      cardCover: {
+        width: '100%',
+        height: 200,
+        objectFit: 'cover',
+        borderTopLeftRadius: token.borderRadiusLG,
+        borderTopRightRadius: token.borderRadiusLG
+      } as CSSProperties,
       cardTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } as CSSProperties,
       cardTitle: { margin: '8px 0 0', fontSize: 16, lineHeight: 1.35 } as CSSProperties,
       cardAltTitle: { margin: 0, fontSize: 12 } as CSSProperties,

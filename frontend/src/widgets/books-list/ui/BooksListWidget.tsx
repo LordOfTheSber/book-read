@@ -26,7 +26,7 @@ import {
 } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { deleteBookThunk } from '@/entities/book';
+import { coverUrl, deleteBookThunk } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
@@ -102,6 +102,17 @@ export const BooksListWidget: React.FC<Props> = ({
     );
   };
 
+  const renderAuthors = (item: LibraryItem) =>
+    item.authors.length > 0 ? item.authors.map((author) => author.name).join(', ') : null;
+
+  /** Серия с номером: «Воспоминания о прошлом Земли, 2.5». */
+  const renderSeries = (item: LibraryItem) => {
+    if (!item.seriesName) return null;
+    return item.orderInSeries !== undefined && item.orderInSeries !== null
+      ? `${item.seriesName}, ${item.orderInSeries}`
+      : item.seriesName;
+  };
+
   const renderSource = (item: LibraryItem) => {
     if (!item.sourceName) return <span style={styles.muted}>{dash}</span>;
     if (!item.sourceUrl) return item.sourceName;
@@ -158,6 +169,11 @@ export const BooksListWidget: React.FC<Props> = ({
                 {item.title}
               </Typography.Text>
             </div>
+            {renderAuthors(item) && (
+              <Typography.Text type="secondary" ellipsis={{ tooltip: renderAuthors(item) ?? undefined }} style={styles.altTitle}>
+                {renderAuthors(item)}
+              </Typography.Text>
+            )}
             {item.altTitle && (
               <Typography.Text type="secondary" ellipsis={{ tooltip: item.altTitle }} style={styles.altTitle}>
                 {item.altTitle}
@@ -214,7 +230,8 @@ export const BooksListWidget: React.FC<Props> = ({
       ...(isAdmin
         ? [
             {
-              title: 'Автор',
+              // Раньше называлось «Автор», но теперь у произведения есть настоящие авторы.
+              title: 'Добавил',
               dataIndex: 'createdByUsername',
               width: 130,
               responsive: ['xl'],
@@ -315,7 +332,22 @@ export const BooksListWidget: React.FC<Props> = ({
         <Row gutter={[16, 16]}>
           {items.map((item) => (
             <Col key={item.id} xs={24} sm={12} xl={8} xxl={6}>
-              <Card style={styles.card} styles={{ body: styles.cardBody }} hoverable={canEdit} onClick={canEdit ? () => onEdit(item) : undefined}>
+              <Card
+                style={styles.card}
+                styles={{ body: styles.cardBody }}
+                hoverable={canEdit}
+                onClick={canEdit ? () => onEdit(item) : undefined}
+                cover={
+                  item.hasCover ? (
+                    <img
+                      src={coverUrl(item.id, item.updatedAt)}
+                      alt={`Обложка: ${item.title}`}
+                      style={styles.cardCover}
+                      loading="lazy"
+                    />
+                  ) : undefined
+                }
+              >
                 <div style={styles.cardTop}>
                   <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
                     {getStatusLabel(item.status)}
@@ -330,6 +362,11 @@ export const BooksListWidget: React.FC<Props> = ({
                 <Typography.Paragraph strong ellipsis={{ rows: 2, tooltip: item.title }} style={styles.cardTitle}>
                   {item.title}
                 </Typography.Paragraph>
+                {renderAuthors(item) && (
+                  <Typography.Paragraph type="secondary" ellipsis={{ rows: 1 }} style={styles.cardAltTitle}>
+                    {renderAuthors(item)}
+                  </Typography.Paragraph>
+                )}
                 {item.altTitle && (
                   <Typography.Paragraph type="secondary" ellipsis={{ rows: 1 }} style={styles.cardAltTitle}>
                     {item.altTitle}
@@ -345,6 +382,11 @@ export const BooksListWidget: React.FC<Props> = ({
                   {item.sourceName && (
                     <Tag bordered={false} style={styles.neutralTag}>
                       {item.sourceName}
+                    </Tag>
+                  )}
+                  {renderSeries(item) && (
+                    <Tag bordered={false} style={styles.neutralTag}>
+                      {renderSeries(item)}
                     </Tag>
                   )}
                 </Space>

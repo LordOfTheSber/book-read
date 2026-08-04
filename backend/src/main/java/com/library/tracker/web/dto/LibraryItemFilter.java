@@ -22,6 +22,8 @@ public record LibraryItemFilter(
         Optional<OffsetDateTime> updatedFrom,
         Optional<OffsetDateTime> updatedTo,
         Optional<MediaKind> kind,
+        Optional<UUID> authorId,
+        Optional<UUID> seriesId,
         Optional<UUID> userId,
         int page,
         int size,

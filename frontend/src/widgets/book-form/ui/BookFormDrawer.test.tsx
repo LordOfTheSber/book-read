@@ -13,14 +13,34 @@ vi.mock('@/entities/book/api/bookApi', () => ({
   fetchBooks: vi.fn(),
   createBook: (...args: unknown[]) => createBook(...args),
   updateBook: (...args: unknown[]) => updateBook(...args),
-  deleteBook: vi.fn()
+  deleteBook: vi.fn(),
+  uploadCover: vi.fn(),
+  deleteCover: vi.fn(),
+  coverUrl: (id: string) => `/api/v1/items/${id}/cover`
+}));
+
+// Форма подтягивает справочники авторов и серий — в тесте они пустые.
+vi.mock('@/entities/author/api/authorApi', () => ({
+  fetchAuthors: vi.fn().mockResolvedValue([]),
+  createAuthor: vi.fn(),
+  updateAuthor: vi.fn(),
+  deleteAuthor: vi.fn()
+}));
+
+vi.mock('@/entities/series/api/seriesApi', () => ({
+  fetchSeries: vi.fn().mockResolvedValue([]),
+  createSeries: vi.fn(),
+  updateSeries: vi.fn(),
+  deleteSeries: vi.fn()
 }));
 
 const existing: LibraryItem = {
   id: 'b-1',
   title: 'Задача трёх тел',
   status: 'READING',
-  favorite: false
+  favorite: false,
+  authors: [{ id: 'a-1', name: 'Лю Цысинь' }],
+  hasCover: false
 } as LibraryItem;
 
 describe('BookFormDrawer', () => {
@@ -39,7 +59,7 @@ describe('BookFormDrawer', () => {
   });
 
   it('создаёт книгу и закрывает панель', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-2', title: 'Новая книга' });
+    createBook.mockResolvedValue({ ...existing, id: 'b-2', title: 'Новая книга', authors: [] });
     const onClose = vi.fn();
     const store = createTestStore();
 
@@ -70,6 +90,29 @@ describe('BookFormDrawer', () => {
     await waitFor(() => expect(updateBook).toHaveBeenCalledTimes(1));
     expect(updateBook.mock.calls[0][0]).toBe('b-1');
     expect(updateBook.mock.calls[0][1]).toMatchObject({ title: 'Переименована' });
+  });
+
+  /** Автор — сущность, но карточка присылает имена: сервер сам находит или заводит их. */
+  it('отправляет авторов именами, а серию — названием', async () => {
+    createBook.mockResolvedValue({ ...existing, id: 'b-3', authors: [] });
+
+    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
+    await userEvent.type(screen.getByLabelText('Авторы'), 'Лю Цысинь{enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    await waitFor(() => expect(createBook).toHaveBeenCalled());
+    expect(createBook.mock.calls[0][0]).toMatchObject({
+      title: 'Тёмный лес',
+      authorNames: ['Лю Цысинь']
+    });
+  });
+
+  it('подставляет уже указанных авторов в форму редактирования', async () => {
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={vi.fn()} />);
+
+    expect(await screen.findByText('Лю Цысинь')).toBeInTheDocument();
   });
 
   it('оставляет панель открытой, если сохранение не удалось', async () => {

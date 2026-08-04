@@ -14,3 +14,7 @@ frontend/playwright-report/
 frontend/logs/
 backend/logs/
 logs/
+
+# Локальное файловое хранилище обложек.
+backend/storage/
+storage/

@@ -45,6 +45,19 @@ management:
       percentiles-histogram:
         http.server.requests: true
 
+storage:
+  # filesystem по умолчанию; для нескольких реплик нужен общий s3 (см. S3ObjectStorage).
+  type: ${STORAGE_TYPE:filesystem}
+  filesystem:
+    path: ${STORAGE_PATH:storage}
+  s3:
+    bucket: ${STORAGE_S3_BUCKET:}
+    region: ${STORAGE_S3_REGION:us-east-1}
+    endpoint: ${STORAGE_S3_ENDPOINT:}
+    access-key: ${STORAGE_S3_ACCESS_KEY:}
+    secret-key: ${STORAGE_S3_SECRET_KEY:}
+    path-style-access: ${STORAGE_S3_PATH_STYLE:true}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

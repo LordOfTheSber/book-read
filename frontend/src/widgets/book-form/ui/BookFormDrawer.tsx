@@ -1,10 +1,29 @@
-import React, { useEffect } from 'react';
-import { App, Button, Col, Drawer, Form, Grid, Input, Rate, Row, Select, Switch } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import {
+  App,
+  AutoComplete,
+  Button,
+  Col,
+  Collapse,
+  Drawer,
+  Form,
+  Grid,
+  Input,
+  InputNumber,
+  Rate,
+  Row,
+  Select,
+  Switch
+} from 'antd';
 import { LibraryItem } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
+import { formatOptions } from '@/shared/constants/format';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookThunk, updateBookThunk } from '@/entities/book';
+import { loadAuthors } from '@/entities/author';
+import { loadSeries } from '@/entities/series';
 import { useRequestError } from '@/shared/lib/errors';
+import { CoverField } from './CoverField';
 
 interface Props {
   open: boolean;
@@ -17,6 +36,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const dispatch = useAppDispatch();
   const types = useAppSelector((state) => state.bookTypes.list);
   const sources = useAppSelector((state) => state.sources.list);
+  const authors = useAppSelector((state) => state.authors.list);
+  const series = useAppSelector((state) => state.series.list);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { message } = App.useApp();
@@ -26,12 +47,31 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
   useEffect(() => {
     if (!open) return;
+    dispatch(loadAuthors());
+    dispatch(loadSeries());
+  }, [open, dispatch]);
+
+  useEffect(() => {
+    if (!open) return;
     if (editing) {
-      form.setFieldsValue({ ...editing, typeId: editing.typeId, sourceId: editing.sourceId });
+      form.setFieldsValue({
+        ...editing,
+        typeId: editing.typeId,
+        sourceId: editing.sourceId,
+        // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
+        authorNames: (editing.authors ?? []).map((author) => author.name),
+        seriesName: editing.seriesName
+      });
     } else {
       form.resetFields();
     }
   }, [open, editing, form]);
+
+  const authorOptions = useMemo(
+    () => authors.map((author) => ({ label: author.name, value: author.name })),
+    [authors]
+  );
+  const seriesOptions = useMemo(() => series.map((item) => ({ label: item.name, value: item.name })), [series]);
 
   const handleSubmit = async () => {
     // Провал валидации — это отказ промиса: без перехвата он всплывает как unhandled rejection.
@@ -48,6 +88,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         await dispatch(createBookThunk(values)).unwrap();
         message.success('Книга добавлена');
       }
+      // Списки могли пополниться новыми авторами и сериями, заведёнными по ходу сохранения.
+      dispatch(loadAuthors({ force: true }));
+      dispatch(loadSeries({ force: true }));
       onClose();
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить книгу');
@@ -79,6 +122,18 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         <Form.Item name="altTitle" label="Альтернативное название">
           <Input placeholder="Оригинальное название или перевод" />
         </Form.Item>
+
+        {/* Автора можно ввести с клавиатуры: незнакомое имя заведётся на сервере само. */}
+        <Form.Item name="authorNames" label="Авторы" tooltip="Новое имя можно ввести прямо здесь">
+          <Select
+            mode="tags"
+            allowClear
+            placeholder="Начните вводить имя"
+            options={authorOptions}
+            tokenSeparators={[',']}
+          />
+        </Form.Item>
+
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="typeId" label="Тип">
@@ -109,7 +164,93 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         <Form.Item name="comment" label="Комментарий">
           <Input.TextArea rows={4} placeholder="Заметки, впечатления, на чём остановились" />
         </Form.Item>
+
+        {/* Издательские поля нужны не всегда, поэтому лежат свёрнутыми и не мешают быстрому вводу. */}
+        <Collapse
+          ghost
+          items={[
+            {
+              key: 'edition',
+              label: 'Издание, серия и расположение',
+              children: (
+                <>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={16}>
+                      {/* AutoComplete, а не Select: серия одна, и её название можно ввести руками. */}
+                      <Form.Item name="seriesName" label="Серия">
+                        <AutoComplete
+                          allowClear
+                          placeholder="Например, «Воспоминания о прошлом Земли»"
+                          options={seriesOptions}
+                          filterOption={(input, option) =>
+                            String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item name="orderInSeries" label="Номер" tooltip="Дробный номер для побочных повестей">
+                        <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="1" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="isbn" label="ISBN">
+                        <Input placeholder="9785171049676" maxLength={20} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="publishedYear" label="Год издания">
+                        <InputNumber min={1} max={2999} style={{ width: '100%' }} placeholder="2006" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={8}>
+                      <Form.Item name="language" label="Язык">
+                        <Input placeholder="ru" maxLength={32} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item name="pageCount" label="Страниц">
+                        <InputNumber min={1} style={{ width: '100%' }} placeholder="400" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item name="format" label="Формат">
+                        <Select allowClear placeholder="Не указан" options={formatOptions} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item name="translator" label="Переводчик">
+                    <Input placeholder="Ольга Глушкова" maxLength={255} />
+                  </Form.Item>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="bookcase" label="Шкаф">
+                        <Input placeholder="Гостиная" maxLength={255} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="shelf" label="Полка">
+                        <Input placeholder="Вторая сверху" maxLength={255} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </>
+              )
+            }
+          ]}
+        />
       </Form>
+
+      {/* Обложка загружается отдельным запросом и только у сохранённой книги: до этого нет и адреса. */}
+      {editing && <CoverField item={editing} />}
     </Drawer>
   );
 };

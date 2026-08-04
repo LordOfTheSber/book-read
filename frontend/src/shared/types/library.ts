@@ -1,5 +1,32 @@
 export type MediaKind = 'BOOK';
 export type ReadingStatus = 'READING' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
+export type ItemFormat = 'PAPER' | 'EBOOK' | 'AUDIO';
+
+export interface Author {
+  id: string;
+  name: string;
+  altName?: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Автор внутри карточки: без счётчиков и дат. */
+export interface AuthorSummary {
+  id: string;
+  name: string;
+  altName?: string;
+}
+
+export interface Series {
+  id: string;
+  name: string;
+  description?: string;
+  itemCount: number;
+  completedCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface BookType {
   id: string;
@@ -18,6 +45,20 @@ export interface LibraryItem {
   sourceId?: string;
   sourceName?: string;
   sourceUrl?: string;
+  authors: AuthorSummary[];
+  seriesId?: string;
+  seriesName?: string;
+  orderInSeries?: number;
+  isbn?: string;
+  publishedYear?: number;
+  language?: string;
+  pageCount?: number;
+  translator?: string;
+  format?: ItemFormat;
+  bookcase?: string;
+  shelf?: string;
+  /** Сама обложка приходит отдельным запросом — здесь только признак, что она есть. */
+  hasCover: boolean;
   createdById?: string;
   createdByUsername?: string;
   comment?: string;
