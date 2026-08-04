@@ -5,6 +5,7 @@ import {
   Button,
   Col,
   Collapse,
+  DatePicker,
   Drawer,
   Form,
   Grid,
@@ -13,8 +14,10 @@ import {
   Rate,
   Row,
   Select,
-  Switch
+  Switch,
+  Tabs
 } from 'antd';
+import dayjs from 'dayjs';
 import { LibraryItem } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
 import { formatOptions } from '@/shared/constants/format';
@@ -24,6 +27,10 @@ import { loadAuthors } from '@/entities/author';
 import { loadSeries } from '@/entities/series';
 import { useRequestError } from '@/shared/lib/errors';
 import { CoverField } from './CoverField';
+import { ProgressTab } from './ProgressTab';
+import { QuotesTab } from './QuotesTab';
+import { progressUnitOptions } from '@/shared/constants/format';
+import { loadBooks } from '@/entities/book';
 
 interface Props {
   open: boolean;
@@ -32,12 +39,17 @@ interface Props {
   onClose: () => void;
 }
 
+/** Даты в форме — объекты dayjs, а на сервер уходят строками. */
+const toDate = (value?: string) => (value ? dayjs(value) : undefined);
+const fromDate = (value?: dayjs.Dayjs | null) => (value ? value.format('YYYY-MM-DD') : undefined);
+
 export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const dispatch = useAppDispatch();
   const types = useAppSelector((state) => state.bookTypes.list);
   const sources = useAppSelector((state) => state.sources.list);
   const authors = useAppSelector((state) => state.authors.list);
   const series = useAppSelector((state) => state.series.list);
+  const filters = useAppSelector((state) => state.bookFilters);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { message } = App.useApp();
@@ -60,7 +72,13 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         sourceId: editing.sourceId,
         // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
         authorNames: (editing.authors ?? []).map((author) => author.name),
-        seriesName: editing.seriesName
+        seriesName: editing.seriesName,
+        startedAt: toDate(editing.startedAt),
+        finishedAt: toDate(editing.finishedAt),
+        deadline: toDate(editing.deadline),
+        progressCurrent: editing.progress?.current,
+        progressTotal: editing.progress?.total,
+        progressUnit: editing.progress?.unit
       });
     } else {
       form.resetFields();
@@ -79,13 +97,19 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     if (!values) {
       return;
     }
+    const payload = {
+      ...values,
+      startedAt: fromDate(values.startedAt),
+      finishedAt: fromDate(values.finishedAt),
+      deadline: fromDate(values.deadline)
+    };
     setSaving(true);
     try {
       if (editing) {
-        await dispatch(updateBookThunk({ id: editing.id, payload: values })).unwrap();
+        await dispatch(updateBookThunk({ id: editing.id, payload })).unwrap();
         message.success('Данные обновлены');
       } else {
-        await dispatch(createBookThunk(values)).unwrap();
+        await dispatch(createBookThunk(payload)).unwrap();
         message.success('Книга добавлена');
       }
       // Списки могли пополниться новыми авторами и сериями, заведёнными по ходу сохранения.
@@ -99,22 +123,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     }
   };
 
-  return (
-    <Drawer
-      title={editing ? 'Редактирование книги' : 'Новая книга'}
-      open={open}
-      onClose={onClose}
-      destroyOnHidden
-      width={isMobile ? '100%' : 640}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>
-          <Button onClick={onClose}>Отмена</Button>
-          <Button type="primary" loading={saving} onClick={handleSubmit}>
-            {editing ? 'Сохранить' : 'Добавить'}
-          </Button>
-        </div>
-      }
-    >
+  const cardTab = (
+    <>
       <Form layout="vertical" form={form} initialValues={{ status: 'PLANNED', favorite: false }}>
         <Form.Item name="title" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
           <Input placeholder="Например, «Задача трёх тел»" size="large" />
@@ -161,6 +171,25 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         <Form.Item name="rating" label="Оценка" tooltip="Полшага доступны — 7.5 тоже валидная оценка">
           <Rate allowClear allowHalf count={10} style={{ fontSize: 20 }} />
         </Form.Item>
+        {/* Даты обычно проставляет сама смена статуса; здесь их можно поправить или задать срок. */}
+        <Row gutter={16}>
+          <Col xs={24} sm={8}>
+            <Form.Item name="startedAt" label="Начато">
+              <DatePicker style={{ width: '100%' }} placeholder="по статусу" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Form.Item name="finishedAt" label="Завершено">
+              <DatePicker style={{ width: '100%' }} placeholder="по статусу" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Form.Item name="deadline" label="Дочитать к" tooltip="По сроку считается норма в день">
+              <DatePicker style={{ width: '100%' }} placeholder="не задан" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Form.Item name="comment" label="Комментарий">
           <Input.TextArea rows={4} placeholder="Заметки, впечатления, на чём остановились" />
         </Form.Item>
@@ -232,6 +261,19 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
+                      <Form.Item name="progressTotal" label="Объём" tooltip="Шкала прогресса: страницы, минуты, эпизоды">
+                        <InputNumber min={1} style={{ width: '100%' }} placeholder="400" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="progressUnit" label="Единица прогресса">
+                        <Select allowClear placeholder="По формату" options={progressUnitOptions} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="bookcase" label="Шкаф">
                         <Input placeholder="Гостиная" maxLength={255} />
                       </Form.Item>
@@ -251,6 +293,43 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
       {/* Обложка загружается отдельным запросом и только у сохранённой книги: до этого нет и адреса. */}
       {editing && <CoverField item={editing} />}
+    </>
+  );
+
+  return (
+    <Drawer
+      title={editing ? 'Редактирование книги' : 'Новая книга'}
+      open={open}
+      onClose={onClose}
+      destroyOnHidden
+      width={isMobile ? '100%' : 720}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>
+          <Button onClick={onClose}>Отмена</Button>
+          <Button type="primary" loading={saving} onClick={handleSubmit}>
+            {editing ? 'Сохранить' : 'Добавить'}
+          </Button>
+        </div>
+      }
+    >
+      {/* Прогресс и выписки живут своими запросами, поэтому доступны только у сохранённой книги. */}
+      {editing ? (
+        <Tabs
+          items={[
+            { key: 'card', label: 'Карточка', children: cardTab },
+            {
+              key: 'progress',
+              label: 'Прогресс',
+              children: (
+                <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
+              )
+            },
+            { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> }
+          ]}
+        />
+      ) : (
+        cardTab
+      )}
     </Drawer>
   );
 };

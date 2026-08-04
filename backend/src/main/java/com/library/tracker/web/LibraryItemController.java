@@ -10,6 +10,7 @@ import com.library.tracker.web.dto.PageResponse;
 import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +53,8 @@ public class LibraryItemController {
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedFrom,
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedTo,
             @RequestParam Optional<MediaKind> kind,
+            @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE ) Optional<LocalDate> finishedFrom,
+            @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE ) Optional<LocalDate> finishedTo,
             @RequestParam Optional<UUID> authorId,
             @RequestParam Optional<UUID> seriesId,
             @RequestParam Optional<UUID> userId,
@@ -62,7 +65,8 @@ public class LibraryItemController {
         LibraryItemFilter filter = new LibraryItemFilter(
                 query.map( String::trim ).filter( s -> !s.isEmpty() ),
                 typeId, status, favorite, minRating, maxRating, createdFrom, createdTo, updatedFrom,
-                updatedTo, kind, authorId, seriesId, userId, page, size, parseSort( sort ) );
+                updatedTo, kind, finishedFrom, finishedTo, authorId, seriesId, userId, page, size,
+                parseSort( sort ) );
         return PageResponse.fromPage( libraryItemService.getItems( filter ) );
     }
 

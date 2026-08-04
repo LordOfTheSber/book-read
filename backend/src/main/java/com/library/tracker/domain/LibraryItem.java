@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -105,6 +106,30 @@ public class LibraryItem extends BaseAuditEntity {
 
     @Column( name = "shelf" )
     private String shelf;
+
+    @Column( name = "started_at" )
+    private LocalDate startedAt;
+
+    @Column( name = "finished_at" )
+    private LocalDate finishedAt;
+
+    /** «Дочитать к дате»: по нему считаются норма в день и отставание. */
+    @Column( name = "deadline" )
+    private LocalDate deadline;
+
+    @Column( name = "progress_current" )
+    private Integer progressCurrent;
+
+    /**
+     * Отделён от {@code pageCount}: то — свойство издания, а это — шкала, по которой считается
+     * прогресс. У аудиокниги они не совпадают вовсе.
+     */
+    @Column( name = "progress_total" )
+    private Integer progressTotal;
+
+    @Enumerated( EnumType.STRING )
+    @Column( name = "progress_unit", length = 32 )
+    private ProgressUnit progressUnit;
 
     @Column( name = "comment", columnDefinition = "TEXT" )
     private String comment;

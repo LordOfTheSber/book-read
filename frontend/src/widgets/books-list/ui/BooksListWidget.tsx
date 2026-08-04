@@ -9,6 +9,7 @@ import {
   Row,
   Skeleton,
   Space,
+  Progress,
   Table,
   Tag,
   Tooltip,
@@ -26,8 +27,9 @@ import {
 } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { coverUrl, deleteBookThunk } from '@/entities/book';
+import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
+import { progressUnitLabel } from '@/shared/constants/format';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
@@ -99,6 +101,41 @@ export const BooksListWidget: React.FC<Props> = ({
         <StarFilled style={styles.ratingIcon} />
         {value}
       </span>
+    );
+  };
+
+  /**
+   * Быстрое продвижение прямо из списка: заход от текущей позиции без открытия карточки.
+   * Ради него сессия и сделана лёгкой — без обязательных полей.
+   */
+  const advance = async (item: LibraryItem, delta: number) => {
+    const current = item.progress?.current ?? 0;
+    try {
+      await addSession(item.id, { fromPosition: current, toPosition: current + delta });
+      await dispatch(loadBooks(filters)).unwrap();
+    } catch (error) {
+      showRequestError(error, 'Не удалось отметить прогресс');
+    }
+  };
+
+  const renderProgress = (item: LibraryItem) => {
+    const progress = item.progress;
+    if (!progress || progress.percent === undefined || progress.percent === null) return null;
+    const unit = progress.unit ? progressUnitLabel[progress.unit] : '';
+    return (
+      <div style={styles.progressBlock} onClick={(e) => e.stopPropagation()}>
+        <Progress
+          percent={progress.percent}
+          size="small"
+          status={progress.behindSchedule ? 'exception' : 'normal'}
+          format={() => `${progress.current ?? 0}/${progress.total} ${unit}`}
+        />
+        {canEdit && item.status === 'READING' && (
+          <Button size="small" type="link" style={styles.advanceButton} onClick={() => advance(item, 10)}>
+            +10 {unit}
+          </Button>
+        )}
+      </div>
     );
   };
 
@@ -211,6 +248,13 @@ export const BooksListWidget: React.FC<Props> = ({
         width: 160,
         responsive: ['lg'],
         render: (_: string, item) => renderSource(item)
+      },
+      {
+        title: 'Прогресс',
+        dataIndex: 'progress',
+        width: 190,
+        responsive: ['lg'],
+        render: (_: unknown, item) => renderProgress(item) ?? <span style={styles.muted}>{dash}</span>
       },
       {
         title: 'Оценка',
@@ -390,6 +434,8 @@ export const BooksListWidget: React.FC<Props> = ({
                     </Tag>
                   )}
                 </Space>
+
+                {renderProgress(item)}
 
                 <div style={styles.cardFooter}>
                   <Space size={12}>

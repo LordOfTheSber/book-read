@@ -55,6 +55,8 @@ export const useBooksListStyles = () => {
         borderTopLeftRadius: token.borderRadiusLG,
         borderTopRightRadius: token.borderRadiusLG
       } as CSSProperties,
+      progressBlock: { display: 'flex', alignItems: 'center', gap: 8 } as CSSProperties,
+      advanceButton: { padding: 0, height: 'auto' } as CSSProperties,
       cardTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } as CSSProperties,
       cardTitle: { margin: '8px 0 0', fontSize: 16, lineHeight: 1.35 } as CSSProperties,
       cardAltTitle: { margin: 0, fontSize: 12 } as CSSProperties,

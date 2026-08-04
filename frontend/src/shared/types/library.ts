@@ -1,5 +1,52 @@
 export type MediaKind = 'BOOK';
-export type ReadingStatus = 'READING' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
+export type ReadingStatus = 'READING' | 'ON_HOLD' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
+export type ProgressUnit = 'PAGES' | 'MINUTES' | 'EPISODES' | 'VOLUMES';
+
+/** Прогресс со всем, что из него считается на сервере. */
+export interface Progress {
+  current?: number;
+  total?: number;
+  unit?: ProgressUnit;
+  percent?: number;
+  remaining?: number;
+  dailyNorm?: number;
+  daysLeft?: number;
+  behindSchedule: boolean;
+}
+
+export interface ReadingSession {
+  id: string;
+  itemId: string;
+  logId?: string;
+  sessionDate: string;
+  fromPosition?: number;
+  toPosition?: number;
+  durationMinutes?: number;
+  note?: string;
+}
+
+/** Один проход по произведению: со второго это перечитывание. */
+export interface ReadingLog {
+  id: string;
+  attempt: number;
+  startedAt?: string;
+  finishedAt?: string;
+  rating?: number;
+  comment?: string;
+  sessionCount: number;
+  durationDays?: number;
+}
+
+export interface Quote {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  position?: number;
+  text: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export type ItemFormat = 'PAPER' | 'EBOOK' | 'AUDIO';
 
 export interface Author {
@@ -59,6 +106,12 @@ export interface LibraryItem {
   shelf?: string;
   /** Сама обложка приходит отдельным запросом — здесь только признак, что она есть. */
   hasCover: boolean;
+  startedAt?: string;
+  finishedAt?: string;
+  deadline?: string;
+  progress?: Progress;
+  /** Номер текущего прохода: со второго это перечитывание. */
+  attempt: number;
   createdById?: string;
   createdByUsername?: string;
   comment?: string;

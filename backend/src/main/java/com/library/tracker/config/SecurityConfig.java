@@ -47,6 +47,9 @@ public class SecurityConfig {
                                                                                                        "ADMIN" )
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/monitoring/ping" ).permitAll()
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.POST, "/api/v1/items/*/sessions" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.POST, "/api/v1/items/*/quotes" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.GET, "/api/v1/quotes" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/items" ).hasAnyRole(
                                                     "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )

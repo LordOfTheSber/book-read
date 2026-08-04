@@ -5,6 +5,7 @@ import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ReadingStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,13 @@ public class LibraryItemResponse {
     String shelf;
     /** Обложка отдаётся отдельным запросом; здесь только признак, что она есть. */
     boolean hasCover;
+    LocalDate startedAt;
+    LocalDate finishedAt;
+    LocalDate deadline;
+    /** Прогресс со всем, что из него считается: процент, остаток, норма в день. */
+    ProgressResponse progress;
+    /** Номер текущего прохода: со второго это перечитывание. */
+    int attempt;
     UUID createdById;
     String createdByUsername;
     String comment;

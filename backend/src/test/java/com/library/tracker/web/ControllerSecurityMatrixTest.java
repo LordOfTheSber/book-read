@@ -11,6 +11,8 @@ import com.library.tracker.service.LibraryItemService;
 import com.library.tracker.service.MonitoringMetricsSnapshotService;
 import com.library.tracker.service.MonitoringSettingsService;
 import com.library.tracker.service.NodeService;
+import com.library.tracker.service.QuoteService;
+import com.library.tracker.service.ReadingProgressService;
 import com.library.tracker.service.RequestMetricsService;
 import com.library.tracker.service.SeriesService;
 import com.library.tracker.service.SessionService;
@@ -62,6 +64,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         NodeController.class,
         MonitoringController.class,
         SessionSettingsController.class,
+        ReadingProgressController.class,
+        QuoteController.class,
         ExportController.class
 } )
 @Import( { SecurityConfig.class, ControllerSecurityMatrixTest.FilterConfiguration.class } )
@@ -99,6 +103,16 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private NodeService nodeService;
+
+    @MockBean
+    private ReadingProgressService readingProgressService;
+
+    @MockBean
+    private QuoteService quoteService;
+
+    /** Контроллер прогресса берёт «сегодня» из бина часов. */
+    @MockBean
+    private java.time.Clock clock;
 
     @MockBean
     private MonitoringMetricsSnapshotService monitoringMetricsSnapshotService;
@@ -212,6 +226,15 @@ class ControllerSecurityMatrixTest {
                 Endpoint.delete( "/api/v1/items/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/items/" + ID + "/cover", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/items/" + ID + "/cover", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/sessions", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/sessions", "{\"toPosition\":42}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/sessions/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/logs", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/quotes", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/quotes", "{\"text\":\"Цитата\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/items/" + ID + "/quotes/" + ID, "{\"text\":\"Цитата\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/quotes/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/quotes", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Справочники: читают все, правят редакторы, удаляют администраторы.
                 Endpoint.get( "/api/v1/types", SUPER_ADMIN, ADMIN, EDITOR, USER ),

@@ -2,6 +2,7 @@ package com.library.tracker.web.dto;
 
 import com.library.tracker.domain.ItemFormat;
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.ProgressUnit;
 import com.library.tracker.domain.ReadingStatus;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,6 +70,24 @@ public class LibraryItemRequest {
 
     @Size( max = 255, message = "Shelf must be at most 255 characters" )
     private String shelf;
+
+    /**
+     * Даты можно проставить руками, но обычно их выставляет сама смена статуса: «читаю» ставит
+     * начало, «прочитано» — завершение.
+     */
+    private LocalDate startedAt;
+
+    private LocalDate finishedAt;
+
+    private LocalDate deadline;
+
+    @Min( value = 0, message = "Progress must be at least 0" )
+    private Integer progressCurrent;
+
+    @Min( value = 1, message = "Progress total must be at least 1" )
+    private Integer progressTotal;
+
+    private ProgressUnit progressUnit;
 
     private String comment;
 

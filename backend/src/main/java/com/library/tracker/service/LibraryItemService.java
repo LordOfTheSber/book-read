@@ -4,9 +4,11 @@ import com.library.tracker.domain.Author;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.ReadingStatus;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ReadingLogRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.storage.StoredObject;
@@ -15,11 +17,14 @@ import com.library.tracker.web.dto.BookAnalyticsResponse;
 import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
+import com.library.tracker.web.dto.ProgressResponse;
 import com.library.tracker.web.dto.SourceCountResponse;
 import com.library.tracker.web.dto.TypeCountResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -59,6 +64,9 @@ public class LibraryItemService {
     private final AuthorService authorService;
     private final SeriesService seriesService;
     private final ObjectStorage objectStorage;
+    private final ReadingProgressService readingProgressService;
+    private final ReadingLogRepository readingLogRepository;
+    private final Clock clock;
     private final UserService userService;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
@@ -101,7 +109,10 @@ public class LibraryItemService {
         LibraryItem item = new LibraryItem();
         applyRequest( item, request );
         item.setCreatedBy( userService.getCurrentUser() );
-        return toResponse( libraryItemRepository.save( item ) );
+        LibraryItem saved = libraryItemRepository.save( item );
+        // Книгу можно завести сразу в статусе «читаю»: тогда проход открывается тут же.
+        readingProgressService.applyStatusTransition( saved, null, LocalDate.now( clock ) );
+        return toResponse( libraryItemRepository.save( saved ) );
     }
 
     public Optional<LibraryItemResponse> update( UUID id, LibraryItemRequest request ) {
@@ -112,7 +123,10 @@ public class LibraryItemService {
             if ( !isAdmin && !isOwnedBy( existing, currentUser ) ) {
                 throw new AccessDeniedException( "Вы можете редактировать только свои книги" );
             }
+            ReadingStatus previousStatus = existing.getStatus();
             applyRequest( existing, request );
+            // Даты начала и завершения ведёт сама смена статуса — вручную их проставлять не нужно.
+            readingProgressService.applyStatusTransition( existing, previousStatus, LocalDate.now( clock ) );
             return toResponse( libraryItemRepository.save( existing ) );
         } );
     }
@@ -270,6 +284,12 @@ public class LibraryItemService {
         item.setPageCount( request.getPageCount() );
         item.setTranslator( trimToNull( request.getTranslator() ) );
         item.setFormat( request.getFormat() );
+        item.setStartedAt( request.getStartedAt() );
+        item.setFinishedAt( request.getFinishedAt() );
+        item.setDeadline( request.getDeadline() );
+        item.setProgressCurrent( request.getProgressCurrent() );
+        item.setProgressTotal( request.getProgressTotal() );
+        item.setProgressUnit( request.getProgressUnit() );
         item.setBookcase( trimToNull( request.getBookcase() ) );
         item.setShelf( trimToNull( request.getShelf() ) );
         item.setComment( request.getComment() );
@@ -349,6 +369,14 @@ public class LibraryItemService {
             if ( filter.kind().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.get( "kind" ), filter.kind().get() ) );
             }
+            if ( filter.finishedFrom().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.greaterThanOrEqualTo( r.get( "finishedAt" ),
+                                                                        filter.finishedFrom().get() ) );
+            }
+            if ( filter.finishedTo().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.lessThanOrEqualTo( r.get( "finishedAt" ),
+                                                                     filter.finishedTo().get() ) );
+            }
             if ( filter.authorId().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "authors" ).get( "id" ), filter.authorId().get() ) );
             }
@@ -404,6 +432,11 @@ public class LibraryItemService {
                                   .bookcase( item.getBookcase() )
                                   .shelf( item.getShelf() )
                                   .hasCover( item.getCoverKey() != null )
+                                  .startedAt( item.getStartedAt() )
+                                  .finishedAt( item.getFinishedAt() )
+                                  .deadline( item.getDeadline() )
+                                  .progress( progressOf( item ) )
+                                  .attempt( attemptOf( item ) )
                                   .createdById( item.getCreatedBy() != null ? item.getCreatedBy().getId() : null )
                                   .createdByUsername(
                                           item.getCreatedBy() != null ? item.getCreatedBy().getUsername() : null )
@@ -414,6 +447,20 @@ public class LibraryItemService {
                                   .createdAt( toOffsetDateTime( item.getCreatedAt() ) )
                                   .updatedAt( toOffsetDateTime( item.getUpdatedAt() ) )
                                   .build();
+    }
+
+    private ProgressResponse progressOf( LibraryItem item ) {
+        return readingProgressService.toProgress( item, LocalDate.now( clock ) );
+    }
+
+    /** Номер текущего прохода: без записей это первый, со второго — перечитывание. */
+    private int attemptOf( LibraryItem item ) {
+        if ( item.getId() == null ) {
+            return 1;
+        }
+        return readingLogRepository.findFirstByItemIdOrderByAttemptDesc( item.getId() )
+                                   .map( log -> log.getAttempt() )
+                                   .orElse( 1 );
     }
 
     private String trimToNull( String value ) {

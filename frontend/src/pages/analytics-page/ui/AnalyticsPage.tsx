@@ -4,6 +4,7 @@ import {
   BookOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  PauseCircleOutlined,
   ReadOutlined,
   StarOutlined,
   StopOutlined
@@ -19,10 +20,11 @@ import { isAdminLike } from '@/shared/lib/roles';
 import { BarList } from '@/shared/ui/BarList';
 import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
 
-const statusOrder: ReadingStatus[] = ['READING', 'COMPLETED', 'PLANNED', 'DROPPED'];
+const statusOrder: ReadingStatus[] = ['READING', 'ON_HOLD', 'COMPLETED', 'PLANNED', 'DROPPED'];
 
 const statusIcons: Record<ReadingStatus, React.ReactNode> = {
   READING: <ReadOutlined />,
+  ON_HOLD: <PauseCircleOutlined />,
   COMPLETED: <CheckCircleOutlined />,
   PLANNED: <ClockCircleOutlined />,
   DROPPED: <StopOutlined />
