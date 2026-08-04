@@ -28,6 +28,23 @@ security:
     secure: ${SECURITY_COOKIE_SECURE:false}
     same-site: ${SECURITY_COOKIE_SAME_SITE:Lax}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # health открыт для проб оркестратора, остальное — только администраторам (см. SecurityConfig).
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  metrics:
+    distribution:
+      # Перцентили считает Prometheus по гистограмме, а не приложение по своей памяти.
+      percentiles-histogram:
+        http.server.requests: true
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

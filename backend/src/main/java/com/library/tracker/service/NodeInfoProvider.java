@@ -79,6 +79,11 @@ public class NodeInfoProvider {
         );
     }
 
+    /** Ключ узла без сбора остальной телеметрии: нужен как метка метрик Micrometer. */
+    public String nodeKey() {
+        return resolveNodeKey( resolveHostName() );
+    }
+
     private String resolveNodeKey( String fallbackHost ) {
         if ( StringUtils.hasText( configuredNodeId ) ) {
             return configuredNodeId;

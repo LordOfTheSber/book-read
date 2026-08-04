@@ -78,6 +78,17 @@ npm run build
 ```
 `npm run build` is a plain `vite build` without type checking, so `npm run typecheck` is a separate step.
 
+## Metrics and health
+Actuator is enabled on the application port:
+
+- `GET /actuator/health` (plus `/health/liveness` and `/health/readiness`) — public, used by the Kubernetes probes.
+- `GET /actuator/prometheus` and `GET /actuator/metrics` — `ADMIN`/`SUPER_ADMIN` only. Every meter carries
+  `application="book-read-backend"` and a `node` tag matching the node key shown on the Nodes page.
+
+The built-in monitoring pages read counters a replica keeps in memory: they are per-pod and reset when that pod
+restarts. For figures summed across replicas, or for any history, scrape `/actuator/prometheus` — Prometheus
+aggregates by tag and keeps the series.
+
 ## Continuous integration
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `release/**`:
 backend `mvn test`, frontend `npm run lint`, `npm run typecheck` and `npm run build`.
