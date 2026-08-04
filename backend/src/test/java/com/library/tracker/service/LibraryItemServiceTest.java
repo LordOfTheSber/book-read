@@ -136,7 +136,7 @@ class LibraryItemServiceTest {
         item.setTitle( "Чужая книга" );
         item.setCreatedBy( owner );
 
-        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.findWithRelationsById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
 
         LibraryItemRequest request = new LibraryItemRequest();
         request.setTitle( "Перезаписано" );
@@ -168,7 +168,7 @@ class LibraryItemServiceTest {
         item.setTitle( "Своя книга" );
         item.setCreatedBy( currentUser );
 
-        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.findWithRelationsById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
         when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
                 .thenAnswer( invocation -> invocation.getArgument( 0 ) );
 
@@ -202,7 +202,7 @@ class LibraryItemServiceTest {
         item.setTitle( "Чужая книга" );
         item.setCreatedBy( owner );
 
-        when( libraryItemRepository.findById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
+        when( libraryItemRepository.findWithRelationsById( eq( item.getId() ) ) ).thenReturn( Optional.of( item ) );
         when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
                 .thenAnswer( invocation -> invocation.getArgument( 0 ) );
 

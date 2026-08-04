@@ -17,8 +17,8 @@ import { ProfilePage } from '@/pages/profile-page';
 import { isAdminLike } from '@/shared/lib/roles';
 
 const RequireAuth: React.FC = () => {
-  const token = useAppSelector((state) => state.auth.token);
-  if (!token) {
+  const authenticated = useAppSelector((state) => state.auth.authenticated);
+  if (!authenticated) {
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;
@@ -27,9 +27,9 @@ const RequireAuth: React.FC = () => {
 const RequireAdmin: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const loadingUser = useAppSelector((state) => state.auth.loadingUser);
-  const token = useAppSelector((state) => state.auth.token);
+  const authenticated = useAppSelector((state) => state.auth.authenticated);
 
-  if (loadingUser || (token && !user)) {
+  if (loadingUser || (authenticated && !user)) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
         <Spin size="large" />
@@ -85,13 +85,13 @@ const router = createBrowserRouter([
 
 export const AppRouter: React.FC = () => {
   const dispatch = useAppDispatch();
-  const token = useAppSelector((state) => state.auth.token);
+  const authenticated = useAppSelector((state) => state.auth.authenticated);
 
   useEffect(() => {
-    if (token) {
+    if (authenticated) {
       dispatch(fetchCurrentUser());
     }
-  }, [dispatch, token]);
+  }, [dispatch, authenticated]);
 
   return <RouterProvider router={router} />;
 };

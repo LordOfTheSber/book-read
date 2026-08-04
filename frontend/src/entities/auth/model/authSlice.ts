@@ -1,17 +1,18 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '@/shared/types/library';
-import { clearAuthToken, getAuthToken, setAuthToken } from '@/shared/api/authToken';
+import { clearAuthSession, isAuthSessionActive, markAuthSessionActive } from '@/shared/api/authSession';
 import { fetchMe, AuthResponse, logout, uploadAvatar } from '../api/authApi';
 
 export interface AuthState {
   user?: User;
-  token?: string;
+  /** Токен приложению недоступен, поэтому вход отслеживается флагом. */
+  authenticated: boolean;
   loadingUser: boolean;
   updatingAvatar: boolean;
 }
 
 const initialState: AuthState = {
-  token: getAuthToken(),
+  authenticated: isAuthSessionActive(),
   user: undefined,
   loadingUser: false,
   updatingAvatar: false
@@ -32,8 +33,8 @@ export const logoutThunk = createAsyncThunk<void>('auth/logout', async () => {
 
 const clearSession = (state: AuthState) => {
   state.user = undefined;
-  state.token = undefined;
-  clearAuthToken();
+  state.authenticated = false;
+  clearAuthSession();
 };
 
 const authSlice = createSlice({
@@ -42,12 +43,8 @@ const authSlice = createSlice({
   reducers: {
     setCredentials(state, action: PayloadAction<AuthResponse>) {
       state.user = action.payload.user;
-      state.token = action.payload.token;
-      setAuthToken(action.payload.token);
-    },
-    /** Токен обновлён перехватчиком httpClient — в хранилище он уже записан. */
-    tokenRefreshed(state, action: PayloadAction<string>) {
-      state.token = action.payload;
+      state.authenticated = true;
+      markAuthSessionActive();
     },
     logout: clearSession
   },
@@ -58,6 +55,8 @@ const authSlice = createSlice({
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
         state.user = action.payload;
+        state.authenticated = true;
+        markAuthSessionActive();
         state.loadingUser = false;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {

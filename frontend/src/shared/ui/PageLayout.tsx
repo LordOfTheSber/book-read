@@ -37,7 +37,7 @@ export const PageLayout: React.FC = () => {
   const { mode, setMode } = useThemeMode();
   const user = useAppSelector((state) => state.auth.user);
   const loadingUser = useAppSelector((state) => state.auth.loadingUser);
-  const token = useAppSelector((state) => state.auth.token);
+  const authenticated = useAppSelector((state) => state.auth.authenticated);
   const dispatch = useAppDispatch();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
 
@@ -92,7 +92,7 @@ export const PageLayout: React.FC = () => {
     ]
   };
 
-  if (token && (loadingUser || !user)) {
+  if (authenticated && (loadingUser || !user)) {
     return (
       <div style={styles.loader}>
         <Spin size="large" />

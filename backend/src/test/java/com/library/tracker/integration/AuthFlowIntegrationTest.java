@@ -1,9 +1,13 @@
 package com.library.tracker.integration;
 
+import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.service.SessionService;
 import com.library.tracker.web.dto.AuthResponse;
 import com.library.tracker.web.dto.RegisterRequest;
 import com.library.tracker.web.dto.UserResponse;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +18,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,39 +34,68 @@ class AuthFlowIntegrationTest {
         assertThat( registered.getStatusCode() ).isEqualTo( HttpStatus.OK );
         assertThat( registered.getBody() ).isNotNull();
 
-        String sessionCookie = sessionCookie( registered.getHeaders() );
+        String sessionCookie = cookie( registered.getHeaders(), SessionService.SESSION_COOKIE );
+        String accessTokenCookie = cookie( registered.getHeaders(), AccessTokenCookieService.ACCESS_TOKEN_COOKIE );
         assertThat( sessionCookie ).isNotEmpty();
-        String token = registered.getBody().getToken();
+        assertThat( accessTokenCookie ).isNotEmpty();
 
-        assertThat( currentUser( token, sessionCookie ).getStatusCode() ).isEqualTo( HttpStatus.OK );
+        assertThat( currentUser( sessionCookie, accessTokenCookie ).getStatusCode() ).isEqualTo( HttpStatus.OK );
 
-        ResponseEntity<AuthResponse> refreshed = post( "/api/v1/auth/refresh", null, sessionCookie,
-                                                       AuthResponse.class );
+        ResponseEntity<AuthResponse> refreshed = post( "/api/v1/auth/refresh", null, AuthResponse.class,
+                                                       sessionCookie );
         assertThat( refreshed.getStatusCode() ).isEqualTo( HttpStatus.OK );
-        assertThat( refreshed.getBody() ).isNotNull();
-        assertThat( refreshed.getBody().getToken() ).isNotBlank();
 
-        String refreshedToken = refreshed.getBody().getToken();
-        assertThat( currentUser( refreshedToken, sessionCookie ).getStatusCode() ).isEqualTo( HttpStatus.OK );
+        String refreshedAccessTokenCookie = cookie( refreshed.getHeaders(),
+                                                    AccessTokenCookieService.ACCESS_TOKEN_COOKIE );
+        assertThat( refreshedAccessTokenCookie ).isNotEmpty();
+        assertThat( currentUser( sessionCookie, refreshedAccessTokenCookie ).getStatusCode() )
+                .isEqualTo( HttpStatus.OK );
 
-        ResponseEntity<Void> loggedOut = post( "/api/v1/auth/logout", null, sessionCookie, Void.class );
+        ResponseEntity<Void> loggedOut = post( "/api/v1/auth/logout", null, Void.class, sessionCookie );
         assertThat( loggedOut.getStatusCode() ).isEqualTo( HttpStatus.NO_CONTENT );
 
-        assertThat( post( "/api/v1/auth/refresh", null, sessionCookie, AuthResponse.class ).getStatusCode() )
+        assertThat( post( "/api/v1/auth/refresh", null, AuthResponse.class, sessionCookie ).getStatusCode() )
                 .isEqualTo( HttpStatus.UNAUTHORIZED );
-        assertThat( currentUser( refreshedToken, sessionCookie ).getStatusCode() )
+        assertThat( currentUser( sessionCookie, refreshedAccessTokenCookie ).getStatusCode() )
                 .isEqualTo( HttpStatus.UNAUTHORIZED );
+    }
+
+    /** Токен уходит только httpOnly-кукой: в теле ответа его быть не должно. */
+    @Test
+    void registerKeepsAccessTokenOutOfResponseBody() {
+        ResponseEntity<String> registered = restTemplate.exchange( "/api/v1/auth/register", HttpMethod.POST,
+                                                                   new HttpEntity<>( registerRequest( "bodyless" ),
+                                                                                     new HttpHeaders() ),
+                                                                   String.class );
+
+        assertThat( registered.getStatusCode() ).isEqualTo( HttpStatus.OK );
+        assertThat( registered.getBody() ).doesNotContain( "\"token\"" );
+        assertThat( cookie( registered.getHeaders(), AccessTokenCookieService.ACCESS_TOKEN_COOKIE ) ).isNotEmpty();
+    }
+
+    /** Кука с токеном должна быть httpOnly — иначе она снова доступна XSS. */
+    @Test
+    void accessTokenCookieIsHttpOnly() {
+        ResponseEntity<AuthResponse> registered = register( "httponlyuser" );
+
+        String setCookie = registered.getHeaders().getOrEmpty( HttpHeaders.SET_COOKIE ).stream()
+                                     .filter( value -> value.startsWith(
+                                             AccessTokenCookieService.ACCESS_TOKEN_COOKIE + "=" ) )
+                                     .findFirst()
+                                     .orElse( "" );
+
+        assertThat( setCookie ).contains( "HttpOnly" ).contains( "SameSite=Lax" );
     }
 
     @Test
     void refreshWithoutSessionCookieIsRejected() {
-        assertThat( post( "/api/v1/auth/refresh", null, null, AuthResponse.class ).getStatusCode() )
+        assertThat( post( "/api/v1/auth/refresh", null, AuthResponse.class ).getStatusCode() )
                 .isEqualTo( HttpStatus.UNAUTHORIZED );
     }
 
     @Test
     void logoutWithoutSessionCookieSucceeds() {
-        assertThat( post( "/api/v1/auth/logout", null, null, Void.class ).getStatusCode() )
+        assertThat( post( "/api/v1/auth/logout", null, Void.class ).getStatusCode() )
                 .isEqualTo( HttpStatus.NO_CONTENT );
     }
 
@@ -74,37 +106,41 @@ class AuthFlowIntegrationTest {
     }
 
     private ResponseEntity<AuthResponse> register( String username ) {
+        return post( "/api/v1/auth/register", registerRequest( username ), AuthResponse.class );
+    }
+
+    private RegisterRequest registerRequest( String username ) {
         RegisterRequest request = new RegisterRequest();
         request.setUsername( username );
         request.setPassword( "Password123" );
-        return post( "/api/v1/auth/register", request, null, AuthResponse.class );
+        return request;
     }
 
-    private ResponseEntity<UserResponse> currentUser( String token, String sessionCookie ) {
-        HttpHeaders headers = headers( sessionCookie );
-        headers.setBearerAuth( token );
-        return restTemplate.exchange( "/api/v1/users/me", HttpMethod.GET, new HttpEntity<>( headers ),
+    private ResponseEntity<UserResponse> currentUser( String... cookies ) {
+        return restTemplate.exchange( "/api/v1/users/me", HttpMethod.GET, new HttpEntity<>( headers( cookies ) ),
                                       UserResponse.class );
     }
 
-    private <T> ResponseEntity<T> post( String path, Object body, String sessionCookie, Class<T> responseType ) {
-        return restTemplate.exchange( path, HttpMethod.POST, new HttpEntity<>( body, headers( sessionCookie ) ),
+    private <T> ResponseEntity<T> post( String path, Object body, Class<T> responseType, String... cookies ) {
+        return restTemplate.exchange( path, HttpMethod.POST, new HttpEntity<>( body, headers( cookies ) ),
                                       responseType );
     }
 
-    private HttpHeaders headers( String sessionCookie ) {
+    private HttpHeaders headers( String... cookies ) {
         HttpHeaders headers = new HttpHeaders();
-        if ( StringUtils.hasText( sessionCookie ) ) {
-            headers.add( HttpHeaders.COOKIE, sessionCookie );
+        List<String> present = Stream.of( cookies ).filter( value -> value != null && !value.isBlank() ).toList();
+        if ( !present.isEmpty() ) {
+            headers.add( HttpHeaders.COOKIE, String.join( "; ", present ) );
         }
         return headers;
     }
 
     /** Из заголовка ответа берём только пару «имя=значение», без атрибутов вроде Path и Max-Age. */
-    private String sessionCookie( HttpHeaders headers ) {
+    private String cookie( HttpHeaders headers, String name ) {
         return headers.getOrEmpty( HttpHeaders.SET_COOKIE ).stream()
-                      .filter( value -> value.startsWith( SessionService.SESSION_COOKIE + "=" ) )
+                      .filter( value -> value.startsWith( name + "=" ) )
                       .map( value -> value.split( ";", 2 )[0] )
+                      .filter( value -> !value.endsWith( "=" ) )
                       .findFirst()
                       .orElse( "" );
     }

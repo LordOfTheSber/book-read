@@ -24,8 +24,15 @@ Located in `/backend` (Spring Boot).
 |---|---|---|
 | `SECURITY_JWT_SECRET` | — | JWT signing key, at least 32 bytes. **Required in the `prod` profile**: the application refuses to start without it. Outside `prod` an ephemeral key is generated per start (tokens do not survive a restart). Generate with `openssl rand -base64 48`. |
 | `SECURITY_JWT_EXPIRATION_MS` | `1800000` (30 min) | Access token lifetime. Clients renew it via `POST /api/v1/auth/refresh` using the server-side session cookie. |
-| `SECURITY_COOKIE_SECURE` | `false` (`true` in `prod`) | `Secure` flag of the session cookie. Keep `true` behind TLS. |
-| `SECURITY_COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the session cookie. |
+| `SECURITY_COOKIE_SECURE` | `false` (`true` in `prod`) | `Secure` flag of the auth cookies. Keep `true` behind TLS. |
+| `SECURITY_COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the auth cookies. Do not relax it to `None` without adding CSRF tokens: both cookies are sent automatically by the browser. |
+
+Authentication uses two httpOnly cookies and no client-side storage:
+
+- `SESSION_ID` — the server-side session; `POST /api/v1/auth/refresh` renews the access token from it.
+- `ACCESS_TOKEN` — the JWT itself. It is never returned in a response body, so XSS cannot read it.
+
+`Authorization: Bearer <token>` is still accepted for non-browser clients (curl, integration tests).
 
 The deployment scripts generate `SECURITY_JWT_SECRET` when it is not supplied and reuse the previously
 deployed value on subsequent runs — changing the key signs every user out.

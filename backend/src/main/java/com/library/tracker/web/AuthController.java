@@ -2,6 +2,7 @@ package com.library.tracker.web;
 
 import com.library.tracker.domain.Session;
 import com.library.tracker.domain.User;
+import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.UserService;
 import com.library.tracker.service.SessionService;
@@ -13,6 +14,7 @@ import com.library.tracker.web.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +40,7 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
     private final SessionService sessionService;
+    private final AccessTokenCookieService accessTokenCookieService;
 
     @PostMapping( "/login" )
     public ResponseEntity<AuthResponse> login(
@@ -85,15 +88,17 @@ public class AuthController {
         sessionService.extractSessionId( request.getCookies() ).ifPresent( this::invalidateQuietly );
         return ResponseEntity.noContent()
                              .header( HttpHeaders.SET_COOKIE, sessionService.buildExpiredCookie().toString() )
+                             .header( HttpHeaders.SET_COOKIE, accessTokenCookieService.buildExpired().toString() )
                              .build();
     }
 
     private ResponseEntity<AuthResponse> authenticated( User user, Session session ) {
         UserResponse userResponse = userService.toResponse( user );
         String jwt = jwtService.generateToken( user );
-        ResponseCookie cookie = sessionService.buildCookie( session );
+        ResponseCookie sessionCookie = sessionService.buildCookie( session );
+        ResponseCookie accessTokenCookie =
+                accessTokenCookieService.build( jwt, Duration.ofMillis( jwtService.getExpirationMs() ) );
         AuthResponse response = AuthResponse.builder()
-                                            .token( jwt )
                                             .user( userResponse )
                                             .session( SessionResponse.builder()
                                                                       .id( session.getId() )
@@ -102,13 +107,15 @@ public class AuthController {
                                                                       .build() )
                                             .build();
         return ResponseEntity.ok()
-                             .header( HttpHeaders.SET_COOKIE, cookie.toString() )
+                             .header( HttpHeaders.SET_COOKIE, sessionCookie.toString() )
+                             .header( HttpHeaders.SET_COOKIE, accessTokenCookie.toString() )
                              .body( response );
     }
 
     private ResponseEntity<AuthResponse> unauthorized() {
         return ResponseEntity.status( HttpStatus.UNAUTHORIZED )
                              .header( HttpHeaders.SET_COOKIE, sessionService.buildExpiredCookie().toString() )
+                             .header( HttpHeaders.SET_COOKIE, accessTokenCookieService.buildExpired().toString() )
                              .build();
     }
 
