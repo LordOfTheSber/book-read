@@ -2,6 +2,7 @@ package com.library.tracker.web;
 
 import com.library.tracker.domain.Session;
 import com.library.tracker.domain.User;
+import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.SessionService;
 import com.library.tracker.service.UserService;
@@ -50,11 +51,15 @@ class AuthControllerTest {
     @Mock
     private SessionService sessionService;
 
+    @Mock
+    private AccessTokenCookieService accessTokenCookieService;
+
     private AuthController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AuthController( authenticationManager, userService, jwtService, sessionService );
+        controller = new AuthController( authenticationManager, userService, jwtService, sessionService,
+                                         accessTokenCookieService );
     }
 
     @Test
@@ -68,20 +73,25 @@ class AuthControllerTest {
         when( userService.findByUsername( eq( "alex" ) ) ).thenReturn( Optional.of( user ) );
         when( userService.toResponse( eq( user ) ) ).thenReturn( UserResponse.builder().username( "alex" ).build() );
         when( jwtService.generateToken( eq( user ) ) ).thenReturn( "fresh-token" );
+        when( jwtService.getExpirationMs() ).thenReturn( 1_800_000L );
         when( sessionService.buildCookie( eq( session ) ) ).thenReturn( sessionCookie() );
+        when( accessTokenCookieService.build( eq( "fresh-token" ), any() ) ).thenReturn( accessTokenCookie() );
 
         ResponseEntity<AuthResponse> response = controller.refresh( request );
 
         assertThat( response.getStatusCode() ).isEqualTo( HttpStatus.OK );
         assertThat( response.getBody() ).isNotNull();
-        assertThat( response.getBody().getToken() ).isEqualTo( "fresh-token" );
-        assertThat( response.getHeaders().get( HttpHeaders.SET_COOKIE ) ).isNotEmpty();
+        assertThat( response.getBody().getUser() ).isNotNull();
+        assertThat( response.getHeaders().get( HttpHeaders.SET_COOKIE ) )
+                .anySatisfy( cookie -> assertThat( cookie ).contains(
+                        AccessTokenCookieService.ACCESS_TOKEN_COOKIE + "=fresh-token" ) );
     }
 
     @Test
     void refreshRejectsRequestWithoutSession() {
         when( sessionService.extractSessionId( any() ) ).thenReturn( Optional.empty() );
         when( sessionService.buildExpiredCookie() ).thenReturn( expiredCookie() );
+        when( accessTokenCookieService.buildExpired() ).thenReturn( expiredAccessTokenCookie() );
 
         ResponseEntity<AuthResponse> response = controller.refresh( new MockHttpServletRequest() );
 
@@ -95,6 +105,7 @@ class AuthControllerTest {
         when( sessionService.extractSessionId( any() ) ).thenReturn( Optional.of( sessionId ) );
         when( sessionService.renew( eq( sessionId ) ) ).thenReturn( Optional.empty() );
         when( sessionService.buildExpiredCookie() ).thenReturn( expiredCookie() );
+        when( accessTokenCookieService.buildExpired() ).thenReturn( expiredAccessTokenCookie() );
 
         ResponseEntity<AuthResponse> response = controller.refresh( requestWithSession( sessionId ) );
 
@@ -111,6 +122,7 @@ class AuthControllerTest {
         when( sessionService.renew( eq( session.getId() ) ) ).thenReturn( Optional.of( session ) );
         when( userService.findByUsername( eq( "alex" ) ) ).thenReturn( Optional.of( user ) );
         when( sessionService.buildExpiredCookie() ).thenReturn( expiredCookie() );
+        when( accessTokenCookieService.buildExpired() ).thenReturn( expiredAccessTokenCookie() );
 
         ResponseEntity<AuthResponse> response = controller.refresh( requestWithSession( session.getId() ) );
 
@@ -124,6 +136,7 @@ class AuthControllerTest {
         UUID sessionId = UUID.randomUUID();
         when( sessionService.extractSessionId( any() ) ).thenReturn( Optional.of( sessionId ) );
         when( sessionService.buildExpiredCookie() ).thenReturn( expiredCookie() );
+        when( accessTokenCookieService.buildExpired() ).thenReturn( expiredAccessTokenCookie() );
 
         ResponseEntity<Void> response = controller.logout( requestWithSession( sessionId ) );
 
@@ -137,6 +150,7 @@ class AuthControllerTest {
     void logoutSucceedsWithoutSessionCookie() {
         when( sessionService.extractSessionId( any() ) ).thenReturn( Optional.empty() );
         when( sessionService.buildExpiredCookie() ).thenReturn( expiredCookie() );
+        when( accessTokenCookieService.buildExpired() ).thenReturn( expiredAccessTokenCookie() );
 
         ResponseEntity<Void> response = controller.logout( new MockHttpServletRequest() );
 
@@ -175,5 +189,19 @@ class AuthControllerTest {
 
     private ResponseCookie expiredCookie() {
         return ResponseCookie.from( SessionService.SESSION_COOKIE, "" ).maxAge( Duration.ZERO ).build();
+    }
+
+    private ResponseCookie accessTokenCookie() {
+        return ResponseCookie.from( AccessTokenCookieService.ACCESS_TOKEN_COOKIE, "fresh-token" )
+                             .httpOnly( true )
+                             .maxAge( Duration.ofMinutes( 30 ) )
+                             .build();
+    }
+
+    private ResponseCookie expiredAccessTokenCookie() {
+        return ResponseCookie.from( AccessTokenCookieService.ACCESS_TOKEN_COOKIE, "" )
+                             .httpOnly( true )
+                             .maxAge( Duration.ZERO )
+                             .build();
     }
 }

@@ -22,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +60,51 @@ class SessionServiceTest {
 
         assertThat( session.getId() ).isNotNull();
         assertThat( session.getExpiresAt() ).isAfter( OffsetDateTime.now( ZoneOffset.UTC ) );
+        verify( sessionRepository ).save( any( Session.class ) );
+    }
+
+    /** Раньше продление писало UPDATE на каждый запрос — теперь только при заметном сдвиге срока. */
+    @Test
+    void renewSkipsWriteWhenExpiryBarelyMoves() {
+        User user = new User();
+        user.setUsername( "alex" );
+        Session session = new Session();
+        session.setId( UUID.randomUUID() );
+        session.setUser( user );
+        OffsetDateTime now = OffsetDateTime.now( ZoneOffset.UTC );
+        // Срок уже сдвинут почти на полный TTL: продлевать его снова смысла нет.
+        session.setExpiresAt( now.plusMinutes( 15 ).minusSeconds( 5 ) );
+        session.setMaxExpiresAt( now.plusHours( 4 ) );
+
+        when( sessionSettingsService.resolveTiming( eq( user ) ) )
+                .thenReturn( new SessionSettingsService.SessionTiming( 15, 240 ) );
+        when( sessionRepository.findById( eq( session.getId() ) ) ).thenReturn( Optional.of( session ) );
+
+        assertThat( sessionService.renew( session.getId() ) ).isPresent();
+
+        verify( sessionRepository, never() ).save( any( Session.class ) );
+    }
+
+    @Test
+    void renewWritesWhenExpiryMovedPastThreshold() {
+        User user = new User();
+        user.setUsername( "alex" );
+        Session session = new Session();
+        session.setId( UUID.randomUUID() );
+        session.setUser( user );
+        OffsetDateTime now = OffsetDateTime.now( ZoneOffset.UTC );
+        session.setExpiresAt( now.plusMinutes( 10 ) );
+        session.setMaxExpiresAt( now.plusHours( 4 ) );
+
+        when( sessionSettingsService.resolveTiming( eq( user ) ) )
+                .thenReturn( new SessionSettingsService.SessionTiming( 15, 240 ) );
+        when( sessionRepository.findById( eq( session.getId() ) ) ).thenReturn( Optional.of( session ) );
+        when( sessionRepository.save( any( Session.class ) ) ).thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        Optional<Session> renewed = sessionService.renew( session.getId() );
+
+        assertThat( renewed ).isPresent();
+        assertThat( renewed.get().getExpiresAt() ).isAfter( now.plusMinutes( 14 ) );
         verify( sessionRepository ).save( any( Session.class ) );
     }
 

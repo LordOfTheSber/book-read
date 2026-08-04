@@ -1,14 +1,19 @@
+# Подключение к БД задаёт PostgresContainerTest: тесты идут на настоящем PostgreSQL в контейнере,
+# схему на нём строит Flyway.
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     properties:
       hibernate:
         format_sql: true
-  flyway:
-    enabled: false
+
+# Этот файл полностью перекрывает src/main/resources/application.yml, поэтому нужные тестам
+# настройки Actuator приходится повторять здесь.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

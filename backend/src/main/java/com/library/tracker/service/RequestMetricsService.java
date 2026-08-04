@@ -16,6 +16,14 @@ import java.util.concurrent.atomic.LongAdder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * Копит статистику запросов в памяти реплики — ровно то, что показывают страницы «Узлы».
+ * Цифры здесь всегда про один под и обнуляются при его перезапуске.
+ * <p>
+ * Те же запросы Actuator параллельно считает метрикой {@code http.server.requests} с меткой узла
+ * (см. {@code MetricsConfig}): за суммой по репликам и за историей нужно идти
+ * на {@code /actuator/prometheus}, а не сюда.
+ */
 @Service
 @RequiredArgsConstructor
 public class RequestMetricsService {

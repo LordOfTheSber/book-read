@@ -21,7 +21,7 @@ export VITE_API_URL="${VITE_API_URL:-/api/v1}"
 export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
 export POSTGRES_DB="${POSTGRES_DB:-library}"
 export POSTGRES_USER="${POSTGRES_USER:-library}"
-export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-library}"
+# Пароль БД значения по умолчанию не имеет: он берётся из кластера или генерируется ниже.
 export DB_STORAGE_SIZE="${DB_STORAGE_SIZE:-1Gi}"
 export BACKEND_REPLICAS="${BACKEND_REPLICAS:-2}"
 export FRONTEND_REPLICAS="${FRONTEND_REPLICAS:-1}"
@@ -153,11 +153,28 @@ else
   fi
 fi
 
+read_secret_key() {
+  local secret="$1"
+  local key="$2"
+  kubectl get secret "${secret}" -n "${NAMESPACE}" -o jsonpath="{.data.${key}}" 2>/dev/null \
+    | base64 -d 2>/dev/null || true
+}
+
+# Пароль БД не хранится в репозитории. Переиспользуем уже развёрнутый в кластере, иначе генерируем:
+# у тома PostgreSQL пароль фиксируется при первичной инициализации, и разойтись они не должны.
+if [[ -z "${POSTGRES_PASSWORD:-}" ]]; then
+  POSTGRES_PASSWORD="$(read_secret_key book-read-db POSTGRES_PASSWORD)"
+fi
+if [[ -z "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "POSTGRES_PASSWORD is not set - generating a new one..."
+  POSTGRES_PASSWORD="$(openssl rand -base64 24)"
+fi
+export POSTGRES_PASSWORD
+
 # Секрет подписи JWT не хранится в репозитории. Переиспользуем уже развёрнутый в кластере,
 # иначе генерируем новый: смена секрета разлогинивает всех пользователей.
 if [[ -z "${SECURITY_JWT_SECRET:-}" ]]; then
-  SECURITY_JWT_SECRET="$(kubectl get secret book-read-backend -n "${NAMESPACE}" \
-    -o jsonpath='{.data.SECURITY_JWT_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || true)"
+  SECURITY_JWT_SECRET="$(read_secret_key book-read-backend SECURITY_JWT_SECRET)"
 fi
 if [[ -z "${SECURITY_JWT_SECRET:-}" ]]; then
   echo "SECURITY_JWT_SECRET is not set — generating a new one..."

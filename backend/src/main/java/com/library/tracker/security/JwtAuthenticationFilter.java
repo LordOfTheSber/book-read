@@ -29,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserService userService;
     private final SessionService sessionService;
+    private final AccessTokenCookieService accessTokenCookieService;
 
     @Override
     protected void doFilterInternal(
@@ -38,12 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter( request, response );
             return;
         }
-        String authHeader = request.getHeader( "Authorization" );
-        if ( authHeader == null || !authHeader.startsWith( "Bearer " ) ) {
+        Optional<String> presentedToken = accessTokenCookieService.extract( request.getCookies() )
+                .or( () -> accessTokenCookieService.extractFromHeader( request.getHeader( HttpHeaders.AUTHORIZATION ) ) );
+        if ( presentedToken.isEmpty() ) {
             filterChain.doFilter( request, response );
             return;
         }
-        String token = authHeader.substring( 7 );
+        String token = presentedToken.get();
         if ( !jwtService.isTokenValid( token ) ) {
             filterChain.doFilter( request, response );
             return;

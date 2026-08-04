@@ -32,6 +32,9 @@ public class SessionService {
 
     public static final String SESSION_COOKIE = "SESSION_ID";
 
+    /** Ниже этого сдвига продление сессии не доходит до БД. */
+    private static final Duration MIN_REFRESH_INTERVAL = Duration.ofMinutes( 1 );
+
     private final SessionRepository sessionRepository;
     private final SessionSettingsService sessionSettingsService;
 
@@ -182,16 +185,31 @@ public class SessionService {
         return now.isAfter( session.getExpiresAt() ) || now.isAfter( session.getMaxExpiresAt() );
     }
 
+    /**
+     * Продление стоило по одному UPDATE на каждый запрос: срок сдвигался на время, прошедшее с
+     * прошлого продления, то есть буквально всегда. Теперь запись в БД происходит, только когда
+     * сдвиг набрал {@link #MIN_REFRESH_INTERVAL} — для коротких TTL порог уменьшается вдвое от
+     * самого TTL, чтобы сессия не успела истечь между продлениями.
+     */
     private Session refreshExpiry( Session session ) {
         SessionSettingsService.SessionTiming timing = sessionSettingsService.resolveTiming( session.getUser() );
         OffsetDateTime now = OffsetDateTime.now( ZoneOffset.UTC );
-        OffsetDateTime newExpiry = now.plusMinutes( timing.sessionTtlMinutes() );
+        Duration ttl = Duration.ofMinutes( timing.sessionTtlMinutes() );
+        OffsetDateTime newExpiry = now.plus( ttl );
         OffsetDateTime cappedExpiry = newExpiry.isAfter( session.getMaxExpiresAt() ) ? session.getMaxExpiresAt()
                                                                                      : newExpiry;
-        if ( cappedExpiry.isAfter( session.getExpiresAt() ) ) {
-            session.setExpiresAt( cappedExpiry );
-            return sessionRepository.save( session );
+
+        Duration shift = Duration.between( session.getExpiresAt(), cappedExpiry );
+        Duration threshold = min( MIN_REFRESH_INTERVAL, ttl.dividedBy( 2 ) );
+        if ( shift.compareTo( threshold ) < 0 ) {
+            return session;
         }
-        return session;
+
+        session.setExpiresAt( cappedExpiry );
+        return sessionRepository.save( session );
+    }
+
+    private static Duration min( Duration first, Duration second ) {
+        return first.compareTo( second ) <= 0 ? first : second;
     }
 }

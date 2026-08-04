@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -172,6 +173,43 @@ class UserServiceTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass( User.class );
         verify( userRepository ).save( captor.capture() );
         assertThat( captor.getValue().isBlocked() ).isTrue();
+    }
+
+    /** Фильтр грузит пользователя на каждом запросе — повторные обращения не должны идти в БД. */
+    @Test
+    void loadUserByUsernameServesRepeatedCallsFromCache() {
+        User user = new User();
+        user.setId( UUID.randomUUID() );
+        user.setUsername( "alex" );
+        user.setPassword( "hash" );
+        user.setRole( Role.USER );
+        when( userRepository.findByUsernameIgnoreCase( eq( "alex" ) ) ).thenReturn( Optional.of( user ) );
+
+        assertThat( userService.loadUserByUsername( "alex" ).getUsername() ).isEqualTo( "alex" );
+        assertThat( userService.loadUserByUsername( "alex" ).getUsername() ).isEqualTo( "alex" );
+        // Регистр в ключе не должен плодить отдельные записи.
+        assertThat( userService.loadUserByUsername( "ALEX" ).getUsername() ).isEqualTo( "alex" );
+
+        verify( userRepository, times( 1 ) ).findByUsernameIgnoreCase( eq( "alex" ) );
+    }
+
+    /** Блокировка должна действовать сразу, а не по истечении TTL кэша. */
+    @Test
+    void evictFromCacheForcesReload() {
+        User user = new User();
+        user.setId( UUID.randomUUID() );
+        user.setUsername( "alex" );
+        user.setPassword( "hash" );
+        user.setRole( Role.USER );
+        when( userRepository.findByUsernameIgnoreCase( eq( "alex" ) ) ).thenReturn( Optional.of( user ) );
+
+        assertThat( userService.loadUserByUsername( "alex" ).isAccountNonLocked() ).isTrue();
+
+        user.setBlocked( true );
+        userService.evictFromCache( user );
+
+        assertThat( userService.loadUserByUsername( "alex" ).isAccountNonLocked() ).isFalse();
+        verify( userRepository, times( 2 ) ).findByUsernameIgnoreCase( eq( "alex" ) );
     }
 
     private void setAuthentication( User user ) {

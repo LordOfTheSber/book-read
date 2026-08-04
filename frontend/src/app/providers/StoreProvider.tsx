@@ -24,9 +24,8 @@ const store = configureStore({
   }
 });
 
-// Перехватчик httpClient работает вне React, поэтому о смене токена сообщает через колбэки.
+// Перехватчик httpClient работает вне React, поэтому о смерти сессии сообщает через колбэк.
 setAuthEventHandlers({
-  onTokenRefreshed: (token) => store.dispatch(authActions.tokenRefreshed(token)),
   onSessionExpired: () => store.dispatch(authActions.logout())
 });
 

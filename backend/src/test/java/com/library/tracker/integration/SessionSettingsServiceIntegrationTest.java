@@ -7,14 +7,17 @@ import com.library.tracker.service.SessionSettingsService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+// Без этого Spring Boot подменил бы контейнер встроенной БД.
+@AutoConfigureTestDatabase( replace = AutoConfigureTestDatabase.Replace.NONE )
 @Import( { SessionSettingsService.class, JpaConfig.class } )
-class SessionSettingsServiceIntegrationTest {
+class SessionSettingsServiceIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private SessionSettingsService sessionSettingsService;

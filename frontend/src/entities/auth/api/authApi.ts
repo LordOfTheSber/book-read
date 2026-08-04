@@ -12,8 +12,8 @@ export interface AuthSession {
   maxExpiresAt: string;
 }
 
+/** Access-токен приходит httpOnly-кукой и в теле ответа отсутствует. */
 export interface AuthResponse {
-  token: string;
   user: User;
   session?: AuthSession;
 }

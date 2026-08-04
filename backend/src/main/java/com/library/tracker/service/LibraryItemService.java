@@ -51,7 +51,7 @@ public class LibraryItemService {
     public Optional<LibraryItemResponse> getById( UUID id ) {
         User currentUser = userService.getCurrentUser();
         boolean isAdmin = userService.isAdmin( currentUser );
-        return libraryItemRepository.findById( id )
+        return libraryItemRepository.findWithRelationsById( id )
                                     .filter( item -> isAdmin || isOwnedBy( item, currentUser ) )
                                     .map( this::toResponse );
     }
@@ -67,7 +67,7 @@ public class LibraryItemService {
         User currentUser = userService.getCurrentUser();
         boolean isAdmin = userService.isAdmin( currentUser );
 
-        return libraryItemRepository.findById( id ).map( existing -> {
+        return libraryItemRepository.findWithRelationsById( id ).map( existing -> {
             if ( !isAdmin && !isOwnedBy( existing, currentUser ) ) {
                 throw new AccessDeniedException( "Вы можете редактировать только свои книги" );
             }

@@ -4,13 +4,31 @@ import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.ReadingStatus;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>, JpaSpecificationExecutor<LibraryItem> {
+
+    /**
+     * Все три связи ленивые, а {@code toResponse} читает их у каждой строки выдачи: без графа
+     * страница из 20 записей превращается в 61 запрос. Связи только {@code *ToOne}, поэтому
+     * пагинация остаётся на стороне БД.
+     */
+    @Override
+    @EntityGraph( attributePaths = { "type", "source", "createdBy" } )
+    Page<LibraryItem> findAll( Specification<LibraryItem> specification, Pageable pageable );
+
+    /** Тот же граф для одиночной выдачи: карточка отдаёт имя типа, источника и владельца. */
+    @EntityGraph( attributePaths = { "type", "source", "createdBy" } )
+    Optional<LibraryItem> findWithRelationsById( UUID id );
 
     boolean existsByTypeId( UUID typeId );
 

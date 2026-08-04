@@ -34,7 +34,11 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   }, [open, editing, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    // Провал валидации — это отказ промиса: без перехвата он всплывает как unhandled rejection.
+    const values = await form.validateFields().catch(() => undefined);
+    if (!values) {
+      return;
+    }
     setSaving(true);
     try {
       if (editing) {

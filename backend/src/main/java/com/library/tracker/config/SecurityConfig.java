@@ -29,6 +29,10 @@ public class SecurityConfig {
         http.csrf( csrf -> csrf.disable() )
             .authorizeHttpRequests( auth -> auth
                                                     .requestMatchers( "/api/v1/auth/**" ).permitAll()
+                                                    // Пробы оркестратора ходят без учётных данных;
+                                                    // остальные endpoint-ы Actuator — только администраторам.
+                                                    .requestMatchers( "/actuator/health", "/actuator/health/**" ).permitAll()
+                                                    .requestMatchers( "/actuator/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
                                                     .requestMatchers( "/swagger-ui/**", "/swagger-ui.html", "/v3/api" +
                                                                                                             "-docs" +
                                                                                                             "/**" ).permitAll()
@@ -47,10 +51,10 @@ public class SecurityConfig {
                                                     "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.DELETE, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
-                                                    .requestMatchers( HttpMethod.GET, "/api/v1/book-types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
-                                                    .requestMatchers( HttpMethod.POST, "/api/v1/book-types" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
-                                                    .requestMatchers( HttpMethod.PUT, "/api/v1/book-types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
-                                                    .requestMatchers( HttpMethod.DELETE, "/api/v1/book-types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
+                                                    .requestMatchers( HttpMethod.GET, "/api/v1/types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.POST, "/api/v1/types" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
+                                                    .requestMatchers( HttpMethod.PUT, "/api/v1/types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
+                                                    .requestMatchers( HttpMethod.DELETE, "/api/v1/types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/sources/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/nodes/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/sources" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )

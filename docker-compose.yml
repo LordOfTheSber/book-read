@@ -3,15 +3,17 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: library
-      POSTGRES_USER: library
-      POSTGRES_PASSWORD: library
+      POSTGRES_DB: ${POSTGRES_DB:-library}
+      POSTGRES_USER: ${POSTGRES_USER:-library}
+      # Пароля по умолчанию нет намеренно: значение берётся из .env (см. .env.example).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD, e.g. `cp .env.example .env` and edit it}
     ports:
-      - "5432:5432"
+      # Только петлевой интерфейс: локальная БД не должна слушать внешнюю сеть.
+      - "127.0.0.1:5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U library"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-library}"]
       interval: 10s
       timeout: 5s
       retries: 5
