@@ -81,7 +81,11 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   }, [open, filters, form]);
 
   const handleApply = async () => {
-    const values = await form.validateFields();
+    // См. BookFormDrawer: отказ валидации нужно перехватить, иначе он всплывает необработанным.
+    const values = await form.validateFields().catch(() => undefined);
+    if (!values) {
+      return;
+    }
     dispatch(
       setFilters({
         ...values,

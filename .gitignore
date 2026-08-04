@@ -7,3 +7,10 @@ frontend/dist/
 # Локальные секреты: пароли БД и JWT-секрет установки.
 .env
 deploy/.env
+
+# Артефакты Playwright и логи бэкенда, поднятого им же.
+frontend/test-results/
+frontend/playwright-report/
+frontend/logs/
+backend/logs/
+logs/

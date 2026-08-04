@@ -81,6 +81,20 @@ npm run build
 ```
 `npm run build` is a plain `vite build` without type checking, so `npm run typecheck` is a separate step.
 
+### Tests
+```bash
+npm run test        # Vitest + Testing Library: Redux slices and forms
+npm run test:e2e    # Playwright: full stack in a real browser
+```
+The e2e run needs a built backend jar and a database, and starts both servers itself:
+
+```bash
+mvn -f ../backend/pom.xml package -DskipTests
+DB_URL=jdbc:postgresql://localhost:5432/library DB_USER=library DB_PASSWORD=... npm run test:e2e
+```
+Playwright installs its own Chromium (`npx playwright install chromium`). If the machine already has one
+from another source, point at it with `E2E_CHROMIUM_PATH`.
+
 ## Metrics and health
 Actuator is enabled on the application port:
 
@@ -94,7 +108,11 @@ aggregates by tag and keeps the series.
 
 ## Continuous integration
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `release/**`:
-backend `mvn test`, frontend `npm run lint`, `npm run typecheck` and `npm run build`.
+
+- **Backend** — `mvn test` (unit tests plus Testcontainers integration tests).
+- **Frontend** — `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`.
+- **E2E** — Playwright against a real backend and a PostgreSQL service container; the report is
+  uploaded as an artifact when the job fails.
 
 ## Ubuntu 22 deployment script (Docker)
 Run the provided script as root (or via `sudo`) on the target server to build Docker images, start containers (frontend + backend + PostgreSQL), and expose the app at `https://book.read.katernyuk.s.m`:
