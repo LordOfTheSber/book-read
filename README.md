@@ -9,12 +9,18 @@ Full-stack application for tracking library items (books) with CRUD, filtering, 
 - Docker (for PostgreSQL)
 
 ## Running PostgreSQL
+The compose file has no built-in password: copy the sample env file and set one before the first run.
+
 ```bash
+cp .env.example .env   # then fill POSTGRES_PASSWORD / DB_PASSWORD
 docker-compose up -d db
 ```
 Database defaults:
-- URL: `jdbc:postgresql://localhost:5432/library`
-- User/Password: `library`
+- URL: `jdbc:postgresql://localhost:5432/library` (published on `127.0.0.1` only)
+- Database and user: `library`
+- Password: taken from `POSTGRES_PASSWORD`; `docker-compose up` fails if it is empty
+
+`.env` is git-ignored — no credential in this repository is a working one.
 
 ## Backend
 Located in `/backend` (Spring Boot).
@@ -90,10 +96,11 @@ Tune behavior with environment variables:
 - `APP_ROOT` — installation directory for the repo sync (default `/opt/book-read`).
 - `APP_SRC` — path to the repository to deploy (default current directory).
 - `VITE_API_URL` — API base path during frontend build (default `/api`).
-- `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_PROFILES_ACTIVE` — backend environment.
+- `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_PROFILES_ACTIVE` — backend environment. The password defaults to `POSTGRES_PASSWORD`, since the backend talks to the bundled database.
 - `SECURITY_JWT_SECRET` — JWT signing key; generated on the first run and reused from `deploy/.env` afterwards.
-- `SECURITY_COOKIE_SECURE` — `Secure` flag of the session cookie (default `true`; the deployment terminates TLS).
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database configuration for the bundled PostgreSQL container.
+- `SECURITY_COOKIE_SECURE` — `Secure` flag of the auth cookies (default `true`; the deployment terminates TLS).
+- `POSTGRES_DB`, `POSTGRES_USER` — database name and user for the bundled PostgreSQL container (default `library`).
+- `POSTGRES_PASSWORD` — database password. **No default**: it is reused from `deploy/.env` or generated on the first run, the same way as the JWT secret. PostgreSQL only applies it when the volume is initialised, so if `deploy/.env` is lost while the volume survives, pass the original password explicitly.
 - `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
 - `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
 
@@ -114,8 +121,9 @@ You can tune the rollout using environment variables:
 - `VITE_API_URL` — API base path for the frontend build (default `/api/v1`).
 - `SPRING_PROFILES_ACTIVE` — backend Spring profile (default `prod`).
 - `SECURITY_JWT_SECRET` — JWT signing key; generated on the first rollout and reused from the `book-read-backend` Secret afterwards.
-- `SECURITY_COOKIE_SECURE` — `Secure` flag of the session cookie (default `true`).
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — database credentials (default `library`).
+- `SECURITY_COOKIE_SECURE` — `Secure` flag of the auth cookies (default `true`).
+- `POSTGRES_DB`, `POSTGRES_USER` — database name and user (default `library`).
+- `POSTGRES_PASSWORD` — database password. **No default**: it is read from the existing `book-read-db` Secret or generated on the first rollout.
 - `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
 - `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
 - `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`ClusterIP` by default).

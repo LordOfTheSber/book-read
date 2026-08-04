@@ -3,3 +3,7 @@ frontend/node_modules/
 frontend/dist/
 .idea/
 .DS_Store
+
+# Локальные секреты: пароли БД и JWT-секрет установки.
+.env
+deploy/.env
