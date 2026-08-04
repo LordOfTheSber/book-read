@@ -1,4 +1,13 @@
-export type MediaKind = 'BOOK';
+export type MediaKind =
+  | 'BOOK'
+  | 'COMIC'
+  | 'MANGA'
+  | 'AUDIOBOOK'
+  | 'MOVIE'
+  | 'SERIES'
+  | 'ANIME'
+  | 'PODCAST'
+  | 'GAME';
 export type ReadingStatus = 'READING' | 'ON_HOLD' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
 export type ProgressUnit = 'PAGES' | 'MINUTES' | 'EPISODES' | 'VOLUMES';
 

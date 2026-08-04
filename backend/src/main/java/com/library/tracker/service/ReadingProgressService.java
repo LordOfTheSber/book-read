@@ -248,19 +248,29 @@ public class ReadingProgressService {
         return done < Math.floor( expected );
     }
 
-    /** Если шкала не задана, берём число страниц издания — для книги это одно и то же. */
+    /**
+     * Если шкала не задана, берём число страниц издания — но только там, где прогресс и правда
+     * измеряется страницами. У аудиокниги и сериала число страниц ничего не значит.
+     */
     private Integer resolveTotal( LibraryItem item ) {
         if ( item.getProgressTotal() != null ) {
             return item.getProgressTotal();
         }
-        return item.getFormat() == ItemFormat.AUDIO ? null : item.getPageCount();
+        return resolveUnit( item ) == ProgressUnit.PAGES ? item.getPageCount() : null;
     }
 
+    /**
+     * Единица прогресса: своя из карточки, иначе по формату экземпляра (аудио — минуты),
+     * иначе по виду произведения — у манги тома, у сериала эпизоды.
+     */
     private ProgressUnit resolveUnit( LibraryItem item ) {
         if ( item.getProgressUnit() != null ) {
             return item.getProgressUnit();
         }
-        return item.getFormat() == ItemFormat.AUDIO ? ProgressUnit.MINUTES : ProgressUnit.PAGES;
+        if ( item.getFormat() == ItemFormat.AUDIO ) {
+            return ProgressUnit.MINUTES;
+        }
+        return item.getKind() != null ? item.getKind().defaultProgressUnit() : ProgressUnit.PAGES;
     }
 
     private ReadingSessionResponse toResponse( ReadingSession session ) {

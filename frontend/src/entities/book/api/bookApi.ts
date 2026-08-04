@@ -6,6 +6,7 @@ export interface FetchBooksParams {
   size?: number;
   sort?: string;
   q?: string;
+  kind?: string;
   typeId?: string;
   status?: string;
   favorite?: boolean;

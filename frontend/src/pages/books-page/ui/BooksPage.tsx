@@ -14,7 +14,8 @@ import { loadUsers } from '@/entities/user';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
 import { statusMeta } from '@/shared/constants/status';
-import { LibraryItem, ReadingStatus } from '@/shared/types/library';
+import { getMediaKindLabel } from '@/shared/constants/mediaKind';
+import { LibraryItem, MediaKind, ReadingStatus } from '@/shared/types/library';
 import { BooksListWidget, type BooksViewMode } from '@/widgets/books-list';
 import { BooksToolbarWidget, type ActiveFilterChip } from '@/widgets/books-toolbar';
 import { FiltersPanelWidget } from '@/widgets/filters-panel';
@@ -95,6 +96,9 @@ export const BooksPage: React.FC = () => {
     if (filters.typeId) {
       const name = bookTypes.find((type) => type.id === filters.typeId)?.name ?? 'выбран';
       chips.push({ key: 'typeId', label: `Тип: ${name}` });
+    }
+    if (filters.kind) {
+      chips.push({ key: 'kind', label: `Вид: ${getMediaKindLabel(filters.kind as MediaKind)}` });
     }
     if (filters.authorId) {
       const name = authors.find((author) => author.id === filters.authorId)?.name ?? 'выбран';

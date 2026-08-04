@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Button, Divider, Drawer, Form, Grid, InputNumber, Select, Space, Switch, Tag, Typography, theme } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
+import { mediaKindOptions } from '@/shared/constants/mediaKind';
 import { resetFilters, setFilters } from '@/features/book/set-book-filters';
 import { isAdminLike } from '@/shared/lib/roles';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 interface FiltersFormValues {
+  kind?: string;
   typeId?: string;
   authorId?: string;
   seriesId?: string;
@@ -74,6 +76,7 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   useEffect(() => {
     if (open) {
       form.setFieldsValue({
+        kind: filters.kind,
         typeId: filters.typeId,
         authorId: filters.authorId,
         seriesId: filters.seriesId,
@@ -131,6 +134,10 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
       <Form layout="vertical" form={form}>
         <Form.Item name="status" label="Статус">
           <StatusChips />
+        </Form.Item>
+
+        <Form.Item name="kind" label="Вид">
+          <Select placeholder="Все виды" allowClear options={mediaKindOptions} />
         </Form.Item>
 
         <Form.Item name="typeId" label="Тип">

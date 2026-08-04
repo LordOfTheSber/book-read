@@ -2,6 +2,7 @@ package com.library.tracker.service;
 
 import com.library.tracker.domain.ItemFormat;
 import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ProgressUnit;
 import com.library.tracker.domain.ReadingLog;
 import com.library.tracker.domain.ReadingStatus;
@@ -203,10 +204,45 @@ class ReadingProgressServiceTest {
         assertThat( service.toProgress( item, TODAY ).getPercent() ).isEqualTo( 25 );
     }
 
+    /** У сериала счёт идёт в эпизодах, и число страниц издания к шкале отношения не имеет. */
+    @Test
+    void progressUnitFollowsMediaKind() {
+        LibraryItem item = item( ReadingStatus.READING );
+        item.setKind( MediaKind.SERIES );
+        item.setPageCount( 200 );
+
+        ProgressResponse progress = service.toProgress( item, TODAY );
+
+        assertThat( progress.getUnit() ).isEqualTo( ProgressUnit.EPISODES );
+        assertThat( progress.getTotal() ).isNull();
+    }
+
+    @Test
+    void mangaCountsVolumesAndAudiobookMinutes() {
+        LibraryItem manga = item( ReadingStatus.READING );
+        manga.setKind( MediaKind.MANGA );
+        LibraryItem audiobook = item( ReadingStatus.READING );
+        audiobook.setKind( MediaKind.AUDIOBOOK );
+
+        assertThat( service.toProgress( manga, TODAY ).getUnit() ).isEqualTo( ProgressUnit.VOLUMES );
+        assertThat( service.toProgress( audiobook, TODAY ).getUnit() ).isEqualTo( ProgressUnit.MINUTES );
+    }
+
+    /** Своя единица в карточке важнее вида: аудиокнигу можно считать и в главах. */
+    @Test
+    void explicitUnitWinsOverMediaKind() {
+        LibraryItem item = item( ReadingStatus.READING );
+        item.setKind( MediaKind.AUDIOBOOK );
+        item.setProgressUnit( ProgressUnit.PAGES );
+
+        assertThat( service.toProgress( item, TODAY ).getUnit() ).isEqualTo( ProgressUnit.PAGES );
+    }
+
     private LibraryItem item( ReadingStatus status ) {
         LibraryItem item = new LibraryItem();
         item.setId( UUID.randomUUID() );
         item.setTitle( "Задача трёх тел" );
+        item.setKind( MediaKind.BOOK );
         item.setStatus( status );
         return item;
     }

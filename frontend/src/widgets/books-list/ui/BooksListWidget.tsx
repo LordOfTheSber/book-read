@@ -30,6 +30,7 @@ import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
 import { progressUnitLabel } from '@/shared/constants/format';
+import { getMediaKindLabel, mediaKindMeta } from '@/shared/constants/mediaKind';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
@@ -197,6 +198,10 @@ export const BooksListWidget: React.FC<Props> = ({
         render: (_: string, item) => (
           <div style={styles.titleCell}>
             <div style={styles.titleRow}>
+              {/* Иконка вида: иначе сериал и книга в списке выглядят одинаково. */}
+              <Tooltip title={getMediaKindLabel(item.kind)}>
+                <span style={styles.mutedIcon}>{mediaKindMeta[item.kind]?.icon}</span>
+              </Tooltip>
               {item.favorite && (
                 <Tooltip title="В избранном">
                   <StarFilled style={styles.favoriteIcon} />
@@ -393,9 +398,14 @@ export const BooksListWidget: React.FC<Props> = ({
                 }
               >
                 <div style={styles.cardTop}>
-                  <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
-                    {getStatusLabel(item.status)}
-                  </Tag>
+                  <Space size={6}>
+                    <Tooltip title={getMediaKindLabel(item.kind)}>
+                      <span style={styles.mutedIcon}>{mediaKindMeta[item.kind]?.icon}</span>
+                    </Tooltip>
+                    <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
+                      {getStatusLabel(item.status)}
+                    </Tag>
+                  </Space>
                   {item.favorite ? (
                     <StarFilled style={styles.favoriteIcon} />
                   ) : (

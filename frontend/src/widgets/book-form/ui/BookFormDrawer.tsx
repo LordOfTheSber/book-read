@@ -21,6 +21,7 @@ import dayjs from 'dayjs';
 import { LibraryItem } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
 import { formatOptions } from '@/shared/constants/format';
+import { mediaKindOptions } from '@/shared/constants/mediaKind';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { createBookThunk, updateBookThunk } from '@/entities/book';
 import { loadAuthors } from '@/entities/author';
@@ -125,7 +126,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
   const cardTab = (
     <>
-      <Form layout="vertical" form={form} initialValues={{ status: 'PLANNED', favorite: false }}>
+      <Form layout="vertical" form={form} initialValues={{ status: 'PLANNED', favorite: false, kind: 'BOOK' }}>
         <Form.Item name="title" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
           <Input placeholder="Например, «Задача трёх тел»" size="large" />
         </Form.Item>
@@ -145,12 +146,18 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         </Form.Item>
 
         <Row gutter={16}>
-          <Col xs={24} sm={12}>
+          <Col xs={24} sm={8}>
+            {/* Вид задаёт единицу прогресса: у сериала эпизоды, у манги тома. */}
+            <Form.Item name="kind" label="Вид">
+              <Select options={mediaKindOptions} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={8}>
             <Form.Item name="typeId" label="Тип">
               <Select allowClear placeholder="Не указан" options={types.map((t) => ({ label: t.name, value: t.id }))} />
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12}>
+          <Col xs={24} sm={8}>
             <Form.Item name="sourceId" label="Источник">
               <Select allowClear placeholder="Не указан" options={sources.map((s) => ({ label: s.name, value: s.id }))} />
             </Form.Item>
