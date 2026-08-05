@@ -49,6 +49,22 @@ cd backend
 mvn spring-boot:run
 ```
 
+### Database migrations
+Flyway runs on startup and validates that every applied migration still matches the file it came from.
+A mismatch aborts the boot with `Migration checksum mismatch for migration version N` — the application
+refuses to run against a schema whose history it cannot trust.
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/library DB_USER=library DB_PASSWORD=...
+mvn flyway:info      # what is applied, and what is pending
+mvn flyway:repair    # realign checksums with the current files
+```
+
+`repair` only rewrites the history table; it does not re-run any SQL. Use it when the applied migration
+did the same thing as the current file (a comment was reformatted, a dev database saw an intermediate
+version of a branch). If the applied migration was genuinely different, the schema may be missing
+objects — on a development database it is safer to drop it and let all migrations run from scratch.
+
 ### Tests
 ```bash
 cd backend
