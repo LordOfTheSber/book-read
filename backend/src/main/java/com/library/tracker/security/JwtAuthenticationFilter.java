@@ -31,11 +31,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SessionService sessionService;
     private final AccessTokenCookieService accessTokenCookieService;
 
+    private static final String AUTH_PATH = "/api/v1/auth";
+
+    /**
+     * Сравнение именно по границе сегмента пути. Простое {@code startsWith("/api/v1/auth")}
+     * захватывало и {@code /api/v1/authors}: справочник авторов оставался без аутентификации
+     * и отвечал 401 даже владельцу.
+     */
+    private boolean isAuthEndpoint( String uri ) {
+        return uri.equals( AUTH_PATH ) || uri.startsWith( AUTH_PATH + "/" );
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request, HttpServletResponse response, FilterChain filterChain )
             throws ServletException, IOException {
-        if ( request.getRequestURI().startsWith( "/api/v1/auth" ) ) {
+        if ( isAuthEndpoint( request.getRequestURI() ) ) {
             filterChain.doFilter( request, response );
             return;
         }

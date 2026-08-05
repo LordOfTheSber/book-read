@@ -4,13 +4,17 @@ import com.library.tracker.config.SecurityConfig;
 import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.security.JwtAuthenticationFilter;
 import com.library.tracker.security.JwtService;
+import com.library.tracker.service.AuthorService;
 import com.library.tracker.service.BookTypeService;
 import com.library.tracker.service.DataExportService;
 import com.library.tracker.service.LibraryItemService;
 import com.library.tracker.service.MonitoringMetricsSnapshotService;
 import com.library.tracker.service.MonitoringSettingsService;
 import com.library.tracker.service.NodeService;
+import com.library.tracker.service.QuoteService;
+import com.library.tracker.service.ReadingProgressService;
 import com.library.tracker.service.RequestMetricsService;
+import com.library.tracker.service.SeriesService;
 import com.library.tracker.service.SessionService;
 import com.library.tracker.service.SourceService;
 import com.library.tracker.service.UserService;
@@ -52,12 +56,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @WebMvcTest( controllers = {
         LibraryItemController.class,
         BookTypeController.class,
+        AuthorController.class,
+        SeriesController.class,
         SourceController.class,
         UserController.class,
         AnalyticsController.class,
         NodeController.class,
         MonitoringController.class,
         SessionSettingsController.class,
+        ReadingProgressController.class,
+        QuoteController.class,
         ExportController.class
 } )
 @Import( { SecurityConfig.class, ControllerSecurityMatrixTest.FilterConfiguration.class } )
@@ -82,6 +90,12 @@ class ControllerSecurityMatrixTest {
     private BookTypeService bookTypeService;
 
     @MockBean
+    private AuthorService authorService;
+
+    @MockBean
+    private SeriesService seriesService;
+
+    @MockBean
     private SourceService sourceService;
 
     @MockBean
@@ -89,6 +103,16 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private NodeService nodeService;
+
+    @MockBean
+    private ReadingProgressService readingProgressService;
+
+    @MockBean
+    private QuoteService quoteService;
+
+    /** Контроллер прогресса берёт «сегодня» из бина часов. */
+    @MockBean
+    private java.time.Clock clock;
 
     @MockBean
     private MonitoringMetricsSnapshotService monitoringMetricsSnapshotService;
@@ -200,6 +224,17 @@ class ControllerSecurityMatrixTest {
                 Endpoint.post( "/api/v1/items", itemBody, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.put( "/api/v1/items/" + ID, itemBody, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/items/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/cover", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/cover", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/sessions", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/sessions", "{\"toPosition\":42}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/sessions/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/logs", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/quotes", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/quotes", "{\"text\":\"Цитата\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/items/" + ID + "/quotes/" + ID, "{\"text\":\"Цитата\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/quotes/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/quotes", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Справочники: читают все, правят редакторы, удаляют администраторы.
                 Endpoint.get( "/api/v1/types", SUPER_ADMIN, ADMIN, EDITOR, USER ),
@@ -207,6 +242,16 @@ class ControllerSecurityMatrixTest {
                 Endpoint.put( "/api/v1/types/" + ID, typeBody, SUPER_ADMIN, ADMIN, EDITOR ),
                 Endpoint.delete( "/api/v1/types/" + ID, SUPER_ADMIN, ADMIN ),
                 Endpoint.get( "/api/v1/sources", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/authors", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/authors/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/authors", "{\"name\":\"Лю Цысинь\"}", SUPER_ADMIN, ADMIN, EDITOR ),
+                Endpoint.put( "/api/v1/authors/" + ID, "{\"name\":\"Лю Цысинь\"}", SUPER_ADMIN, ADMIN, EDITOR ),
+                Endpoint.delete( "/api/v1/authors/" + ID, SUPER_ADMIN, ADMIN ),
+                Endpoint.get( "/api/v1/series", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/series/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/series", "{\"name\":\"Воспоминания о прошлом Земли\"}", SUPER_ADMIN, ADMIN, EDITOR ),
+                Endpoint.put( "/api/v1/series/" + ID, "{\"name\":\"Воспоминания о прошлом Земли\"}", SUPER_ADMIN, ADMIN, EDITOR ),
+                Endpoint.delete( "/api/v1/series/" + ID, SUPER_ADMIN, ADMIN ),
                 Endpoint.post( "/api/v1/sources", sourceBody, SUPER_ADMIN, ADMIN, EDITOR ),
                 Endpoint.put( "/api/v1/sources/" + ID, sourceBody, SUPER_ADMIN, ADMIN, EDITOR ),
                 Endpoint.delete( "/api/v1/sources/" + ID, SUPER_ADMIN, ADMIN ),

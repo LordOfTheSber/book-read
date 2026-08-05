@@ -99,6 +99,25 @@ class AuthFlowIntegrationTest extends PostgresContainerTest {
                 .isEqualTo( HttpStatus.NO_CONTENT );
     }
 
+    /**
+     * Фильтр пропускает без проверки только сам /api/v1/auth. Сравнение по префиксу строки
+     * когда-то захватывало и /api/v1/authors: справочник авторов оставался анонимным и отвечал
+     * 401 даже владельцу.
+     */
+    @Test
+    void authorsEndpointIsAuthenticatedDespiteSharedPrefix() {
+        ResponseEntity<AuthResponse> registered = register( "prefixuser" );
+        String sessionCookie = cookie( registered.getHeaders(), SessionService.SESSION_COOKIE );
+        String accessTokenCookie = cookie( registered.getHeaders(), AccessTokenCookieService.ACCESS_TOKEN_COOKIE );
+
+        ResponseEntity<String> authors = restTemplate.exchange( "/api/v1/authors", HttpMethod.GET,
+                                                                new HttpEntity<>( headers( sessionCookie,
+                                                                                           accessTokenCookie ) ),
+                                                                String.class );
+
+        assertThat( authors.getStatusCode() ).isEqualTo( HttpStatus.OK );
+    }
+
     @Test
     void protectedEndpointRejectsAnonymousWithUnauthorized() {
         assertThat( restTemplate.getForEntity( "/api/v1/items", String.class ).getStatusCode() )

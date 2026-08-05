@@ -377,8 +377,8 @@ public class DataExportService {
             if ( item == null ) {
                 entityManager.createNativeQuery(
                                 """
-                                        INSERT INTO library_items (id, kind, title, alt_title, type_id, source_id, created_by, comment, rating, favorite, status, created_at, updated_at)
-                                        VALUES (:id, :kind, :title, :altTitle, :typeId, :sourceId, :createdById, :comment, :rating, :favorite, :status, :createdAt, :updatedAt)
+                                        INSERT INTO library_items (id, kind, title, alt_title, type_id, source_id, created_by, note, review, review_spoiler, rating, favorite, status, created_at, updated_at)
+                                        VALUES (:id, :kind, :title, :altTitle, :typeId, :sourceId, :createdById, :note, :review, :reviewSpoiler, :rating, :favorite, :status, :createdAt, :updatedAt)
                                         """ )
                              .setParameter( "id", dto.getId() )
                              .setParameter( "kind", dto.getKind().name() )
@@ -387,7 +387,9 @@ public class DataExportService {
                              .setParameter( "typeId", dto.getTypeId() )
                              .setParameter( "sourceId", dto.getSourceId() )
                              .setParameter( "createdById", dto.getCreatedById() )
-                             .setParameter( "comment", dto.getComment() )
+                             .setParameter( "note", resolveNote( dto ) )
+                             .setParameter( "review", dto.getReview() )
+                             .setParameter( "reviewSpoiler", dto.getReviewSpoiler() )
                              .setParameter( "rating", dto.getRating() )
                              .setParameter( "favorite", dto.isFavorite() )
                              .setParameter( "status", dto.getStatus().name() )
@@ -402,7 +404,9 @@ public class DataExportService {
             item.setType( dto.getTypeId() != null ? types.get( dto.getTypeId() ) : null );
             item.setSource( dto.getSourceId() != null ? sources.get( dto.getSourceId() ) : null );
             item.setCreatedBy( dto.getCreatedById() != null ? users.get( dto.getCreatedById() ) : null );
-            item.setComment( dto.getComment() );
+            item.setNote( resolveNote( dto ) );
+            item.setReview( dto.getReview() );
+            item.setReviewSpoiler( dto.getReviewSpoiler() );
             item.setRating( dto.getRating() );
             item.setFavorite( dto.isFavorite() );
             item.setStatus( dto.getStatus() );
@@ -411,6 +415,14 @@ public class DataExportService {
         } );
         entityManager.flush();
         return payload.getLibraryItems().size();
+    }
+
+    /**
+     * Старые выгрузки не знают о разделении: их {@code comment} всегда писался «для себя»,
+     * поэтому восстанавливается как приватная заметка, а не как публичный отзыв.
+     */
+    private String resolveNote( LibraryItemExport dto ) {
+        return dto.getNote() != null ? dto.getNote() : dto.getComment();
     }
 
     private List<UserExport> mapUsers() {
@@ -452,7 +464,9 @@ public class DataExportService {
                                                                    .createdById( item.getCreatedBy() != null
                                                                            ? item.getCreatedBy().getId()
                                                                            : null )
-                                                                   .comment( item.getComment() )
+                                                                   .note( item.getNote() )
+                                                                   .review( item.getReview() )
+                                                                   .reviewSpoiler( item.getReviewSpoiler() )
                                                                    .rating( item.getRating() )
                                                                    .favorite( item.isFavorite() )
                                                                    .status( item.getStatus() )
@@ -613,6 +627,10 @@ public class DataExportService {
         private java.math.BigDecimal rating;
         private boolean favorite;
         private com.library.tracker.domain.ReadingStatus status;
+        private String note;
+        private String review;
+        private String reviewSpoiler;
+        /** Поле старых выгрузок: до разделения заметки и отзыва всё лежало здесь. */
         private String comment;
         private OffsetDateTime createdAt;
         private OffsetDateTime updatedAt;

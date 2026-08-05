@@ -4,6 +4,8 @@ import { Provider } from 'react-redux';
 import { bookReducer } from '@/entities/book';
 import { bookTypeReducer } from '@/entities/book-type';
 import { sourceReducer } from '@/entities/source';
+import { authorReducer } from '@/entities/author';
+import { seriesReducer } from '@/entities/series';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 import { authActions, authReducer } from '@/entities/auth';
 import { usersReducer } from '@/entities/user';
@@ -17,6 +19,8 @@ const store = configureStore({
     books: bookReducer,
     bookTypes: bookTypeReducer,
     sources: sourceReducer,
+    authors: authorReducer,
+    series: seriesReducer,
     bookFilters: bookFilterReducer,
     users: usersReducer,
     nodes: nodesReducer,

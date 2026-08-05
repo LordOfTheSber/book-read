@@ -1,5 +1,92 @@
-export type MediaKind = 'BOOK';
-export type ReadingStatus = 'READING' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
+export type MediaKind =
+  | 'BOOK'
+  | 'COMIC'
+  | 'MANGA'
+  | 'AUDIOBOOK'
+  | 'MOVIE'
+  | 'SERIES'
+  | 'ANIME'
+  | 'PODCAST'
+  | 'GAME';
+export type ReadingStatus = 'READING' | 'ON_HOLD' | 'DROPPED' | 'COMPLETED' | 'PLANNED';
+export type ProgressUnit = 'PAGES' | 'MINUTES' | 'EPISODES' | 'VOLUMES';
+
+/** Прогресс со всем, что из него считается на сервере. */
+export interface Progress {
+  current?: number;
+  total?: number;
+  unit?: ProgressUnit;
+  percent?: number;
+  remaining?: number;
+  dailyNorm?: number;
+  daysLeft?: number;
+  behindSchedule: boolean;
+}
+
+export interface ReadingSession {
+  id: string;
+  itemId: string;
+  logId?: string;
+  sessionDate: string;
+  fromPosition?: number;
+  toPosition?: number;
+  durationMinutes?: number;
+  note?: string;
+}
+
+/** Один проход по произведению: со второго это перечитывание. */
+export interface ReadingLog {
+  id: string;
+  attempt: number;
+  startedAt?: string;
+  finishedAt?: string;
+  rating?: number;
+  ratingPlot?: number;
+  ratingStyle?: number;
+  ratingCharacters?: number;
+  ratingEnding?: number;
+  comment?: string;
+  sessionCount: number;
+  durationDays?: number;
+}
+
+export interface Quote {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  position?: number;
+  text: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export type ItemFormat = 'PAPER' | 'EBOOK' | 'AUDIO';
+
+export interface Author {
+  id: string;
+  name: string;
+  altName?: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Автор внутри карточки: без счётчиков и дат. */
+export interface AuthorSummary {
+  id: string;
+  name: string;
+  altName?: string;
+}
+
+export interface Series {
+  id: string;
+  name: string;
+  description?: string;
+  itemCount: number;
+  completedCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface BookType {
   id: string;
@@ -18,10 +105,39 @@ export interface LibraryItem {
   sourceId?: string;
   sourceName?: string;
   sourceUrl?: string;
+  authors: AuthorSummary[];
+  seriesId?: string;
+  seriesName?: string;
+  orderInSeries?: number;
+  isbn?: string;
+  publishedYear?: number;
+  language?: string;
+  pageCount?: number;
+  translator?: string;
+  format?: ItemFormat;
+  bookcase?: string;
+  shelf?: string;
+  /** Сама обложка приходит отдельным запросом — здесь только признак, что она есть. */
+  hasCover: boolean;
+  startedAt?: string;
+  finishedAt?: string;
+  deadline?: string;
+  progress?: Progress;
+  /** Номер текущего прохода: со второго это перечитывание. */
+  attempt: number;
   createdById?: string;
   createdByUsername?: string;
-  comment?: string;
+  /** Приватная заметка: видна только владельцу. */
+  note?: string;
+  /** Публичный отзыв. */
+  review?: string;
+  /** Часть отзыва со спойлерами — интерфейс прячет её под кат. */
+  reviewSpoiler?: string;
   rating?: number;
+  ratingPlot?: number;
+  ratingStyle?: number;
+  ratingCharacters?: number;
+  ratingEnding?: number;
   favorite: boolean;
   status: ReadingStatus;
   createdAt: string;

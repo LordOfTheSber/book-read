@@ -2,6 +2,7 @@ import type { ReadingStatus } from '@/shared/types/library';
 
 export const statusOptions = [
   { label: 'Читаю', value: 'READING' },
+  { label: 'Отложено', value: 'ON_HOLD' },
   { label: 'Заброшено', value: 'DROPPED' },
   { label: 'Завершено', value: 'COMPLETED' },
   { label: 'В планах', value: 'PLANNED' }
@@ -12,11 +13,13 @@ interface StatusMeta {
   /** Пресет Ant Design: сам подстраивается под светлую/тёмную тему. */
   color: string;
   /** Токен темы для акцентов вне Tag (плитки, полоски). */
-  token: 'colorInfo' | 'colorSuccess' | 'colorWarning' | 'colorError';
+  token: 'colorInfo' | 'colorSuccess' | 'colorWarning' | 'colorError' | 'colorTextTertiary';
 }
 
 export const statusMeta: Record<ReadingStatus, StatusMeta> = {
   READING: { label: 'Читаю', color: 'processing', token: 'colorInfo' },
+  // Отложено и заброшено — разные состояния: к первому собираются вернуться.
+  ON_HOLD: { label: 'Отложено', color: 'default', token: 'colorTextTertiary' },
   COMPLETED: { label: 'Завершено', color: 'success', token: 'colorSuccess' },
   PLANNED: { label: 'В планах', color: 'warning', token: 'colorWarning' },
   DROPPED: { label: 'Заброшено', color: 'error', token: 'colorError' }

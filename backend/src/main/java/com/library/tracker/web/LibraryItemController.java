@@ -10,6 +10,7 @@ import com.library.tracker.web.dto.PageResponse;
 import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping( "/api/v1/items" )
@@ -49,6 +53,10 @@ public class LibraryItemController {
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedFrom,
             @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE_TIME ) Optional<OffsetDateTime> updatedTo,
             @RequestParam Optional<MediaKind> kind,
+            @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE ) Optional<LocalDate> finishedFrom,
+            @RequestParam @DateTimeFormat( iso = DateTimeFormat.ISO.DATE ) Optional<LocalDate> finishedTo,
+            @RequestParam Optional<UUID> authorId,
+            @RequestParam Optional<UUID> seriesId,
             @RequestParam Optional<UUID> userId,
             @RequestParam( defaultValue = "0" ) int page,
             @RequestParam( defaultValue = "20" ) int size,
@@ -57,7 +65,8 @@ public class LibraryItemController {
         LibraryItemFilter filter = new LibraryItemFilter(
                 query.map( String::trim ).filter( s -> !s.isEmpty() ),
                 typeId, status, favorite, minRating, maxRating, createdFrom, createdTo, updatedFrom,
-                updatedTo, kind, userId, page, size, parseSort( sort ) );
+                updatedTo, kind, finishedFrom, finishedTo, authorId, seriesId, userId, page, size,
+                parseSort( sort ) );
         return PageResponse.fromPage( libraryItemService.getItems( filter ) );
     }
 
@@ -85,10 +94,43 @@ public class LibraryItemController {
     }
 
     @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PutMapping( value = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE )
+    public LibraryItemResponse updateCover( @PathVariable UUID id, @RequestParam( "file" ) MultipartFile file ) {
+        return libraryItemService.updateCover( id, file );
+    }
+
+    /**
+     * Обложка отдаётся отдельным запросом, а не полем карточки: иначе каждая выборка списка
+     * тащила бы за собой мегабайты картинок.
+     */
+    @GetMapping( "/{id}/cover" )
+    public ResponseEntity<byte[]> getCover( @PathVariable UUID id ) {
+        return libraryItemService.getCover( id )
+                                 .map( stored -> ResponseEntity.ok()
+                                                               .contentType( mediaType( stored.contentType() ) )
+                                                               .body( stored.content() ) )
+                                 .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @DeleteMapping( "/{id}/cover" )
+    public LibraryItemResponse deleteCover( @PathVariable UUID id ) {
+        return libraryItemService.deleteCover( id );
+    }
+
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
     @DeleteMapping( "/{id}" )
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         libraryItemService.delete( id );
         return ResponseEntity.noContent().build();
+    }
+
+    private MediaType mediaType( String contentType ) {
+        try {
+            return contentType != null ? MediaType.parseMediaType( contentType ) : MediaType.APPLICATION_OCTET_STREAM;
+        } catch ( InvalidMediaTypeException ex ) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 
     private Sort parseSort( String sort ) {

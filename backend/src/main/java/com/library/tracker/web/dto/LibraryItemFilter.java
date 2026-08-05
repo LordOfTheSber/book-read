@@ -4,6 +4,7 @@ import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ReadingStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +23,10 @@ public record LibraryItemFilter(
         Optional<OffsetDateTime> updatedFrom,
         Optional<OffsetDateTime> updatedTo,
         Optional<MediaKind> kind,
+        Optional<LocalDate> finishedFrom,
+        Optional<LocalDate> finishedTo,
+        Optional<UUID> authorId,
+        Optional<UUID> seriesId,
         Optional<UUID> userId,
         int page,
         int size,

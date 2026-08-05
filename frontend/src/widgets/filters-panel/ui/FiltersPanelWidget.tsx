@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Button, Divider, Drawer, Form, Grid, InputNumber, Select, Space, Switch, Tag, Typography, theme } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
+import { mediaKindOptions } from '@/shared/constants/mediaKind';
 import { resetFilters, setFilters } from '@/features/book/set-book-filters';
 import { isAdminLike } from '@/shared/lib/roles';
 
@@ -11,7 +12,10 @@ interface Props {
 }
 
 interface FiltersFormValues {
+  kind?: string;
   typeId?: string;
+  authorId?: string;
+  seriesId?: string;
   status?: string;
   favorite?: boolean;
   minRating?: number;
@@ -58,6 +62,8 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
+  const authors = useAppSelector((state) => state.authors.list);
+  const series = useAppSelector((state) => state.series.list);
   const users = useAppSelector((state) => state.users.list);
   const usersLoading = useAppSelector((state) => state.users.loading);
   const role = useAppSelector((state) => state.auth.user?.role);
@@ -70,7 +76,10 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   useEffect(() => {
     if (open) {
       form.setFieldsValue({
+        kind: filters.kind,
         typeId: filters.typeId,
+        authorId: filters.authorId,
+        seriesId: filters.seriesId,
         status: filters.status ?? '',
         favorite: filters.favorite ?? false,
         minRating: filters.minRating,
@@ -127,6 +136,10 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
           <StatusChips />
         </Form.Item>
 
+        <Form.Item name="kind" label="Вид">
+          <Select placeholder="Все виды" allowClear options={mediaKindOptions} />
+        </Form.Item>
+
         <Form.Item name="typeId" label="Тип">
           <Select
             placeholder="Все типы"
@@ -134,6 +147,26 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
             showSearch
             optionFilterProp="label"
             options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="authorId" label="Автор">
+          <Select
+            placeholder="Все авторы"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={authors.map((author) => ({ label: author.name, value: author.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="seriesId" label="Серия">
+          <Select
+            placeholder="Все серии"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={series.map((item) => ({ label: item.name, value: item.id }))}
           />
         </Form.Item>
 

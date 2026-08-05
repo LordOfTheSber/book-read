@@ -49,6 +49,22 @@ cd backend
 mvn spring-boot:run
 ```
 
+### Database migrations
+Flyway runs on startup and validates that every applied migration still matches the file it came from.
+A mismatch aborts the boot with `Migration checksum mismatch for migration version N` — the application
+refuses to run against a schema whose history it cannot trust.
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/library DB_USER=library DB_PASSWORD=...
+mvn flyway:info      # what is applied, and what is pending
+mvn flyway:repair    # realign checksums with the current files
+```
+
+`repair` only rewrites the history table; it does not re-run any SQL. Use it when the applied migration
+did the same thing as the current file (a comment was reformatted, a dev database saw an intermediate
+version of a branch). If the applied migration was genuinely different, the schema may be missing
+objects — on a development database it is safer to drop it and let all migrations run from scratch.
+
 ### Tests
 ```bash
 cd backend
@@ -94,6 +110,19 @@ DB_URL=jdbc:postgresql://localhost:5432/library DB_USER=library DB_PASSWORD=... 
 ```
 Playwright installs its own Chromium (`npx playwright install chromium`). If the machine already has one
 from another source, point at it with `E2E_CHROMIUM_PATH`.
+
+## Cover storage
+Covers live in object storage, not in the database — unlike avatars, which are stored as compressed blobs.
+
+| Variable | Default | Description |
+|---|---|---|
+| `STORAGE_TYPE` | `filesystem` | `filesystem` or `s3`. The filesystem backend needs no setup but is local to one replica. |
+| `STORAGE_PATH` | `storage` | Directory for the filesystem backend. |
+| `STORAGE_S3_BUCKET` | — | Bucket name; required when `STORAGE_TYPE=s3`. |
+| `STORAGE_S3_REGION` | `us-east-1` | Region. |
+| `STORAGE_S3_ENDPOINT` | — | Set for S3-compatible services (MinIO, Ceph); leave empty for AWS. |
+| `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY` | — | Leave empty to use the default AWS credential chain (instance role, environment, profile). |
+| `STORAGE_S3_PATH_STYLE` | `true` | Path-style addressing; usually required by non-AWS implementations. |
 
 ## Metrics and health
 Actuator is enabled on the application port:
