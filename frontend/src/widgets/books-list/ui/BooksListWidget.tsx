@@ -17,21 +17,16 @@ import {
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import {
-  DeleteOutlined,
-  EditOutlined,
-  LinkOutlined,
-  PlusOutlined,
-  StarFilled,
-  StarOutlined
-} from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
 import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
-import { progressUnitLabel } from '@/shared/constants/format';
-import { getMediaKindLabel, mediaKindMeta } from '@/shared/constants/mediaKind';
+import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
+import { CoverThumb } from '@/shared/ui/CoverThumb';
+import { KindTag } from '@/shared/ui/KindTag';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
+import { formatScore } from '@/shared/lib/format';
 import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
 import { useBooksListStyles } from './BooksListWidget.styles';
@@ -50,11 +45,6 @@ interface Props {
 }
 
 const dash = '—';
-
-const formatRating = (rating?: number | null) => {
-  if (rating === undefined || rating === null) return null;
-  return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
-};
 
 export const BooksListWidget: React.FC<Props> = ({
   viewMode,
@@ -78,7 +68,7 @@ export const BooksListWidget: React.FC<Props> = ({
 
   const confirmDelete = (item: LibraryItem) => {
     modal.confirm({
-      title: 'Удалить книгу?',
+      title: 'Удалить запись?',
       content: `«${item.title}» будет удалена без возможности восстановления.`,
       okText: 'Удалить',
       okButtonProps: { danger: true },
@@ -86,16 +76,16 @@ export const BooksListWidget: React.FC<Props> = ({
       onOk: async () => {
         try {
           await dispatch(deleteBookThunk(item.id)).unwrap();
-          message.success('Книга удалена');
+          message.success('Запись удалена');
         } catch (error) {
-          showRequestError(error, 'Не удалось удалить книгу');
+          showRequestError(error, 'Не удалось удалить запись');
         }
       }
     });
   };
 
   const renderRating = (rating?: number | null) => {
-    const value = formatRating(rating);
+    const value = formatScore(rating);
     if (!value) return <span style={styles.muted}>{dash}</span>;
     return (
       <span style={styles.rating}>
@@ -111,8 +101,14 @@ export const BooksListWidget: React.FC<Props> = ({
    */
   const advance = async (item: LibraryItem, delta: number) => {
     const current = item.progress?.current ?? 0;
+    // Позицию за краем шкалы сервер всё равно обрежет — незачем сохранять её в истории.
+    const target = item.progress?.total ? Math.min(current + delta, item.progress.total) : current + delta;
+    if (target === current) {
+      message.info('Шкала уже пройдена до конца');
+      return;
+    }
     try {
-      await addSession(item.id, { fromPosition: current, toPosition: current + delta });
+      await addSession(item.id, { fromPosition: current, toPosition: target });
       await dispatch(loadBooks(filters)).unwrap();
     } catch (error) {
       showRequestError(error, 'Не удалось отметить прогресс');
@@ -122,20 +118,31 @@ export const BooksListWidget: React.FC<Props> = ({
   const renderProgress = (item: LibraryItem) => {
     const progress = item.progress;
     if (!progress || progress.percent === undefined || progress.percent === null) return null;
-    const unit = progress.unit ? progressUnitLabel[progress.unit] : '';
+    const unitKey = resolveProgressUnit(item);
+    const unit = progressUnitLabel[unitKey];
+    // Шаг зависит от единицы: «+10 томов» из списка никто не отмечает.
+    const step = progressQuickSteps[unitKey][0];
+    const complete = progress.percent === 100;
+
     return (
       <div style={styles.progressBlock} onClick={(e) => e.stopPropagation()}>
         <Progress
           percent={progress.percent}
           size="small"
-          status={progress.behindSchedule ? 'exception' : 'normal'}
-          format={() => `${progress.current ?? 0}/${progress.total} ${unit}`}
+          showInfo={false}
+          status={complete ? 'success' : progress.behindSchedule ? 'exception' : 'normal'}
+          style={styles.progressBar}
         />
-        {canEdit && item.status === 'READING' && (
-          <Button size="small" type="link" style={styles.advanceButton} onClick={() => advance(item, 10)}>
-            +10 {unit}
-          </Button>
-        )}
+        <div style={styles.progressMeta}>
+          <Typography.Text type="secondary" style={styles.progressText}>
+            {`${progress.current ?? 0}/${progress.total} ${unit}`}
+          </Typography.Text>
+          {canEdit && item.status === 'READING' && !complete && (
+            <Button size="small" type="link" style={styles.advanceButton} onClick={() => advance(item, step)}>
+              {`+${step}`}
+            </Button>
+          )}
+        </div>
       </div>
     );
   };
@@ -191,36 +198,45 @@ export const BooksListWidget: React.FC<Props> = ({
   const columns: ColumnsType<LibraryItem> = useMemo(
     () => [
       {
-        title: 'Книга',
+        title: 'Произведение',
         dataIndex: 'title',
         sorter: true,
-        width: '32%',
+        width: '34%',
         render: (_: string, item) => (
-          <div style={styles.titleCell}>
-            <div style={styles.titleRow}>
-              {/* Иконка вида: иначе сериал и книга в списке выглядят одинаково. */}
-              <Tooltip title={getMediaKindLabel(item.kind)}>
-                <span style={styles.mutedIcon}>{mediaKindMeta[item.kind]?.icon}</span>
-              </Tooltip>
-              {item.favorite && (
-                <Tooltip title="В избранном">
-                  <StarFilled style={styles.favoriteIcon} />
-                </Tooltip>
+          <div style={styles.titleWrap}>
+            {/* Обложка в списке: раздел 1 роадмапа ради неё и делался, а таблица её не показывала. */}
+            <CoverThumb
+              src={item.hasCover ? coverUrl(item.id, item.updatedAt) : undefined}
+              title={item.title}
+              kind={item.kind}
+              width={36}
+              height={50}
+              style={styles.rowCover}
+            />
+            <div style={styles.titleCell}>
+              <div style={styles.titleRow}>
+                {/* Значок вида: иначе сериал и книга в списке выглядят одинаково. */}
+                <KindTag kind={item.kind} iconOnly />
+                {item.favorite && (
+                  <Tooltip title="В избранном">
+                    <StarFilled style={styles.favoriteIcon} />
+                  </Tooltip>
+                )}
+                <Typography.Text strong ellipsis={{ tooltip: item.title }}>
+                  {item.title}
+                </Typography.Text>
+              </div>
+              {renderAuthors(item) && (
+                <Typography.Text type="secondary" ellipsis={{ tooltip: renderAuthors(item) ?? undefined }} style={styles.altTitle}>
+                  {renderAuthors(item)}
+                </Typography.Text>
               )}
-              <Typography.Text strong ellipsis={{ tooltip: item.title }}>
-                {item.title}
-              </Typography.Text>
+              {item.altTitle && (
+                <Typography.Text type="secondary" ellipsis={{ tooltip: item.altTitle }} style={styles.altTitle}>
+                  {item.altTitle}
+                </Typography.Text>
+              )}
             </div>
-            {renderAuthors(item) && (
-              <Typography.Text type="secondary" ellipsis={{ tooltip: renderAuthors(item) ?? undefined }} style={styles.altTitle}>
-                {renderAuthors(item)}
-              </Typography.Text>
-            )}
-            {item.altTitle && (
-              <Typography.Text type="secondary" ellipsis={{ tooltip: item.altTitle }} style={styles.altTitle}>
-                {item.altTitle}
-              </Typography.Text>
-            )}
           </div>
         )
       },
@@ -325,7 +341,7 @@ export const BooksListWidget: React.FC<Props> = ({
           <Typography.Text type="secondary">
             {hasActiveFilters
               ? 'Попробуйте смягчить фильтры или изменить запрос.'
-              : 'Добавьте первую книгу — она появится здесь.'}
+              : 'Добавьте первую запись — книгу, сериал или подкаст.'}
           </Typography.Text>
         </Space>
       }
@@ -335,7 +351,7 @@ export const BooksListWidget: React.FC<Props> = ({
       ) : (
         canEdit && (
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-            Добавить книгу
+            Добавить запись
           </Button>
         )
       )}
@@ -387,30 +403,37 @@ export const BooksListWidget: React.FC<Props> = ({
                 hoverable={canEdit}
                 onClick={canEdit ? () => onEdit(item) : undefined}
                 cover={
-                  item.hasCover ? (
-                    <img
-                      src={coverUrl(item.id, item.updatedAt)}
-                      alt={`Обложка: ${item.title}`}
+                  // Заглушка обязательна: иначе карточки с обложкой выше остальных на 200 пикселей.
+                  <div style={styles.coverWrap}>
+                    <CoverThumb
+                      src={item.hasCover ? coverUrl(item.id, item.updatedAt) : undefined}
+                      title={item.title}
+                      kind={item.kind}
+                      width="100%"
+                      height={200}
+                      topOnly
                       style={styles.cardCover}
-                      loading="lazy"
                     />
-                  ) : undefined
+                    <div style={styles.coverBadges}>
+                      <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
+                        {getStatusLabel(item.status)}
+                      </Tag>
+                      {item.favorite && (
+                        <Tooltip title="В избранном">
+                          <span style={styles.favoriteBadge}>
+                            <StarFilled />
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
                 }
               >
                 <div style={styles.cardTop}>
-                  <Space size={6}>
-                    <Tooltip title={getMediaKindLabel(item.kind)}>
-                      <span style={styles.mutedIcon}>{mediaKindMeta[item.kind]?.icon}</span>
-                    </Tooltip>
-                    <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
-                      {getStatusLabel(item.status)}
-                    </Tag>
-                  </Space>
-                  {item.favorite ? (
-                    <StarFilled style={styles.favoriteIcon} />
-                  ) : (
-                    <StarOutlined style={styles.mutedIcon} />
-                  )}
+                  <KindTag kind={item.kind} />
+                  {/* Прочерк вместо оценки уместен в таблице, где у столбца есть заголовок;
+                      в карточке он читается как ошибка, поэтому пустое место остаётся пустым. */}
+                  {item.rating !== undefined && item.rating !== null && renderRating(item.rating)}
                 </div>
 
                 <Typography.Paragraph strong ellipsis={{ rows: 2, tooltip: item.title }} style={styles.cardTitle}>
@@ -448,10 +471,7 @@ export const BooksListWidget: React.FC<Props> = ({
                 {renderProgress(item)}
 
                 <div style={styles.cardFooter}>
-                  <Space size={12}>
-                    {renderRating(item.rating)}
-                    <span style={styles.muted}>{formatDate(item.updatedAt)}</span>
-                  </Space>
+                  <span style={styles.muted}>{formatDate(item.updatedAt)}</span>
                   <div onClick={(e) => e.stopPropagation()}>{renderActions(item)}</div>
                 </div>
 

@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
-import { Card, Empty, Input, List, Space, Spin, Typography } from 'antd';
+import { Empty, Input, List, Skeleton, Space, Typography, theme } from 'antd';
+import { BookOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Quote } from '@/shared/types/library';
 import { searchQuotes } from '@/entities/book';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
+
+/** Экранирование для сборки регулярного выражения из пользовательского запроса. */
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Поиск по выпискам всей библиотеки. Цитату обычно помнят дословно, а книгу — нет,
  * поэтому вход здесь через текст, а не через карточку.
  */
 export const QuotesPage: React.FC = () => {
+  const { token } = theme.useToken();
   const showRequestError = useRequestError();
   const [query, setQuery] = useState('');
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -38,9 +44,29 @@ export const QuotesPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
+  /** Подсветка совпадения: без неё в длинной цитате непонятно, за что она нашлась. */
+  const highlight = (text: string) => {
+    const needle = debouncedQuery.trim();
+    if (!needle) return text;
+    const parts = text.split(new RegExp(`(${escapeRegExp(needle)})`, 'gi'));
+    return parts.map((part, index) =>
+      part.toLowerCase() === needle.toLowerCase() ? (
+        <mark key={index} style={{ background: token.colorWarningBg, color: 'inherit', padding: '0 2px' }}>
+          {part}
+        </mark>
+      ) : (
+        <React.Fragment key={index}>{part}</React.Fragment>
+      )
+    );
+  };
+
+  const subtitle = quotes.length
+    ? `${pluralize(quotes.length, ['выписка', 'выписки', 'выписок'])} по запросу «${debouncedQuery.trim()}»`
+    : 'Поиск по цитатам и пометкам всей библиотеки';
+
   return (
     <Space direction="vertical" size={16} style={{ display: 'flex' }}>
-      <PageHeader title="Выписки" subtitle="Поиск по цитатам и пометкам всей библиотеки" />
+      <PageHeader title="Выписки" subtitle={subtitle} />
 
       <Input.Search
         allowClear
@@ -51,32 +77,71 @@ export const QuotesPage: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <Spin />
-        </div>
+        <Space direction="vertical" size={12} style={{ display: 'flex' }}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              style={{
+                padding: 16,
+                borderRadius: token.borderRadiusLG,
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`
+              }}
+            >
+              <Skeleton active paragraph={{ rows: 2 }} title={false} />
+            </div>
+          ))}
+        </Space>
       ) : (
         <List
           dataSource={quotes}
+          split={false}
           locale={{
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={query.trim() ? 'Ничего не найдено' : 'Введите запрос, чтобы искать по выпискам'}
+                description={
+                  query.trim()
+                    ? 'Ничего не найдено — попробуйте другую формулировку'
+                    : 'Введите запрос, чтобы искать по выпискам'
+                }
               />
             )
           }}
           renderItem={(quote) => (
-            <List.Item>
-              <Card style={{ width: '100%' }} styles={{ body: { padding: 16 } }}>
-                <Typography.Paragraph style={{ marginBottom: 8 }}>«{quote.text}»</Typography.Paragraph>
-                <Space size={12} wrap>
-                  <Typography.Text strong>{quote.itemTitle}</Typography.Text>
+            <List.Item style={{ paddingInline: 0 }}>
+              <div
+                style={{
+                  width: '100%',
+                  padding: 16,
+                  borderRadius: token.borderRadiusLG,
+                  background: token.colorBgContainer,
+                  border: `1px solid ${token.colorBorderSecondary}`
+                }}
+              >
+                <Typography.Paragraph
+                  style={{
+                    marginBottom: 12,
+                    paddingInlineStart: 12,
+                    borderInlineStart: `3px solid ${token.colorPrimaryBorder}`,
+                    fontSize: 15,
+                    fontStyle: 'italic',
+                    whiteSpace: 'pre-line'
+                  }}
+                >
+                  {highlight(quote.text)}
+                </Typography.Paragraph>
+                <Space size={12} wrap style={{ paddingInlineStart: 15 }}>
+                  <Space size={6}>
+                    <BookOutlined style={{ color: token.colorTextTertiary }} />
+                    <Typography.Text strong>{quote.itemTitle}</Typography.Text>
+                  </Space>
                   {quote.position !== undefined && quote.position !== null && (
-                    <Typography.Text type="secondary">с. {quote.position}</Typography.Text>
+                    <Typography.Text type="secondary">{`с. ${quote.position}`}</Typography.Text>
                   )}
                   {quote.note && <Typography.Text type="secondary">{quote.note}</Typography.Text>}
                 </Space>
-              </Card>
+              </div>
             </List.Item>
           )}
         />

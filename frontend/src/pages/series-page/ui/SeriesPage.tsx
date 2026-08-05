@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Button, Form, Input, Progress, Typography } from 'antd';
+import { Button, Form, Input, Progress, Space, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -58,16 +58,23 @@ export const SeriesPage: React.FC = () => {
         width: 220,
         render: (completed: number, series) =>
           series.itemCount > 0 ? (
-            <div>
+            <Space direction="vertical" size={2} style={{ display: 'flex' }}>
               <Progress
                 percent={Math.round((completed / series.itemCount) * 100)}
                 size="small"
-                format={() => `${completed} из ${series.itemCount}`}
+                showInfo={false}
+                status={completed >= series.itemCount ? 'success' : 'normal'}
+                style={{ margin: 0 }}
               />
-              <Button type="link" style={{ padding: 0 }} onClick={() => showBooksOf(series)}>
-                Показать части
-              </Button>
-            </div>
+              <Space size={10} wrap>
+                <Typography.Text type="secondary" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {`${completed} из ${series.itemCount} пройдено`}
+                </Typography.Text>
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => showBooksOf(series)}>
+                  Показать части
+                </Button>
+              </Space>
+            </Space>
           ) : (
             <Typography.Text type="secondary">ничего нет</Typography.Text>
           )

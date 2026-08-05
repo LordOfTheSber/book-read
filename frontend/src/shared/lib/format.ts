@@ -38,6 +38,12 @@ export const formatMs = (value?: number | null) => {
   return value >= 1000 ? `${(value / 1000).toFixed(2)} с` : `${Math.round(value)} мс`;
 };
 
+/** Оценка без лишнего нуля: 7 остаётся семёркой, 7.5 — семёркой с половиной. */
+export const formatScore = (value?: number | null) => {
+  if (value === undefined || value === null) return null;
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+};
+
 export const calculateUsed = (total?: number | null, free?: number | null) =>
   total !== undefined && total !== null && free !== undefined && free !== null ? total - free : undefined;
 

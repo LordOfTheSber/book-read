@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { Button, Divider, Drawer, Form, Grid, InputNumber, Select, Space, Switch, Tag, Typography, theme } from 'antd';
+import { Button, Col, Divider, Drawer, Form, Grid, InputNumber, Row, Select, Space, Switch, Tag, Typography, theme } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
-import { mediaKindOptions } from '@/shared/constants/mediaKind';
+import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
 import { resetFilters, setFilters } from '@/features/book/set-book-filters';
 import { isAdminLike } from '@/shared/lib/roles';
 
@@ -137,7 +137,14 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         </Form.Item>
 
         <Form.Item name="kind" label="Вид">
-          <Select placeholder="Все виды" allowClear options={mediaKindOptions} />
+          {/* Со значками вид узнаётся так же, как в списке: подписи читать не нужно. */}
+          <Select
+            placeholder="Все виды"
+            allowClear
+            showSearch
+            optionFilterProp="title"
+            options={mediaKindOptionsWithIcon}
+          />
         </Form.Item>
 
         <Form.Item name="typeId" label="Тип">
@@ -175,21 +182,34 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
           Оценка
         </Typography.Text>
-        <Space.Compact style={{ width: '100%', marginTop: 8 }}>
-          <Form.Item name="minRating" noStyle>
-            <InputNumber min={0} max={10} step={0.5} placeholder="от" style={{ width: '50%' }} />
-          </Form.Item>
-          <Form.Item name="maxRating" noStyle>
-            <InputNumber min={0} max={10} step={0.5} placeholder="до" style={{ width: '50%' }} />
-          </Form.Item>
-        </Space.Compact>
+        <Row gutter={8} style={{ marginTop: 8 }}>
+          <Col span={12}>
+            <Form.Item
+              name="minRating"
+              dependencies={['maxRating']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  // Диапазон «от 9 до 3» молча возвращал пустую выдачу — теперь он не применяется.
+                  validator: (_, value) => {
+                    const max = getFieldValue('maxRating');
+                    return value === undefined || value === null || max === undefined || max === null || value <= max
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('«От» больше, чем «до»'));
+                  }
+                })
+              ]}
+            >
+              <InputNumber min={0} max={10} step={0.5} placeholder="от" style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="maxRating" dependencies={['minRating']}>
+              <InputNumber min={0} max={10} step={0.5} placeholder="до" style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        <Form.Item
-          name="favorite"
-          label="Только избранное"
-          valuePropName="checked"
-          style={{ marginTop: 24 }}
-        >
+        <Form.Item name="favorite" label="Только избранное" valuePropName="checked" style={{ marginTop: 8 }}>
           <Switch />
         </Form.Item>
 

@@ -97,6 +97,37 @@ describe('ProgressTab', () => {
     expect(await screen.findByText(/Отставание от графика/)).toBeInTheDocument();
   });
 
+  /**
+   * Шаг быстрого продвижения обязан идти от единицы прогресса: «+50» — это про страницы,
+   * а у сериала счёт идёт эпизодами, и «+50 эп.» отметить некому.
+   */
+  it('предлагает шаги по единице прогресса, а не всегда страничные', async () => {
+    const anime = item({
+      kind: 'ANIME',
+      progress: { current: 3, total: 24, unit: 'EPISODES', percent: 13, remaining: 21, behindSchedule: false }
+    });
+
+    renderWithStore(<ProgressTab item={anime} onProgressChanged={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: '+1 эп.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+5 эп.' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /\+50/ })).not.toBeInTheDocument();
+  });
+
+  /** Иначе в истории оседает заход за краем шкалы: сервер обрежет прогресс, но не заход. */
+  it('не отправляет заход за пределы объёма', async () => {
+    const almostDone = item({
+      progress: { current: 395, total: 400, unit: 'PAGES', percent: 99, remaining: 5, behindSchedule: false }
+    });
+
+    renderWithStore(<ProgressTab item={almostDone} onProgressChanged={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '+25 стр.' }));
+
+    await waitFor(() => expect(addSession).toHaveBeenCalled());
+    expect(addSession.mock.calls[0][1]).toMatchObject({ fromPosition: 395, toPosition: 400 });
+  });
+
   /** Без шкалы полосу рисовать не из чего — вместо неё подсказка, что делать. */
   it('подсказывает задать объём, когда шкалы нет', async () => {
     renderWithStore(<ProgressTab item={item({ progress: { behindSchedule: false } })} onProgressChanged={vi.fn()} />);
