@@ -50,6 +50,14 @@ describe('ReviewBlock', () => {
     expect(screen.queryByText(/Финал/)).not.toBeInTheDocument();
   });
 
+  /** Общая оценка — главное число вкладки, и раньше блок её вообще не показывал. */
+  it('показывает общую оценку отдельно от критериев', () => {
+    renderWithStore(<ReviewBlock item={item({ rating: 8.5, ratingPlot: 9 })} />);
+
+    expect(screen.getByText('8.5')).toBeInTheDocument();
+    expect(screen.getByText('/ 10')).toBeInTheDocument();
+  });
+
   it('подсказывает, где написать отзыв, когда его нет', () => {
     renderWithStore(<ReviewBlock item={item()} />);
 

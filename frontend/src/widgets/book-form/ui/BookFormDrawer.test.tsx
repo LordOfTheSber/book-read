@@ -115,6 +115,23 @@ describe('BookFormDrawer', () => {
     expect(await screen.findByText('Лю Цысинь')).toBeInTheDocument();
   });
 
+  /**
+   * Раздел 4 роадмапа собран на одной вкладке: отзыв и правится, и показывается там же.
+   * Раньше поля жили на «Карточке», а вкладка «Отзыв» умела только показывать.
+   */
+  it('сохраняет отзыв, написанный на вкладке «Оценка и отзыв»', async () => {
+    updateBook.mockResolvedValue({ ...existing });
+
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Оценка и отзыв' }));
+    await userEvent.type(screen.getByLabelText('Отзыв'), 'Лучшая твёрдая фантастика');
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toMatchObject({ review: 'Лучшая твёрдая фантастика' });
+  });
+
   it('оставляет панель открытой, если сохранение не удалось', async () => {
     createBook.mockRejectedValue(new Error('Сервер недоступен'));
     const onClose = vi.fn();

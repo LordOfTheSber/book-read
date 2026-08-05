@@ -13,7 +13,7 @@ interface StatusMeta {
   /** Пресет Ant Design: сам подстраивается под светлую/тёмную тему. */
   color: string;
   /** Токен темы для акцентов вне Tag (плитки, полоски). */
-  token: 'colorInfo' | 'colorSuccess' | 'colorWarning' | 'colorError' | 'colorTextTertiary';
+  token: 'colorInfo' | 'colorSuccess' | 'colorError' | 'colorTextTertiary' | 'purple6';
 }
 
 export const statusMeta: Record<ReadingStatus, StatusMeta> = {
@@ -21,7 +21,9 @@ export const statusMeta: Record<ReadingStatus, StatusMeta> = {
   // Отложено и заброшено — разные состояния: к первому собираются вернуться.
   ON_HOLD: { label: 'Отложено', color: 'default', token: 'colorTextTertiary' },
   COMPLETED: { label: 'Завершено', color: 'success', token: 'colorSuccess' },
-  PLANNED: { label: 'В планах', color: 'warning', token: 'colorWarning' },
+  // Оранжевый «warning» читался как предупреждение, хотя план — нейтральное намерение;
+  // заодно золотой остался за избранным, и плитки «В планах» и «Избранное» перестали совпадать.
+  PLANNED: { label: 'В планах', color: 'purple', token: 'purple6' },
   DROPPED: { label: 'Заброшено', color: 'error', token: 'colorError' }
 };
 

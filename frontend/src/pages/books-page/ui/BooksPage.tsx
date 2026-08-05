@@ -13,6 +13,7 @@ import { loadSeries } from '@/entities/series';
 import { loadUsers } from '@/entities/user';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
+import { pluralize } from '@/shared/lib/plural';
 import { statusMeta } from '@/shared/constants/status';
 import { getMediaKindLabel } from '@/shared/constants/mediaKind';
 import { LibraryItem, MediaKind, ReadingStatus } from '@/shared/types/library';
@@ -32,6 +33,7 @@ const readViewMode = (): BooksViewMode => {
 export const BooksPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
+  const items = useAppSelector((state) => state.books.items);
   const total = useAppSelector((state) => state.books.total);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const authors = useAppSelector((state) => state.authors.list);
@@ -51,7 +53,18 @@ export const BooksPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<BooksViewMode>(readViewMode);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<LibraryItem | null>(null);
+  const [editingSnapshot, setEditingSnapshot] = useState<LibraryItem | null>(null);
+
+  /**
+   * Открытая карточка берётся из стора по идентификатору, а не хранится снимком: заход на вкладке
+   * «Прогресс» перечитывает список, и снимок оставлял на экране позицию до этого захода —
+   * следующее «+10» отсчитывалось от старого числа. Снимок остаётся запасным вариантом на случай,
+   * когда запись выпала из текущей страницы выдачи.
+   */
+  const editing = useMemo(
+    () => items.find((item) => item.id === editingSnapshot?.id) ?? editingSnapshot,
+    [items, editingSnapshot]
+  );
 
   // Загрузка данных живёт на странице: виджеты только отображают состояние.
   useEffect(() => {
@@ -127,20 +140,22 @@ export const BooksPage: React.FC = () => {
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 
   const openCreate = () => {
-    setEditing(null);
+    setEditingSnapshot(null);
     setFormOpen(true);
   };
 
   const openEdit = (item: LibraryItem) => {
-    setEditing(item);
+    setEditingSnapshot(item);
     setFormOpen(true);
   };
 
   const statusCount = (status: ReadingStatus) => analytics?.statusBreakdown?.[status] ?? 0;
 
   const subtitle = analytics
-    ? `${analytics.totalItems} книг в коллекции · ${statusCount('READING')} в процессе`
-    : 'Личная коллекция книг и статусы чтения';
+    ? `${pluralize(analytics.totalItems, ['запись', 'записи', 'записей'])} в коллекции · ${statusCount(
+        'READING'
+      )} в процессе`
+    : 'Личный дневник прочитанного и просмотренного';
 
   return (
     <div style={styles.page}>
@@ -150,7 +165,7 @@ export const BooksPage: React.FC = () => {
         actions={
           canEdit && (
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
-              Добавить книгу
+              Добавить запись
             </Button>
           )
         }

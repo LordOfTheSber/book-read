@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { App, Button, Empty, Form, Input, InputNumber, List, Space, Typography } from 'antd';
+import { App, Button, Col, Empty, Form, Input, InputNumber, List, Row, Space, Tooltip, Typography, theme } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { LibraryItem, Quote } from '@/shared/types/library';
 import { addQuote, deleteQuote, fetchQuotes } from '@/entities/book';
+import { progressPositionLabel, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
 import { useRequestError } from '@/shared/lib/errors';
 
 interface Props {
@@ -18,11 +19,17 @@ interface QuoteFormValues {
 /** Выписки одного произведения: цитата с номером страницы и личной пометкой. */
 export const QuotesTab: React.FC<Props> = ({ item }) => {
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const showRequestError = useRequestError();
   const [form] = Form.useForm<QuoteFormValues>();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // У сериала цитату привязывают к эпизоду, у аудиокниги — к минуте: подпись идёт от единицы.
+  const unitKey = resolveProgressUnit(item);
+  const positionLabel = progressPositionLabel[unitKey];
+  const unitShort = progressUnitLabel[unitKey];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,52 +76,77 @@ export const QuotesTab: React.FC<Props> = ({ item }) => {
         <Form.Item name="text" label="Цитата" rules={[{ required: true, message: 'Текст обязателен' }]}>
           <Input.TextArea rows={3} placeholder="Не отвечайте! Не отвечайте! Не отвечайте!" />
         </Form.Item>
-        <Space align="end" wrap>
-          <Form.Item name="position" label="Страница">
-            <InputNumber min={0} style={{ width: 120 }} />
-          </Form.Item>
-          <Form.Item name="note" label="Пометка" style={{ flex: 1, minWidth: 200 }}>
-            <Input placeholder="Зачем запомнилось" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={saving}>
-              Добавить
-            </Button>
-          </Form.Item>
-        </Space>
+        {/* Раньше строка собиралась из Space: он оборачивает детей в блоки, и «Пометка» не тянулась. */}
+        <Row gutter={[12, 0]} align="bottom">
+          <Col xs={10} sm={6}>
+            <Form.Item name="position" label={`Номер ${positionLabel}`} style={{ marginBottom: 0 }}>
+              <InputNumber min={0} style={{ width: '100%' }} placeholder="128" />
+            </Form.Item>
+          </Col>
+          <Col xs={14} sm={12}>
+            <Form.Item name="note" label="Пометка" style={{ marginBottom: 0 }}>
+              <Input placeholder="Зачем запомнилось" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Button type="primary" htmlType="submit" loading={saving} block>
+                Добавить
+              </Button>
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
 
       <List
         loading={loading}
         dataSource={quotes}
-        locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Выписок пока нет" /> }}
+        locale={{
+          emptyText: (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Выписок пока нет — сохраните первую цитату" />
+          )
+        }}
         renderItem={(quote) => (
           <List.Item
             actions={[
-              <Button
-                key="delete"
-                type="text"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => remove(quote.id)}
-                aria-label="Удалить выписку"
-              />
+              <Tooltip key="delete" title="Удалить выписку">
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={() => remove(quote.id)}
+                  aria-label="Удалить выписку"
+                />
+              </Tooltip>
             ]}
           >
-            <List.Item.Meta
-              title={
-                <Typography.Paragraph style={{ marginBottom: 0 }}>«{quote.text}»</Typography.Paragraph>
-              }
-              description={
-                <Space size={8} wrap>
-                  {quote.position !== undefined && quote.position !== null && (
-                    <Typography.Text type="secondary">с. {quote.position}</Typography.Text>
-                  )}
-                  {quote.note && <Typography.Text type="secondary">{quote.note}</Typography.Text>}
-                </Space>
-              }
-            />
+            <div style={{ minWidth: 0 }}>
+              {/* Вертикальная линия слева — обычный типографский признак цитаты. */}
+              <Typography.Paragraph
+                style={{
+                  marginBottom: quote.position || quote.note ? 8 : 0,
+                  paddingInlineStart: 12,
+                  borderInlineStart: `3px solid ${token.colorBorder}`,
+                  fontStyle: 'italic',
+                  whiteSpace: 'pre-line'
+                }}
+              >
+                {quote.text}
+              </Typography.Paragraph>
+              <Space size={12} wrap style={{ paddingInlineStart: 15 }}>
+                {quote.position !== undefined && quote.position !== null && (
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    {`${unitShort} ${quote.position}`}
+                  </Typography.Text>
+                )}
+                {quote.note && (
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    {quote.note}
+                  </Typography.Text>
+                )}
+              </Space>
+            </div>
           </List.Item>
         )}
       />

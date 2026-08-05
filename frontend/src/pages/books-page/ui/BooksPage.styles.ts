@@ -20,7 +20,8 @@ export const useBooksPageStyles = () => {
       accents: {
         reading: token.colorInfo,
         completed: token.colorSuccess,
-        planned: token.colorWarning,
+        // «В планах» и «Избранное» раньше красились одним и тем же colorWarning и сливались.
+        planned: token.purple6,
         favorite: token.colorWarning
       }
     }),

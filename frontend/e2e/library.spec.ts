@@ -20,7 +20,7 @@ const registerNewUser = async (page: import('@playwright/test').Page) => {
   await page.getByRole('button', { name: 'Создать аккаунт' }).click();
 
   // Кнопка есть и в шапке страницы, и в заглушке пустого списка.
-  await expect(page.getByRole('button', { name: 'Добавить книгу' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Добавить запись' }).first()).toBeVisible();
   return username;
 };
 
@@ -40,7 +40,7 @@ test('добавленная книга появляется в списке и 
   await registerNewUser(page);
   const title = `Задача трёх тел ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить книгу' }).first().click();
+  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
   await page.getByLabel('Название', { exact: true }).fill(title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
 
@@ -60,7 +60,7 @@ test('введённый в карточке автор заводится и п
   const author = `Лю Цысинь ${Date.now()}`;
   const title = `Тёмный лес ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить книгу' }).first().click();
+  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
   await page.getByLabel('Название', { exact: true }).fill(title);
   await page.getByLabel('Авторы').fill(author);
   await page.keyboard.press('Enter');

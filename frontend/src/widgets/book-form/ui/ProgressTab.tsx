@@ -1,12 +1,31 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { App, Alert, Button, DatePicker, Empty, Form, InputNumber, List, Progress, Space, Tag, Typography } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  App,
+  Alert,
+  Button,
+  Col,
+  DatePicker,
+  Empty,
+  Form,
+  InputNumber,
+  List,
+  Progress,
+  Row,
+  Space,
+  Tag,
+  Timeline,
+  Tooltip,
+  Typography,
+  theme
+} from 'antd';
+import { CheckCircleOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { LibraryItem, ReadingLog, ReadingSession } from '@/shared/types/library';
 import { addSession, deleteSession, fetchLogs, fetchSessions } from '@/entities/book';
-import { progressUnitLabel } from '@/shared/constants/format';
+import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
 import { ratingCriteria } from '@/shared/constants/ratingCriteria';
 import { formatDate } from '@/shared/lib/date';
+import { formatScore } from '@/shared/lib/format';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
 
@@ -26,15 +45,22 @@ interface SessionFormValues {
 /** Заходы, прогресс и история перечитываний одного произведения. */
 export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const showRequestError = useRequestError();
   const [form] = Form.useForm<SessionFormValues>();
   const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [logs, setLogs] = useState<ReadingLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** Какая именно кнопка занята: иначе крутится сразу весь ряд быстрых шагов. */
+  const [pendingStep, setPendingStep] = useState<number | null>(null);
 
   const progress = item.progress;
-  const unit = progress?.unit ? progressUnitLabel[progress.unit] : '';
+  // Единица нужна и без заданной шкалы: подписи кнопок и полей не должны быть пустыми.
+  const unitKey = resolveProgressUnit(item);
+  const unit = progressUnitLabel[unitKey];
+  const hasScale = progress?.percent !== undefined && progress.percent !== null;
+  const done = hasScale && progress?.percent === 100;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +79,18 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const totals = useMemo(() => {
+    const minutes = sessions.reduce((sum, session) => sum + (session.durationMinutes ?? 0), 0);
+    const covered = sessions.reduce(
+      (sum, session) =>
+        session.toPosition !== undefined && session.toPosition !== null
+          ? sum + Math.max(0, session.toPosition - (session.fromPosition ?? 0))
+          : sum,
+      0
+    );
+    return { minutes, covered };
+  }, [sessions]);
 
   const submitSession = async (values: SessionFormValues) => {
     setSaving(true);
@@ -77,7 +115,18 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
   /** Быстрое «+N»: заход от текущей позиции, без открытия формы. */
   const quickAdvance = async (delta: number) => {
     const current = progress?.current ?? 0;
-    await submitSession({ fromPosition: current, toPosition: current + delta });
+    // Сервер и так обрежет позицию по объёму, но тогда в истории останется заход за краем шкалы.
+    const target = progress?.total ? Math.min(current + delta, progress.total) : current + delta;
+    if (target === current) {
+      message.info('Шкала уже пройдена до конца');
+      return;
+    }
+    setPendingStep(delta);
+    try {
+      await submitSession({ fromPosition: current, toPosition: target });
+    } finally {
+      setPendingStep(null);
+    }
   };
 
   const removeSession = async (sessionId: string) => {
@@ -90,20 +139,50 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
     }
   };
 
+  const heroPanel: React.CSSProperties = {
+    padding: 16,
+    borderRadius: token.borderRadiusLG,
+    border: `1px solid ${done ? token.colorSuccessBorder : token.colorBorderSecondary}`,
+    background: token.colorFillQuaternary
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ display: 'flex' }}>
-      {progress?.percent !== undefined && progress.percent !== null ? (
-        <div>
-          <Progress percent={progress.percent} status={progress.behindSchedule ? 'exception' : 'active'} />
-          <Typography.Text type="secondary">
-            {progress.current ?? 0} из {progress.total} {unit}
-            {progress.remaining ? `, осталось ${progress.remaining}` : ''}
-          </Typography.Text>
+      {hasScale ? (
+        <div style={heroPanel}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+            <Typography.Text style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {progress?.percent}%
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {`${progress?.current ?? 0} из ${progress?.total} ${unit}`}
+            </Typography.Text>
+          </div>
+          <Progress
+            percent={progress?.percent}
+            showInfo={false}
+            // Бесконечная анимация «active» шла даже у дочитанной книги и только отвлекала.
+            status={done ? 'success' : progress?.behindSchedule ? 'exception' : 'normal'}
+            style={{ marginBottom: 4 }}
+          />
+          <Space size={12} wrap>
+            {progress?.remaining ? (
+              <Typography.Text type="secondary">{`осталось ${progress.remaining} ${unit}`}</Typography.Text>
+            ) : (
+              <Typography.Text type="success">
+                <CheckCircleOutlined /> Шкала пройдена
+              </Typography.Text>
+            )}
+            {item.attempt > 1 && <Tag bordered={false}>{`Проход №${item.attempt}`}</Tag>}
+          </Space>
         </div>
       ) : (
-        <Typography.Text type="secondary">
-          Укажите объём в карточке — тогда появится полоса прогресса.
-        </Typography.Text>
+        <Alert
+          type="info"
+          showIcon
+          message="Укажите объём в карточке — тогда появится полоса прогресса."
+          description={`Объём измеряется в единицах «${unit}»: их задаёт вид произведения или поле «Единица прогресса».`}
+        />
       )}
 
       {progress?.dailyNorm !== undefined && progress.dailyNorm !== null && (
@@ -125,69 +204,142 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
         />
       )}
 
-      <Space wrap>
-        <Button size="small" onClick={() => quickAdvance(10)} loading={saving}>
-          +10 {unit}
-        </Button>
-        <Button size="small" onClick={() => quickAdvance(50)} loading={saving}>
-          +50 {unit}
-        </Button>
-      </Space>
+      <div>
+        <Typography.Text
+          type="secondary"
+          style={{ display: 'block', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}
+        >
+          Быстро отметить
+        </Typography.Text>
+        <Space wrap style={{ marginTop: 8 }}>
+          {/* Шаги зависят от единицы: «+50 эпизодов» — не тот жест, что «+50 страниц». */}
+          {progressQuickSteps[unitKey].map((step) => (
+            <Button
+              key={step}
+              onClick={() => quickAdvance(step)}
+              loading={pendingStep === step}
+              disabled={saving && pendingStep !== step}
+            >
+              {`+${step} ${unit}`}
+            </Button>
+          ))}
+        </Space>
+      </div>
 
-      <Form form={form} layout="inline" onFinish={submitSession} style={{ rowGap: 8 }}>
-        <Form.Item name="sessionDate" label="Дата">
-          <DatePicker placeholder="сегодня" style={{ width: 140 }} />
-        </Form.Item>
-        <Form.Item name="fromPosition" label="с">
-          <InputNumber min={0} style={{ width: 90 }} />
-        </Form.Item>
-        <Form.Item name="toPosition" label="по">
-          <InputNumber min={0} style={{ width: 90 }} />
-        </Form.Item>
-        <Form.Item name="durationMinutes" label="мин.">
-          <InputNumber min={1} style={{ width: 90 }} />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={saving}>
-            Записать
-          </Button>
-        </Form.Item>
+      <Form form={form} layout="vertical" onFinish={submitSession}>
+        <Row gutter={[12, 0]} align="bottom">
+          <Col xs={12} sm={6}>
+            <Form.Item name="sessionDate" label="Дата" style={{ marginBottom: 12 }}>
+              <DatePicker placeholder="сегодня" format="DD.MM.YYYY" style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={12} sm={5}>
+            <Form.Item name="fromPosition" label="С позиции" style={{ marginBottom: 12 }}>
+              <InputNumber min={0} style={{ width: '100%' }} suffix={unit} />
+            </Form.Item>
+          </Col>
+          <Col xs={12} sm={5}>
+            <Form.Item
+              name="toPosition"
+              label="По позицию"
+              style={{ marginBottom: 12 }}
+              dependencies={['fromPosition']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  // Ту же проверку делает сервер; здесь она экономит запрос и объясняет ошибку сразу.
+                  validator: (_, value) =>
+                    value === undefined || value === null || value >= (getFieldValue('fromPosition') ?? 0)
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Конец не может быть раньше начала'))
+                })
+              ]}
+            >
+              <InputNumber min={0} style={{ width: '100%' }} suffix={unit} />
+            </Form.Item>
+          </Col>
+          <Col xs={12} sm={4}>
+            <Form.Item name="durationMinutes" label="Время" style={{ marginBottom: 12 }} tooltip="Сколько длился заход">
+              <InputNumber min={1} style={{ width: '100%' }} suffix="мин." />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={4}>
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button type="primary" htmlType="submit" loading={saving && pendingStep === null} block>
+                Записать
+              </Button>
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
 
       <div>
-        <Typography.Text strong>История заходов</Typography.Text>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <Typography.Text strong>История заходов</Typography.Text>
+          {sessions.length > 0 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {[
+                pluralize(sessions.length, ['заход', 'захода', 'заходов']),
+                totals.covered > 0 ? `${totals.covered} ${unit}` : null,
+                totals.minutes > 0 ? `${totals.minutes} мин.` : null
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </Typography.Text>
+          )}
+        </div>
         <List
           loading={loading}
           size="small"
           dataSource={sessions}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Заходов пока нет" /> }}
-          renderItem={(session) => (
-            <List.Item
-              actions={[
-                <Button
-                  key="delete"
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => removeSession(session.id)}
-                  aria-label="Удалить заход"
-                />
-              ]}
-            >
-              <Space wrap>
-                <Typography.Text>{formatDate(session.sessionDate)}</Typography.Text>
-                {session.toPosition !== undefined && session.toPosition !== null && (
-                  <Typography.Text type="secondary">
-                    {session.fromPosition ?? 0}–{session.toPosition} {unit}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Заходов пока нет — отметьте первый кнопкой выше"
+              />
+            )
+          }}
+          renderItem={(session) => {
+            const covered =
+              session.toPosition !== undefined && session.toPosition !== null
+                ? Math.max(0, session.toPosition - (session.fromPosition ?? 0))
+                : null;
+            return (
+              <List.Item
+                actions={[
+                  <Tooltip key="delete" title="Удалить заход">
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={() => removeSession(session.id)}
+                      aria-label="Удалить заход"
+                    />
+                  </Tooltip>
+                ]}
+              >
+                <Space wrap size={10}>
+                  <Typography.Text style={{ minWidth: 108, display: 'inline-block' }}>
+                    {formatDate(session.sessionDate)}
                   </Typography.Text>
-                )}
-                {session.durationMinutes && (
-                  <Typography.Text type="secondary">{session.durationMinutes} мин.</Typography.Text>
-                )}
-              </Space>
-            </List.Item>
-          )}
+                  {covered !== null && (
+                    <Tag bordered={false} color="blue" style={{ marginInlineEnd: 0 }}>
+                      {`+${covered} ${unit}`}
+                    </Tag>
+                  )}
+                  {session.toPosition !== undefined && session.toPosition !== null && (
+                    <Typography.Text type="secondary">
+                      {`${session.fromPosition ?? 0}–${session.toPosition} ${unit}`}
+                    </Typography.Text>
+                  )}
+                  {session.durationMinutes ? (
+                    <Typography.Text type="secondary">{`${session.durationMinutes} мин.`}</Typography.Text>
+                  ) : null}
+                </Space>
+              </List.Item>
+            );
+          }}
         />
       </div>
 
@@ -195,36 +347,42 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
       {logs.length > 0 && (
         <div>
           <Typography.Text strong>Проходы</Typography.Text>
-          <List
-            size="small"
-            dataSource={logs}
-            renderItem={(log) => (
-              <List.Item>
-                <Space wrap>
-                  <Tag color={log.finishedAt ? 'success' : 'processing'}>Проход {log.attempt}</Tag>
-                  <Typography.Text type="secondary">
-                    {formatDate(log.startedAt)}
-                    {log.finishedAt ? ` — ${formatDate(log.finishedAt)}` : ' — идёт'}
-                  </Typography.Text>
-                  {log.durationDays !== undefined && log.durationDays !== null && (
-                    <Typography.Text type="secondary">
-                      {pluralize(log.durationDays, ['день', 'дня', 'дней'])}
+          <Timeline
+            style={{ marginTop: 12 }}
+            items={logs.map((log) => {
+              const scores = ratingCriteria
+                .filter((criterion) => log[criterion.key] !== undefined && log[criterion.key] !== null)
+                .map((criterion) => `${criterion.label.toLowerCase()} ${formatScore(log[criterion.key])}`);
+              return {
+                key: log.id,
+                color: log.finishedAt ? 'green' : 'blue',
+                dot: log.finishedAt ? <CheckCircleOutlined /> : <SyncOutlined spin />,
+                children: (
+                  <Space direction="vertical" size={2} style={{ display: 'flex' }}>
+                    <Space wrap size={8}>
+                      <Typography.Text strong>{`Проход №${log.attempt}`}</Typography.Text>
+                      {log.rating !== undefined && log.rating !== null && (
+                        <Tag bordered={false} color="gold" style={{ marginInlineEnd: 0 }}>
+                          {`оценка ${formatScore(log.rating)}`}
+                        </Tag>
+                      )}
+                    </Space>
+                    <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                      {formatDate(log.startedAt)}
+                      {log.finishedAt ? ` — ${formatDate(log.finishedAt)}` : ' — идёт'}
+                      {log.durationDays !== undefined && log.durationDays !== null
+                        ? `, ${pluralize(log.durationDays, ['день', 'дня', 'дней'])}`
+                        : ''}
                     </Typography.Text>
-                  )}
-                  {log.rating !== undefined && log.rating !== null && (
-                    <Typography.Text type="secondary">оценка {log.rating}</Typography.Text>
-                  )}
-                  {/* История оценок: при перечитывании они обычно расходятся. */}
-                  {ratingCriteria
-                    .filter((criterion) => log[criterion.key] !== undefined && log[criterion.key] !== null)
-                    .map((criterion) => (
-                      <Typography.Text type="secondary" key={criterion.key}>
-                        {criterion.label.toLowerCase()} {log[criterion.key]}
+                    {scores.length > 0 && (
+                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                        {scores.join(' · ')}
                       </Typography.Text>
-                    ))}
-                </Space>
-              </List.Item>
-            )}
+                    )}
+                  </Space>
+                )
+              };
+            })}
           />
         </div>
       )}
