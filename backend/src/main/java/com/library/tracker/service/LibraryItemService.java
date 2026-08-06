@@ -4,12 +4,16 @@ import com.library.tracker.domain.Author;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.Quote;
 import com.library.tracker.domain.ReadingStatus;
+import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.ReadingLogRepository;
 import com.library.tracker.repository.SourceRepository;
+import com.library.tracker.repository.TagRepository;
+import com.library.tracker.service.metadata.CoverDownloadService;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.storage.StoredObject;
 import com.library.tracker.web.dto.AuthorSummary;
@@ -19,7 +23,12 @@ import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
 import com.library.tracker.web.dto.ProgressResponse;
 import com.library.tracker.web.dto.SourceCountResponse;
+import com.library.tracker.web.dto.TagSummary;
 import com.library.tracker.web.dto.TypeCountResponse;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -61,9 +70,12 @@ public class LibraryItemService {
     private final LibraryItemRepository libraryItemRepository;
     private final BookTypeRepository bookTypeRepository;
     private final SourceRepository sourceRepository;
+    private final TagRepository tagRepository;
     private final AuthorService authorService;
+    private final TagService tagService;
     private final SeriesService seriesService;
     private final ObjectStorage objectStorage;
+    private final CoverDownloadService coverDownloadService;
     private final ReadingProgressService readingProgressService;
     private final ReadingLogRepository readingLogRepository;
     private final Clock clock;
@@ -76,9 +88,12 @@ public class LibraryItemService {
         Page<LibraryItem> page =
                 libraryItemRepository.findAll( buildSpecification( filter, currentUser, isAdmin ), pageRequest );
 
-        // Авторы — коллекция, и в графе страницы их нет: забираем одним запросом на всю страницу.
+        // Авторы и теги — коллекции, и в графе страницы их нет: забираем по одному запросу
+        // на всю страницу, а не по запросу на строку.
         Map<UUID, List<AuthorSummary>> authorsByItem = loadAuthors( page.getContent() );
-        return page.map( item -> toResponse( item, authorsByItem.get( item.getId() ) ) );
+        Map<UUID, List<TagSummary>> tagsByItem = loadTags( page.getContent() );
+        return page.map( item -> toResponse( item, authorsByItem.get( item.getId() ),
+                                             tagsByItem.get( item.getId() ) ) );
     }
 
     private Map<UUID, List<AuthorSummary>> loadAuthors( List<LibraryItem> items ) {
@@ -97,6 +112,22 @@ public class LibraryItemService {
                                                                 Collectors.toList() ) ) );
     }
 
+    private Map<UUID, List<TagSummary>> loadTags( List<LibraryItem> items ) {
+        if ( items.isEmpty() ) {
+            return Map.of();
+        }
+        List<UUID> ids = items.stream().map( LibraryItem::getId ).toList();
+        return tagRepository.findTagsByItemIds( ids ).stream()
+                            .collect( Collectors.groupingBy(
+                                    TagRepository.ItemTagRow::getItemId,
+                                    Collectors.mapping( row -> TagSummary.builder()
+                                                                         .id( row.getTagId() )
+                                                                         .name( row.getName() )
+                                                                         .color( row.getColor() )
+                                                                         .build(),
+                                                        Collectors.toList() ) ) );
+    }
+
     public Optional<LibraryItemResponse> getById( UUID id ) {
         User currentUser = userService.getCurrentUser();
         boolean isAdmin = userService.isAdmin( currentUser );
@@ -107,8 +138,9 @@ public class LibraryItemService {
 
     public LibraryItemResponse create( LibraryItemRequest request ) {
         LibraryItem item = new LibraryItem();
-        applyRequest( item, request );
+        // Владелец проставляется до разбора запроса: теги личные, и без него их некуда завести.
         item.setCreatedBy( userService.getCurrentUser() );
+        applyRequest( item, request );
         LibraryItem saved = libraryItemRepository.save( item );
         // Книгу можно завести сразу в статусе «читаю»: тогда проход открывается тут же.
         readingProgressService.applyStatusTransition( saved, null, LocalDate.now( clock ) );
@@ -157,6 +189,21 @@ public class LibraryItemService {
         }
         item.setCoverKey( key );
         item.setCoverContentType( file.getContentType() );
+        return toResponse( libraryItemRepository.save( item ) );
+    }
+
+    /**
+     * Обложка из внешнего каталога. Скачивает сервер: у каталогов нет CORS-заголовков, поэтому
+     * браузер до картинки не дотянется, а ссылка проверяется по списку разрешённых хостов.
+     */
+    public LibraryItemResponse updateCoverFromUrl( UUID id, String url ) {
+        LibraryItem item = requireWritable( id, "Вы можете менять только свои книги" );
+        CoverDownloadService.Downloaded downloaded = coverDownloadService.download( url );
+
+        String key = coverKey( id );
+        objectStorage.put( key, downloaded.content(), downloaded.contentType() );
+        item.setCoverKey( key );
+        item.setCoverContentType( downloaded.contentType() );
         return toResponse( libraryItemRepository.save( item ) );
     }
 
@@ -275,6 +322,9 @@ public class LibraryItemService {
         item.setTitle( request.getTitle() );
         item.setAltTitle( request.getAltTitle() );
         item.setAuthors( new LinkedHashSet<>( authorService.resolveByNames( request.getAuthorNames() ) ) );
+        // Теги личные, поэтому заводятся владельцу записи, а не тому, кто её правит:
+        // администратор, поправивший чужую карточку, не должен забирать её теги себе.
+        item.setTags( new LinkedHashSet<>( tagService.resolveByNames( request.getTagNames(), tagOwner( item ) ) ) );
         item.setSeries( seriesService.resolveByName( request.getSeriesName() ).orElse( null ) );
         // Номер без серии смысла не имеет и только путал бы сортировку по циклу.
         item.setOrderInSeries( item.getSeries() != null ? request.getOrderInSeries() : null );
@@ -301,6 +351,10 @@ public class LibraryItemService {
         item.setRatingEnding( request.getRatingEnding() );
         item.setRating( request.getRating() );
         item.setFavorite( request.isFavorite() );
+        item.setWishlist( request.isWishlist() );
+        item.setPrice( request.getPrice() );
+        item.setCurrency( trimToNull( request.getCurrency() ) );
+        item.setPurchaseUrl( trimToNull( request.getPurchaseUrl() ) );
         item.setStatus( request.getStatus() );
         if ( request.getTypeId() != null ) {
             BookType type = bookTypeRepository.findById( request.getTypeId() )
@@ -329,16 +383,32 @@ public class LibraryItemService {
             }
             if ( filter.query().isPresent() ) {
                 String like = "%" + filter.query().get().toLowerCase() + "%";
-                // Поиск заодно идёт по автору: искать книгу по фамилии — первое, чего от него ждут.
+                /*
+                 * Поиск идёт по названию, автору, тегам и выпискам: книгу ищут по фамилии,
+                 * по собственной пометке и по запомнившейся фразе примерно одинаково часто.
+                 * Форма условия — `lower(поле) like '%…%'` — выбрана под индексы pg_trgm из V14:
+                 * прежний поиск по двум полям не мог опереться ни на один из них.
+                 */
                 spec = spec.and( ( r, q, c ) -> {
                     if ( q != null ) {
                         q.distinct( true );
                     }
-                    return c.or(
+                    List<Predicate> matches = new java.util.ArrayList<>( List.of(
                             c.like( c.lower( r.get( "title" ) ), like ),
                             c.like( c.lower( r.get( "altTitle" ) ), like ),
-                            c.like( c.lower( r.join( "authors", jakarta.persistence.criteria.JoinType.LEFT )
-                                              .get( "name" ) ), like ) );
+                            c.like( c.lower( r.join( "authors", JoinType.LEFT ).get( "name" ) ), like ),
+                            c.like( c.lower( r.join( "tags", JoinType.LEFT ).get( "name" ) ), like ) ) );
+                    if ( q != null ) {
+                        // Выписки лежат отдельной таблицей и в join не годятся: их у книги десятки,
+                        // и выдача размножилась бы по числу совпавших цитат.
+                        Subquery<UUID> quoted = q.subquery( UUID.class );
+                        Root<Quote> quote = quoted.from( Quote.class );
+                        quoted.select( quote.get( "item" ).get( "id" ) )
+                              .where( c.or( c.like( c.lower( quote.get( "text" ) ), like ),
+                                            c.like( c.lower( quote.get( "note" ) ), like ) ) );
+                        matches.add( r.get( "id" ).in( quoted ) );
+                    }
+                    return c.or( matches.toArray( Predicate[]::new ) );
                 } );
             }
             if ( filter.typeId().isPresent() ) {
@@ -389,6 +459,15 @@ public class LibraryItemService {
             if ( filter.seriesId().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "series" ).get( "id" ), filter.seriesId().get() ) );
             }
+            if ( filter.tagId().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "tags" ).get( "id" ), filter.tagId().get() ) );
+            }
+            if ( filter.shelfId().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.join( "shelves" ).get( "id" ), filter.shelfId().get() ) );
+            }
+            if ( filter.wishlist().isPresent() ) {
+                spec = spec.and( ( r, q, c ) -> c.equal( r.get( "wishlist" ), filter.wishlist().get() ) );
+            }
             if ( filter.userId().isPresent() ) {
                 spec = spec.and( ( r, q, c ) -> c.equal( r.join( "createdBy" ).get( "id" ), filter.userId().get() ) );
             } else if ( !isAdmin ) {
@@ -399,7 +478,24 @@ public class LibraryItemService {
     }
 
     private LibraryItemResponse toResponse( LibraryItem item ) {
-        return toResponse( item, authorsOf( item ) );
+        return toResponse( item, authorsOf( item ), tagsOf( item ) );
+    }
+
+    /** Теги из самой сущности: одиночная выдача не пагинируется, лишний select тут не страшен. */
+    private List<TagSummary> tagsOf( LibraryItem item ) {
+        return item.getTags().stream()
+                   .sorted( Comparator.comparing( Tag::getName, String.CASE_INSENSITIVE_ORDER ) )
+                   .map( tag -> TagSummary.builder()
+                                          .id( tag.getId() )
+                                          .name( tag.getName() )
+                                          .color( tag.getColor() )
+                                          .build() )
+                   .toList();
+    }
+
+    /** Владелец тегов записи: у новой это тот, кто её заводит, у чужой — тот, кто её завёл. */
+    private User tagOwner( LibraryItem item ) {
+        return item.getCreatedBy() != null ? item.getCreatedBy() : userService.getCurrentUser();
     }
 
     /** Авторы из самой сущности: годится там, где она загружена вместе с ними. */
@@ -414,7 +510,7 @@ public class LibraryItemService {
                    .toList();
     }
 
-    private LibraryItemResponse toResponse( LibraryItem item, List<AuthorSummary> authors ) {
+    private LibraryItemResponse toResponse( LibraryItem item, List<AuthorSummary> authors, List<TagSummary> tags ) {
         return LibraryItemResponse.builder()
                                   .id( item.getId() )
                                   .kind( item.getKind() )
@@ -426,6 +522,7 @@ public class LibraryItemService {
                                   .sourceName( item.getSource() != null ? item.getSource().getName() : null )
                                   .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
                                   .authors( authors != null ? authors : List.of() )
+                                  .tags( tags != null ? tags : List.of() )
                                   .seriesId( item.getSeries() != null ? item.getSeries().getId() : null )
                                   .seriesName( item.getSeries() != null ? item.getSeries().getName() : null )
                                   .orderInSeries( item.getOrderInSeries() )
@@ -455,6 +552,10 @@ public class LibraryItemService {
                                   .ratingEnding( item.getRatingEnding() )
                                   .rating( item.getRating() )
                                   .favorite( item.isFavorite() )
+                                  .wishlist( item.isWishlist() )
+                                  .price( item.getPrice() )
+                                  .currency( item.getCurrency() )
+                                  .purchaseUrl( item.getPurchaseUrl() )
                                   .status( item.getStatus() )
                                   .createdAt( toOffsetDateTime( item.getCreatedAt() ) )
                                   .updatedAt( toOffsetDateTime( item.getUpdatedAt() ) )

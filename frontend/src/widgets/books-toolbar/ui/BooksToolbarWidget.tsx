@@ -22,6 +22,8 @@ interface Props {
   onRemoveFilter: (key: string) => void;
   onResetFilters: () => void;
   isMobile: boolean;
+  /** Умные полки: панель их только размещает, всё остальное — внутри виджета. */
+  smartShelves?: React.ReactNode;
 }
 
 export const BooksToolbarWidget: React.FC<Props> = ({
@@ -35,7 +37,8 @@ export const BooksToolbarWidget: React.FC<Props> = ({
   activeFilters,
   onRemoveFilter,
   onResetFilters,
-  isMobile
+  isMobile,
+  smartShelves
 }) => {
   const { token } = theme.useToken();
   const [draft, setDraft] = useState(search);
@@ -83,7 +86,7 @@ export const BooksToolbarWidget: React.FC<Props> = ({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-          placeholder="Поиск по названию"
+          placeholder="Поиск по названию, автору, тегам и выпискам"
           size="large"
           style={{ flex: '1 1 260px', minWidth: 200 }}
         />
@@ -103,6 +106,8 @@ export const BooksToolbarWidget: React.FC<Props> = ({
               Фильтры
             </Button>
           </Badge>
+
+          {smartShelves}
         </div>
 
         {!isMobile && (

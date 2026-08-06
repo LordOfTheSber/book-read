@@ -6,7 +6,9 @@ import com.library.tracker.security.JwtAuthenticationFilter;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.AuthorService;
 import com.library.tracker.service.BookTypeService;
+import com.library.tracker.service.BulkItemService;
 import com.library.tracker.service.DataExportService;
+import com.library.tracker.service.DuplicateDetectionService;
 import com.library.tracker.service.LibraryItemService;
 import com.library.tracker.service.MonitoringMetricsSnapshotService;
 import com.library.tracker.service.MonitoringSettingsService;
@@ -16,8 +18,13 @@ import com.library.tracker.service.ReadingProgressService;
 import com.library.tracker.service.RequestMetricsService;
 import com.library.tracker.service.SeriesService;
 import com.library.tracker.service.SessionService;
+import com.library.tracker.service.ShelfService;
+import com.library.tracker.service.SmartShelfService;
 import com.library.tracker.service.SourceService;
+import com.library.tracker.service.TagService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.service.importing.LibraryImportService;
+import com.library.tracker.service.metadata.ExternalMetadataService;
 
 import java.util.List;
 import java.util.Set;
@@ -66,7 +73,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         SessionSettingsController.class,
         ReadingProgressController.class,
         QuoteController.class,
-        ExportController.class
+        ExportController.class,
+        TagController.class,
+        ShelfController.class,
+        SmartShelfController.class,
+        MetadataController.class,
+        LibraryImportController.class
 } )
 @Import( { SecurityConfig.class, ControllerSecurityMatrixTest.FilterConfiguration.class } )
 class ControllerSecurityMatrixTest {
@@ -109,6 +121,27 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private QuoteService quoteService;
+
+    @MockBean
+    private TagService tagService;
+
+    @MockBean
+    private ShelfService shelfService;
+
+    @MockBean
+    private SmartShelfService smartShelfService;
+
+    @MockBean
+    private ExternalMetadataService externalMetadataService;
+
+    @MockBean
+    private LibraryImportService libraryImportService;
+
+    @MockBean
+    private DuplicateDetectionService duplicateDetectionService;
+
+    @MockBean
+    private BulkItemService bulkItemService;
 
     /** Контроллер прогресса берёт «сегодня» из бина часов. */
     @MockBean
@@ -235,6 +268,38 @@ class ControllerSecurityMatrixTest {
                 Endpoint.put( "/api/v1/items/" + ID + "/quotes/" + ID, "{\"text\":\"Цитата\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/items/" + ID + "/quotes/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/quotes", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/duplicates", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/bulk", "{\"itemIds\":[\"" + ID + "\"]}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/items/" + ID + "/cover-from-url",
+                              "{\"url\":\"https://covers.openlibrary.org/b/id/1-L.jpg\"}",
+                              SUPER_ADMIN, ADMIN, EDITOR, USER ),
+
+                // Организация библиотеки: теги, полки и умные полки личные, поэтому доступны
+                // всем ролям, а владелец проверяется в сервисе.
+                Endpoint.get( "/api/v1/tags", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/tags", "{\"name\":\"на лето\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/tags/" + ID, "{\"name\":\"на лето\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/tags/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves/" + ID + "/items", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/shelves", "{\"name\":\"Подарить\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/shelves/" + ID, "{\"name\":\"Подарить\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/shelves/" + ID + "/items", "{\"itemIds\":[\"" + ID + "\"]}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/shelves/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/smart-shelves", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/smart-shelves", "{\"name\":\"Непрочитанное\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/smart-shelves/" + ID, "{\"name\":\"Непрочитанное\"}",
+                              SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/smart-shelves/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+
+                // Ввод данных: поиск по каталогам и импорт своей библиотеки.
+                Endpoint.get( "/api/v1/metadata/search", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/imports/commit", "{\"rows\":[{\"title\":\"Название\"}]}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Справочники: читают все, правят редакторы, удаляют администраторы.
                 Endpoint.get( "/api/v1/types", SUPER_ADMIN, ADMIN, EDITOR, USER ),

@@ -15,7 +15,11 @@ vi.mock('@/entities/book/api/bookApi', () => ({
   updateBook: (...args: unknown[]) => updateBook(...args),
   deleteBook: vi.fn(),
   uploadCover: vi.fn(),
+  uploadCoverFromUrl: vi.fn(),
   deleteCover: vi.fn(),
+  bulkUpdateBooks: vi.fn(),
+  // Подсказка о дублях спрашивает сервер на каждый осмысленный ввод названия.
+  findDuplicates: vi.fn().mockResolvedValue([]),
   coverUrl: (id: string) => `/api/v1/items/${id}/cover`
 }));
 
@@ -32,6 +36,13 @@ vi.mock('@/entities/series/api/seriesApi', () => ({
   createSeries: vi.fn(),
   updateSeries: vi.fn(),
   deleteSeries: vi.fn()
+}));
+
+vi.mock('@/entities/tag/api/tagApi', () => ({
+  fetchTags: vi.fn().mockResolvedValue([]),
+  createTag: vi.fn(),
+  updateTag: vi.fn(),
+  deleteTag: vi.fn()
 }));
 
 const existing: LibraryItem = {

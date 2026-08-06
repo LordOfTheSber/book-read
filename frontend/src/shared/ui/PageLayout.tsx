@@ -25,6 +25,8 @@ const navItems: NavItem[] = [
   { key: 'authors', label: 'Авторы', path: '/authors' },
   { key: 'series', label: 'Серии', path: '/series' },
   { key: 'quotes', label: 'Выписки', path: '/quotes' },
+  { key: 'shelves', label: 'Полки', path: '/shelves' },
+  { key: 'import', label: 'Импорт', path: '/import' },
   { key: 'types', label: 'Типы', path: '/types' },
   { key: 'sources', label: 'Источники', path: '/sources' },
   { key: 'users', label: 'Пользователи', path: '/users', adminOnly: true },

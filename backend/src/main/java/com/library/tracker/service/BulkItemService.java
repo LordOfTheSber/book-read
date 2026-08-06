@@ -1,0 +1,136 @@
+package com.library.tracker.service;
+
+import com.library.tracker.domain.BookType;
+import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.ReadingStatus;
+import com.library.tracker.domain.Shelf;
+import com.library.tracker.domain.Tag;
+import com.library.tracker.domain.User;
+import com.library.tracker.repository.BookTypeRepository;
+import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ShelfRepository;
+import com.library.tracker.web.dto.BulkItemUpdateRequest;
+import com.library.tracker.web.dto.BulkItemUpdateResponse;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Массовые операции: проставить статус, тег или полку сразу нескольким записям. Без них
+ * разбор свежего импорта в полсотни строк превращается в полсотни открытых карточек.
+ * <p>
+ * Чужие записи не правятся и не роняют запрос: они возвращаются списком пропущенных, потому что
+ * выделение обычно делается по списку, а не поимённо.
+ */
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class BulkItemService {
+
+    private final LibraryItemRepository libraryItemRepository;
+    private final BookTypeRepository bookTypeRepository;
+    private final ShelfRepository shelfRepository;
+    private final TagService tagService;
+    private final UserService userService;
+    private final ReadingProgressService readingProgressService;
+    private final Clock clock;
+
+    public BulkItemUpdateResponse apply( BulkItemUpdateRequest request ) {
+        User currentUser = userService.getCurrentUser();
+        boolean isAdmin = userService.isAdmin( currentUser );
+
+        List<LibraryItem> items = libraryItemRepository.findAllById( request.getItemIds() );
+        List<UUID> skipped = new ArrayList<>( request.getItemIds() );
+
+        Set<Tag> addedTags = tagService.resolveByNames( request.getAddTagNames(), currentUser );
+        BookType type = resolveType( request.getTypeId() );
+        Shelf addToShelf = resolveOwnShelf( request.getAddToShelfId(), currentUser );
+        Shelf removeFromShelf = resolveOwnShelf( request.getRemoveFromShelfId(), currentUser );
+
+        List<LibraryItem> updated = new ArrayList<>();
+        for ( LibraryItem item : items ) {
+            if ( !isAdmin && !isOwnedBy( item, currentUser ) ) {
+                continue;
+            }
+            skipped.remove( item.getId() );
+            applyTo( item, request, addedTags, type );
+            updated.add( item );
+        }
+
+        libraryItemRepository.saveAll( updated );
+
+        if ( addToShelf != null ) {
+            addToShelf.getItems().addAll( updated );
+            shelfRepository.save( addToShelf );
+        }
+        if ( removeFromShelf != null ) {
+            removeFromShelf.getItems().removeAll( updated );
+            shelfRepository.save( removeFromShelf );
+        }
+
+        return BulkItemUpdateResponse.builder().updated( updated.size() ).skipped( skipped ).build();
+    }
+
+    private void applyTo( LibraryItem item, BulkItemUpdateRequest request, Set<Tag> addedTags, BookType type ) {
+        if ( request.getStatus() != null ) {
+            ReadingStatus previous = item.getStatus();
+            item.setStatus( request.getStatus() );
+            // Даты и проходы ведёт смена статуса — массовая правка не исключение,
+            // иначе «отметить прочитанным десять книг» оставило бы их без даты завершения.
+            readingProgressService.applyStatusTransition( item, previous, LocalDate.now( clock ) );
+        }
+        if ( request.getFavorite() != null ) {
+            item.setFavorite( request.getFavorite() );
+        }
+        if ( request.getWishlist() != null ) {
+            item.setWishlist( request.getWishlist() );
+        }
+        if ( type != null ) {
+            item.setType( type );
+        }
+        if ( !addedTags.isEmpty() ) {
+            Set<Tag> tags = new LinkedHashSet<>( item.getTags() );
+            tags.addAll( addedTags );
+            item.setTags( tags );
+        }
+        if ( request.getRemoveTagIds() != null && !request.getRemoveTagIds().isEmpty() ) {
+            Set<Tag> tags = new LinkedHashSet<>( item.getTags() );
+            tags.removeIf( tag -> request.getRemoveTagIds().contains( tag.getId() ) );
+            item.setTags( tags );
+        }
+    }
+
+    private BookType resolveType( UUID typeId ) {
+        if ( typeId == null ) {
+            return null;
+        }
+        return bookTypeRepository.findById( typeId )
+                                 .orElseThrow( () -> new IllegalArgumentException( "Type not found" ) );
+    }
+
+    private Shelf resolveOwnShelf( UUID shelfId, User currentUser ) {
+        if ( shelfId == null ) {
+            return null;
+        }
+        Shelf shelf = shelfRepository.findWithItemsById( shelfId )
+                                     .orElseThrow( () -> new IllegalArgumentException( "Полка не найдена" ) );
+        if ( shelf.getOwner() == null || !shelf.getOwner().getId().equals( currentUser.getId() ) ) {
+            throw new AccessDeniedException( "Вы можете править только свои полки" );
+        }
+        return shelf;
+    }
+
+    private boolean isOwnedBy( LibraryItem item, User user ) {
+        return item.getCreatedBy() != null && item.getCreatedBy().getId().equals( user.getId() );
+    }
+}

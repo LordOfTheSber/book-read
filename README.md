@@ -124,6 +124,32 @@ Covers live in object storage, not in the database — unlike avatars, which are
 | `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY` | — | Leave empty to use the default AWS credential chain (instance role, environment, profile). |
 | `STORAGE_S3_PATH_STYLE` | `true` | Path-style addressing; usually required by non-AWS implementations. |
 
+## External book catalogues
+`GET /api/v1/metadata/search?q=…` (or `&isbn=…`) proxies Open Library and Google Books and merges the
+two result sets. Requests go through the backend, not the browser: the catalogues send no CORS headers,
+and this keeps timeouts and the allow-list in one place.
+
+Covers are pulled server-side too (`PUT /api/v1/items/{id}/cover-from-url`). The URL comes from the
+client, so it is validated: HTTPS only, host must be on the allow-list, redirects are followed manually
+and re-checked against the same list. Without that the field would be a ready-made SSRF.
+
+| Variable | Default | Description |
+|---|---|---|
+| `METADATA_OPEN_LIBRARY_URL` | `https://openlibrary.org` | Base URL of the Open Library search API. |
+| `METADATA_OPEN_LIBRARY_COVERS_URL` | `https://covers.openlibrary.org` | Base URL used to build cover links. |
+| `METADATA_GOOGLE_BOOKS_URL` | `https://www.googleapis.com/books/v1` | Base URL of the Google Books API. |
+| `METADATA_COVER_HOSTS` | `covers.openlibrary.org,books.google.com,books.googleusercontent.com` | Hosts a cover may be fetched from. Everything else is rejected. |
+
+Deployments without outbound internet access can leave these unset: a catalogue that does not answer
+yields an empty result list rather than a failed request, and everything else keeps working.
+
+## Library import
+`POST /api/v1/imports/preview` parses a Goodreads, StoryGraph or LiveLib CSV export and answers with the
+parsed rows plus any matches already in the caller's library; nothing is written yet. `POST /api/v1/imports/commit`
+creates the rows the client sends back, skipping duplicates unless told otherwise.
+
+This is separate from `/api/v1/exports/**`, which is a whole-database backup for `SUPER_ADMIN` only.
+
 ## Metrics and health
 Actuator is enabled on the application port:
 

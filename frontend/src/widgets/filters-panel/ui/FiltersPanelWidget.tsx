@@ -16,8 +16,11 @@ interface FiltersFormValues {
   typeId?: string;
   authorId?: string;
   seriesId?: string;
+  tagId?: string;
+  shelfId?: string;
   status?: string;
   favorite?: boolean;
+  wishlist?: boolean;
   minRating?: number;
   maxRating?: number;
   userId?: string;
@@ -64,6 +67,8 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const authors = useAppSelector((state) => state.authors.list);
   const series = useAppSelector((state) => state.series.list);
+  const tags = useAppSelector((state) => state.tags.list);
+  const shelves = useAppSelector((state) => state.shelves.list);
   const users = useAppSelector((state) => state.users.list);
   const usersLoading = useAppSelector((state) => state.users.loading);
   const role = useAppSelector((state) => state.auth.user?.role);
@@ -80,8 +85,11 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         typeId: filters.typeId,
         authorId: filters.authorId,
         seriesId: filters.seriesId,
+        tagId: filters.tagId,
+        shelfId: filters.shelfId,
         status: filters.status ?? '',
         favorite: filters.favorite ?? false,
+        wishlist: filters.wishlist ?? false,
         minRating: filters.minRating,
         maxRating: filters.maxRating,
         userId: filters.userId
@@ -101,6 +109,7 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         // Пустые значения убираем из запроса, иначе уедут в URL как `status=`.
         status: values.status || undefined,
         favorite: values.favorite || undefined,
+        wishlist: values.wishlist || undefined,
         page: 0
       })
     );
@@ -177,6 +186,27 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
           />
         </Form.Item>
 
+        {/* Тег — контекст в дополнение к типу-жанру, полка — набор, собранный руками. */}
+        <Form.Item name="tagId" label="Тег">
+          <Select
+            placeholder="Все теги"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={tags.map((tag) => ({ label: `${tag.name} (${tag.itemCount})`, value: tag.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="shelfId" label="Полка">
+          <Select
+            placeholder="Все полки"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={shelves.map((shelf) => ({ label: `${shelf.name} (${shelf.itemCount})`, value: shelf.id }))}
+          />
+        </Form.Item>
+
         <Divider style={{ margin: '8px 0 16px' }} />
 
         <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -210,6 +240,11 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         </Row>
 
         <Form.Item name="favorite" label="Только избранное" valuePropName="checked" style={{ marginTop: 8 }}>
+          <Switch />
+        </Form.Item>
+
+        {/* «В планах» и «надо купить» — разные вопросы, поэтому и фильтр отдельный. */}
+        <Form.Item name="wishlist" label="Только список желаемого" valuePropName="checked">
           <Switch />
         </Form.Item>
 

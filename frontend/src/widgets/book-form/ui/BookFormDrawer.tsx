@@ -14,14 +14,15 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Tabs,
   Tooltip,
   Typography,
   theme
 } from 'antd';
-import { InfoCircleOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, SearchOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { LibraryItem, MediaKind, ProgressUnit } from '@/shared/types/library';
+import { ExternalBook, LibraryItem, MediaKind, ProgressUnit } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
 import {
   formatOptions,
@@ -34,11 +35,14 @@ import {
 } from '@/shared/constants/format';
 import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { createBookThunk, updateBookThunk } from '@/entities/book';
+import { createBookThunk, updateBookThunk, uploadCoverFromUrl } from '@/entities/book';
 import { loadAuthors } from '@/entities/author';
 import { loadSeries } from '@/entities/series';
+import { loadTags } from '@/entities/tag';
 import { useRequestError } from '@/shared/lib/errors';
+import { MetadataSearchModal } from '@/features/book/search-metadata';
 import { CoverField } from './CoverField';
+import { DuplicateHint } from './DuplicateHint';
 import { ProgressTab } from './ProgressTab';
 import { QuotesTab } from './QuotesTab';
 import { RatingTab } from './RatingTab';
@@ -78,6 +82,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const sources = useAppSelector((state) => state.sources.list);
   const authors = useAppSelector((state) => state.authors.list);
   const series = useAppSelector((state) => state.series.list);
+  const tags = useAppSelector((state) => state.tags.list);
   const filters = useAppSelector((state) => state.bookFilters);
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
@@ -86,11 +91,18 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const showRequestError = useRequestError();
   const [form] = Form.useForm();
   const [saving, setSaving] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  /**
+   * Обложка из каталога у новой записи ждёт сохранения: адреса, по которому её положить,
+   * до появления идентификатора попросту нет.
+   */
+  const [pendingCoverUrl, setPendingCoverUrl] = React.useState<string>();
 
   useEffect(() => {
     if (!open) return;
     dispatch(loadAuthors());
     dispatch(loadSeries());
+    dispatch(loadTags());
   }, [open, dispatch]);
 
   useEffect(() => {
@@ -102,6 +114,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         sourceId: editing.sourceId,
         // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
         authorNames: (editing.authors ?? []).map((author) => author.name),
+        tagNames: (editing.tags ?? []).map((tag) => tag.name),
         seriesName: editing.seriesName,
         startedAt: toDate(editing.startedAt),
         finishedAt: toDate(editing.finishedAt),
@@ -113,6 +126,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     } else {
       form.resetFields();
     }
+    setPendingCoverUrl(undefined);
   }, [open, editing, form]);
 
   const authorOptions = useMemo(
@@ -120,12 +134,48 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     [authors]
   );
   const seriesOptions = useMemo(() => series.map((item) => ({ label: item.name, value: item.name })), [series]);
+  const tagOptions = useMemo(() => tags.map((tag) => ({ label: tag.name, value: tag.name })), [tags]);
 
   // Заглушка обложки и подписи шкалы должны меняться вместе с вводом, а не после сохранения.
   const watchedTitle = Form.useWatch<string>('title', form);
   const watchedKind = Form.useWatch<MediaKind>('kind', form);
   const watchedFormat = Form.useWatch<LibraryItem['format']>('format', form);
   const watchedUnit = Form.useWatch<ProgressUnit>('progressUnit', form);
+  // Подсказка о дублях следит за вводом: сообщать о них после сохранения уже поздно.
+  const watchedIsbn = Form.useWatch<string>('isbn', form);
+
+  /**
+   * Находка каталога ложится в форму, а не сохраняется сама: год и число страниц у изданий
+   * расходятся, и последнее слово всё равно за пользователем.
+   */
+  const applyExternal = (book: ExternalBook) => {
+    const current = form.getFieldsValue();
+    form.setFieldsValue({
+      title: book.title,
+      altTitle: book.altTitle ?? current.altTitle,
+      authorNames: book.authorNames?.length ? book.authorNames : current.authorNames,
+      isbn: book.isbn ?? current.isbn,
+      publishedYear: book.publishedYear ?? current.publishedYear,
+      language: book.language ?? current.language,
+      pageCount: book.pageCount ?? current.pageCount,
+      // Объём — это шкала прогресса: у книги из каталога другого источника для неё нет.
+      progressTotal: current.progressTotal ?? book.pageCount
+    });
+    setPendingCoverUrl(book.coverUrl);
+    setSearchOpen(false);
+    message.success(book.coverUrl ? 'Карточка заполнена, обложка подтянется при сохранении' : 'Карточка заполнена');
+  };
+
+  /** Обложку из каталога забирает сервер: у каталогов нет CORS, из браузера её не скачать. */
+  const attachCoverFromCatalog = async (itemId: string) => {
+    if (!pendingCoverUrl) return;
+    try {
+      await uploadCoverFromUrl(itemId, pendingCoverUrl);
+    } catch {
+      // Запись уже сохранена — терять её из-за недоехавшей картинки нельзя.
+      message.warning('Запись сохранена, но обложку из каталога забрать не удалось');
+    }
+  };
 
   const effectiveUnit = resolveProgressUnit({
     kind: watchedKind ?? editing?.kind,
@@ -150,14 +200,17 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     try {
       if (editing) {
         await dispatch(updateBookThunk({ id: editing.id, payload })).unwrap();
+        await attachCoverFromCatalog(editing.id);
         message.success('Данные обновлены');
       } else {
-        await dispatch(createBookThunk(payload)).unwrap();
+        const created = await dispatch(createBookThunk(payload)).unwrap();
+        await attachCoverFromCatalog(created.id);
         message.success('Запись добавлена');
       }
-      // Списки могли пополниться новыми авторами и сериями, заведёнными по ходу сохранения.
+      // Списки могли пополниться новыми авторами, сериями и тегами, заведёнными по ходу сохранения.
       dispatch(loadAuthors({ force: true }));
       dispatch(loadSeries({ force: true }));
+      dispatch(loadTags({ force: true }));
       onClose();
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить запись');
@@ -200,12 +253,55 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
             tokenSeparators={[',']}
           />
         </Form.Item>
+        {/* Теги — контекст, а не жанр: жанр задаётся полем «Тип» из общего справочника. */}
+        <Form.Item name="tagNames" label="Теги" tooltip="Свободные пометки: «на лето», «перечитать»">
+          <Select
+            mode="tags"
+            allowClear
+            placeholder="Начните вводить пометку"
+            options={tagOptions}
+            tokenSeparators={[',']}
+          />
+        </Form.Item>
       </div>
     </div>
   );
 
+  /** Список желаемого отдельно от статуса «в планах»: «прочитать» и «купить» — разные вопросы. */
+  const wishlistBlock = (
+    <>
+      <SectionLabel hint="Отдельно от статуса «в планах»: это не «собираюсь прочитать», а «надо купить»">
+        Список желаемого
+      </SectionLabel>
+      <Row gutter={16}>
+        <Col xs={24} sm={6}>
+          <Form.Item name="wishlist" label="В желаемом" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Form.Item name="price" label="Цена">
+            <InputNumber min={0} step={10} style={{ width: '100%' }} placeholder="899" />
+          </Form.Item>
+        </Col>
+        <Col xs={12} sm={4}>
+          <Form.Item name="currency" label="Валюта">
+            <Input placeholder="RUB" maxLength={8} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Form.Item name="purchaseUrl" label="Ссылка на покупку">
+            <Input placeholder="https://…" maxLength={2048} />
+          </Form.Item>
+        </Col>
+      </Row>
+    </>
+  );
+
   const cardTab = (
     <Space direction="vertical" size={0} style={{ display: 'flex' }}>
+      {/* Дубли показываются до сохранения: сообщать о них после — уже поздно. */}
+      <DuplicateHint title={watchedTitle} isbn={watchedIsbn} excludeId={editing?.id} />
       {identityBlock}
 
       <SectionLabel hint="Вид задаёт единицу прогресса: у манги тома, у сериала эпизоды, у подкаста минуты">
@@ -295,6 +391,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
           </Form.Item>
         </Col>
       </Row>
+
+      {wishlistBlock}
 
       {/* Издательские поля нужны не всегда, поэтому лежат свёрнутыми и не мешают быстрому вводу. */}
       <Collapse
@@ -393,6 +491,12 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       destroyOnHidden
       width={isMobile ? '100%' : 760}
       styles={{ body: { paddingTop: 12 } }}
+      // Поиск по каталогам стоит в шапке: с него начинается ввод, а не заканчивается.
+      extra={
+        <Button icon={<SearchOutlined />} onClick={() => setSearchOpen(true)}>
+          Найти в каталогах
+        </Button>
+      }
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>
           <Button onClick={onClose}>Отмена</Button>
@@ -439,6 +543,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
           </Space>
         )}
       </Form>
+
+      <MetadataSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onPick={applyExternal} />
     </Drawer>
   );
 };

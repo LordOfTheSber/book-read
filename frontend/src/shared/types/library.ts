@@ -95,6 +95,147 @@ export interface BookType {
   updatedAt: string;
 }
 
+/** Свободная пометка в дополнение к типу: тип — жанр, тег — контекст. Личный, а не общий. */
+export interface Tag {
+  id: string;
+  name: string;
+  color?: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Тег внутри карточки: без счётчиков и дат. */
+export interface TagSummary {
+  id: string;
+  name: string;
+  color?: string;
+}
+
+/** Полка: именованный набор с составом, заданным вручную. */
+export interface Shelf {
+  id: string;
+  name: string;
+  description?: string;
+  isPublic: boolean;
+  itemCount: number;
+  ownerId?: string;
+  ownerUsername?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Произведение в составе полки: публично безопасный набор полей, без приватной заметки. */
+export interface ShelfItem {
+  id: string;
+  kind: MediaKind;
+  title: string;
+  altTitle?: string;
+  authorNames: string[];
+  hasCover: boolean;
+  rating?: number;
+  status: ReadingStatus;
+  review?: string;
+}
+
+/** Сохранённый фильтр умной полки: повторяет параметры выдачи, кроме страницы и размера. */
+export interface SavedFilter {
+  query?: string;
+  typeId?: string;
+  status?: ReadingStatus;
+  favorite?: boolean;
+  wishlist?: boolean;
+  minRating?: number;
+  maxRating?: number;
+  kind?: MediaKind;
+  finishedFrom?: string;
+  finishedTo?: string;
+  authorId?: string;
+  seriesId?: string;
+  tagId?: string;
+  shelfId?: string;
+  sort?: string;
+}
+
+export interface SmartShelf {
+  id: string;
+  name: string;
+  description?: string;
+  filter: SavedFilter;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Находка внешнего каталога: то, из чего собирается карточка одним нажатием. */
+export interface ExternalBook {
+  provider: 'OPEN_LIBRARY' | 'GOOGLE_BOOKS';
+  externalId?: string;
+  title: string;
+  altTitle?: string;
+  authorNames: string[];
+  isbn?: string;
+  publishedYear?: number;
+  language?: string;
+  pageCount?: number;
+  publisher?: string;
+  description?: string;
+  coverUrl?: string;
+}
+
+/** Похожая запись, уже лежащая в библиотеке. */
+export interface DuplicateCandidate {
+  id: string;
+  title: string;
+  authorNames: string[];
+  isbn?: string;
+  publishedYear?: number;
+  hasCover: boolean;
+  reason: 'ISBN' | 'TITLE';
+}
+
+/** Строка пользовательского импорта: ездит в обе стороны — в превью и обратно на заведение. */
+export interface ImportRow {
+  line: number;
+  title?: string;
+  authorNames?: string[];
+  isbn?: string;
+  publishedYear?: number;
+  pageCount?: number;
+  seriesName?: string;
+  rating?: number;
+  status?: ReadingStatus;
+  kind?: MediaKind;
+  startedAt?: string;
+  finishedAt?: string;
+  review?: string;
+  note?: string;
+  tagNames?: string[];
+  errors: string[];
+  duplicates: DuplicateCandidate[];
+}
+
+export interface ImportPreview {
+  fileName: string;
+  detectedSource: 'GOODREADS' | 'STORYGRAPH' | 'LIVELIB' | 'GENERIC';
+  totalRows: number;
+  validRows: number;
+  duplicateRows: number;
+  rows: ImportRow[];
+}
+
+export interface ImportResultSummary {
+  imported: number;
+  skippedAsDuplicate: number;
+  failed: number;
+  errors: string[];
+}
+
+/** Итог массовой правки: пропущенные перечисляются поимённо. */
+export interface BulkUpdateResult {
+  updated: number;
+  skipped: string[];
+}
+
 export interface LibraryItem {
   id: string;
   kind: MediaKind;
@@ -106,6 +247,7 @@ export interface LibraryItem {
   sourceName?: string;
   sourceUrl?: string;
   authors: AuthorSummary[];
+  tags: TagSummary[];
   seriesId?: string;
   seriesName?: string;
   orderInSeries?: number;
@@ -139,6 +281,11 @@ export interface LibraryItem {
   ratingCharacters?: number;
   ratingEnding?: number;
   favorite: boolean;
+  /** Список желаемого ведётся отдельно от статуса «в планах». */
+  wishlist: boolean;
+  price?: number;
+  currency?: string;
+  purchaseUrl?: string;
   status: ReadingStatus;
   createdAt: string;
   updatedAt: string;

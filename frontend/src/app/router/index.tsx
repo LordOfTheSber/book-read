@@ -8,6 +8,8 @@ import { SourcesPage } from '@/pages/sources-page';
 import { AuthorsPage } from '@/pages/authors-page';
 import { SeriesPage } from '@/pages/series-page';
 import { QuotesPage } from '@/pages/quotes-page';
+import { ShelvesPage } from '@/pages/shelves-page';
+import { ImportPage } from '@/pages/import-page';
 import { LoginPage } from '@/pages/login-page';
 import { RegisterPage } from '@/pages/register-page';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -62,6 +64,8 @@ const router = createBrowserRouter([
           { path: 'authors', element: <AuthorsPage /> },
           { path: 'series', element: <SeriesPage /> },
           { path: 'quotes', element: <QuotesPage /> },
+          { path: 'shelves', element: <ShelvesPage /> },
+          { path: 'import', element: <ImportPage /> },
           {
             path: 'users',
             element: <RequireAdmin />,

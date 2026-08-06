@@ -9,6 +9,8 @@ import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.ReadingLogRepository;
+import com.library.tracker.repository.TagRepository;
+import com.library.tracker.service.metadata.CoverDownloadService;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.web.dto.LibraryItemRequest;
 
@@ -48,13 +50,22 @@ class LibraryItemServiceTest {
     private SourceRepository sourceRepository;
 
     @Mock
+    private TagRepository tagRepository;
+
+    @Mock
     private AuthorService authorService;
+
+    @Mock
+    private TagService tagService;
 
     @Mock
     private SeriesService seriesService;
 
     @Mock
     private ObjectStorage objectStorage;
+
+    @Mock
+    private CoverDownloadService coverDownloadService;
 
     @Mock
     private ReadingProgressService readingProgressService;
@@ -66,9 +77,9 @@ class LibraryItemServiceTest {
     private UserService userService;
 
     private LibraryItemService newService() {
-        return new LibraryItemService( libraryItemRepository, bookTypeRepository, sourceRepository, authorService,
-                                       seriesService, objectStorage, readingProgressService, readingLogRepository,
-                                       FIXED_CLOCK, userService );
+        return new LibraryItemService( libraryItemRepository, bookTypeRepository, sourceRepository, tagRepository,
+                                       authorService, tagService, seriesService, objectStorage, coverDownloadService,
+                                       readingProgressService, readingLogRepository, FIXED_CLOCK, userService );
     }
 
     @Test
