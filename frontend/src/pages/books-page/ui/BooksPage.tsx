@@ -10,6 +10,8 @@ import { loadBookTypes } from '@/entities/book-type';
 import { loadSources } from '@/entities/source';
 import { loadAuthors } from '@/entities/author';
 import { loadSeries } from '@/entities/series';
+import { loadTags } from '@/entities/tag';
+import { loadShelves } from '@/entities/shelf';
 import { loadUsers } from '@/entities/user';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
@@ -21,6 +23,8 @@ import { BooksListWidget, type BooksViewMode } from '@/widgets/books-list';
 import { BooksToolbarWidget, type ActiveFilterChip } from '@/widgets/books-toolbar';
 import { FiltersPanelWidget } from '@/widgets/filters-panel';
 import { BookFormDrawer } from '@/widgets/book-form';
+import { BulkActionsBar } from '@/widgets/bulk-actions';
+import { SmartShelvesWidget } from '@/widgets/smart-shelves';
 import { useBooksPageStyles } from './BooksPage.styles';
 
 const VIEW_MODE_KEY = 'books-view-mode';
@@ -38,6 +42,8 @@ export const BooksPage: React.FC = () => {
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const authors = useAppSelector((state) => state.authors.list);
   const series = useAppSelector((state) => state.series.list);
+  const tags = useAppSelector((state) => state.tags.list);
+  const shelves = useAppSelector((state) => state.shelves.list);
   const users = useAppSelector((state) => state.users.list);
   const usersLoaded = useAppSelector((state) => state.users.loaded);
   const usersLoading = useAppSelector((state) => state.users.loading);
@@ -54,6 +60,8 @@ export const BooksPage: React.FC = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingSnapshot, setEditingSnapshot] = useState<LibraryItem | null>(null);
+  /** Выделение для массовых операций: живёт на странице, потому что панель действий над списком. */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   /**
    * Открытая карточка берётся из стора по идентификатору, а не хранится снимком: заход на вкладке
@@ -71,11 +79,23 @@ export const BooksPage: React.FC = () => {
     dispatch(loadBooks(filters));
   }, [dispatch, filters]);
 
+  /**
+   * Выделение переживает листание намеренно — отметить записи на двух страницах и применить
+   * действие разом это нормально. А вот смену фильтров оно переживать не должно: панель обещала
+   * применить правку к записям, которых в текущей выдаче уже нет.
+   */
+  const filterSignature = JSON.stringify({ ...filters, page: 0, size: 0, sort: '' });
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filterSignature]);
+
   useEffect(() => {
     dispatch(loadBookTypes());
     dispatch(loadSources());
     dispatch(loadAuthors());
     dispatch(loadSeries());
+    dispatch(loadTags());
+    dispatch(loadShelves());
   }, [dispatch]);
 
   useEffect(() => {
@@ -121,8 +141,19 @@ export const BooksPage: React.FC = () => {
       const name = series.find((item) => item.id === filters.seriesId)?.name ?? 'выбрана';
       chips.push({ key: 'seriesId', label: `Серия: ${name}` });
     }
+    if (filters.tagId) {
+      const name = tags.find((tag) => tag.id === filters.tagId)?.name ?? 'выбран';
+      chips.push({ key: 'tagId', label: `Тег: ${name}` });
+    }
+    if (filters.shelfId) {
+      const name = shelves.find((shelf) => shelf.id === filters.shelfId)?.name ?? 'выбрана';
+      chips.push({ key: 'shelfId', label: `Полка: ${name}` });
+    }
     if (filters.favorite) {
       chips.push({ key: 'favorite', label: 'Только избранное' });
+    }
+    if (filters.wishlist) {
+      chips.push({ key: 'wishlist', label: 'Список желаемого' });
     }
     if (filters.minRating !== undefined && filters.minRating !== null) {
       chips.push({ key: 'minRating', label: `Оценка от ${filters.minRating}` });
@@ -135,7 +166,7 @@ export const BooksPage: React.FC = () => {
       chips.push({ key: 'userId', label: `Пользователь: ${name}` });
     }
     return chips;
-  }, [filters, bookTypes, users, authors, series]);
+  }, [filters, bookTypes, users, authors, series, tags, shelves]);
 
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 
@@ -229,7 +260,15 @@ export const BooksPage: React.FC = () => {
         onRemoveFilter={(key) => dispatch(setFilters({ [key]: undefined, page: 0 } as Partial<BookFilterState>))}
         onResetFilters={() => dispatch(resetFilters())}
         isMobile={isMobile}
+        smartShelves={<SmartShelvesWidget />}
       />
+
+      {/* Панель массовых операций появляется только при выделении и не занимает места впустую. */}
+      {canEdit && selectedIds.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <BulkActionsBar selectedIds={selectedIds} onClearSelection={() => setSelectedIds([])} />
+        </div>
+      )}
 
       <BooksListWidget
         viewMode={viewMode}
@@ -239,6 +278,8 @@ export const BooksPage: React.FC = () => {
         onCreate={openCreate}
         hasActiveFilters={hasActiveFilters}
         onResetFilters={() => dispatch(resetFilters())}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
       />
 
       <FiltersPanelWidget open={filtersOpen} onClose={() => setFiltersOpen(false)} />

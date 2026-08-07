@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { LibraryItem, PageResponse } from '@/shared/types/library';
+import { BulkUpdateResult, DuplicateCandidate, LibraryItem, PageResponse, ReadingStatus } from '@/shared/types/library';
 
 export interface FetchBooksParams {
   page?: number;
@@ -14,7 +14,22 @@ export interface FetchBooksParams {
   maxRating?: number;
   authorId?: string;
   seriesId?: string;
+  tagId?: string;
+  shelfId?: string;
+  wishlist?: boolean;
   userId?: string;
+}
+
+export interface BulkUpdatePayload {
+  itemIds: string[];
+  status?: ReadingStatus;
+  favorite?: boolean;
+  wishlist?: boolean;
+  addTagNames?: string[];
+  removeTagIds?: string[];
+  typeId?: string;
+  addToShelfId?: string;
+  removeFromShelfId?: string;
 }
 
 export const fetchBooks = async (params: FetchBooksParams): Promise<PageResponse<LibraryItem>> => {
@@ -43,6 +58,23 @@ export const uploadCover = async (id: string, file: File) => {
   const { data } = await httpClient.put<LibraryItem>(`/items/${id}/cover`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
+  return data;
+};
+
+/** Обложку из каталога забирает сервер: у каталогов нет CORS, из браузера её не скачать. */
+export const uploadCoverFromUrl = async (id: string, url: string) => {
+  const { data } = await httpClient.put<LibraryItem>(`/items/${id}/cover-from-url`, { url });
+  return data;
+};
+
+export const bulkUpdateBooks = async (payload: BulkUpdatePayload) => {
+  const { data } = await httpClient.post<BulkUpdateResult>('/items/bulk', payload);
+  return data;
+};
+
+/** Похожие записи в библиотеке: подсказка при вводе, а не запрет на сохранение. */
+export const findDuplicates = async (params: { isbn?: string; title?: string }) => {
+  const { data } = await httpClient.get<DuplicateCandidate[]>('/items/duplicates', { params });
   return data;
 };
 

@@ -39,6 +39,16 @@ public class LibraryItemRequest {
      */
     private List<String> authorNames;
 
+    /** Теги приходят именами и ведут себя как авторы: незнакомое имя заводится на сервере. */
+    private List<String> tagNames;
+
+    /**
+     * Полки, на которых лежит запись. В отличие от тегов — идентификаторами: полка заводится
+     * осознанно, с описанием и признаком публичности, и создавать её опечаткой в карточке нельзя.
+     * {@code null} значит «не трогать состав»: так карточку можно сохранить, ничего не зная о полках.
+     */
+    private List<UUID> shelfIds;
+
     /** Название серии; ведёт себя так же, как авторы. */
     @Size( max = 255, message = "Series name must be at most 255 characters" )
     private String seriesName;
@@ -124,6 +134,19 @@ public class LibraryItemRequest {
     private BigDecimal ratingEnding;
 
     private boolean favorite;
+
+    /** Список желаемого ведётся отдельно от статуса «в планах». */
+    private boolean wishlist;
+
+    @DecimalMin( value = "0.0", message = "Price must be at least 0" )
+    @Digits( integer = 10, fraction = 2, message = "Price must have at most two decimal places" )
+    private BigDecimal price;
+
+    @Size( max = 8, message = "Currency must be at most 8 characters" )
+    private String currency;
+
+    @Size( max = 2048, message = "Purchase url must be at most 2048 characters" )
+    private String purchaseUrl;
 
     private ReadingStatus status = ReadingStatus.PLANNED;
 }

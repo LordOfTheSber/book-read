@@ -3,6 +3,7 @@ import {
   App,
   Button,
   Card,
+  Checkbox,
   Col,
   Empty,
   Pagination,
@@ -17,7 +18,7 @@ import {
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import { DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, InboxOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
@@ -42,6 +43,9 @@ interface Props {
   /** Есть ли активные фильтры — от этого зависит текст пустого состояния. */
   hasActiveFilters: boolean;
   onResetFilters: () => void;
+  /** Выделение для массовых операций живёт на странице: панель действий рисуется над списком. */
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }
 
 const dash = '—';
@@ -53,7 +57,9 @@ export const BooksListWidget: React.FC<Props> = ({
   onEdit,
   onCreate,
   hasActiveFilters,
-  onResetFilters
+  onResetFilters,
+  selectedIds,
+  onSelectionChange
 }) => {
   const dispatch = useAppDispatch();
   const { message, modal } = App.useApp();
@@ -65,6 +71,10 @@ export const BooksListWidget: React.FC<Props> = ({
   const styles = useBooksListStyles();
   const isAdmin = isAdminLike(role);
   const canEdit = canEditBooks(role);
+
+  const toggleSelection = (id: string, checked: boolean) => {
+    onSelectionChange(checked ? [...selectedIds, id] : selectedIds.filter((selected) => selected !== id));
+  };
 
   const confirmDelete = (item: LibraryItem) => {
     modal.confirm({
@@ -415,9 +425,21 @@ export const BooksListWidget: React.FC<Props> = ({
                       style={styles.cardCover}
                     />
                     <div style={styles.coverBadges}>
-                      <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
-                        {getStatusLabel(item.status)}
-                      </Tag>
+                      <Space size={8}>
+                        {/* Выделение доступно и в сетке: на телефоне другого режима просто нет. */}
+                        {canEdit && (
+                          <span onClick={(event) => event.stopPropagation()} style={styles.selectBadge}>
+                            <Checkbox
+                              checked={selectedIds.includes(item.id)}
+                              onChange={(event) => toggleSelection(item.id, event.target.checked)}
+                              aria-label={`Выбрать «${item.title}»`}
+                            />
+                          </span>
+                        )}
+                        <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
+                          {getStatusLabel(item.status)}
+                        </Tag>
+                      </Space>
                       {item.favorite && (
                         <Tooltip title="В избранном">
                           <span style={styles.favoriteBadge}>
@@ -466,6 +488,18 @@ export const BooksListWidget: React.FC<Props> = ({
                       {renderSeries(item)}
                     </Tag>
                   )}
+                  {/* Теги — то, ради чего они и заводятся: видеть контекст записи, не открывая её. */}
+                  {item.tags?.map((tag) => (
+                    <Tag key={tag.id} color={tag.color ?? undefined} bordered={false} style={styles.tag}>
+                      {tag.name}
+                    </Tag>
+                  ))}
+                  {/* Полка со значком: иначе её не отличить от тега, а это разные вещи. */}
+                  {item.shelves?.map((shelf) => (
+                    <Tag key={shelf.id} bordered={false} icon={<InboxOutlined />} style={styles.neutralTag}>
+                      {shelf.name}
+                    </Tag>
+                  ))}
                 </Space>
 
                 {renderProgress(item)}
@@ -495,6 +529,16 @@ export const BooksListWidget: React.FC<Props> = ({
       columns={columns}
       dataSource={items}
       loading={loading}
+      // Выделение только там, где есть что менять: читателю чужой библиотеки оно ни к чему.
+      rowSelection={
+        canEdit
+          ? {
+              selectedRowKeys: selectedIds,
+              onChange: (keys) => onSelectionChange(keys.map(String)),
+              preserveSelectedRowKeys: true
+            }
+          : undefined
+      }
       locale={{ emptyText: emptyState }}
       pagination={{
         current: page + 1,

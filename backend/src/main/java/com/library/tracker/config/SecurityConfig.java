@@ -54,6 +54,16 @@ public class SecurityConfig {
                                                     "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.DELETE, "/api/v1/items/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    // Организация библиотеки: теги, полки и умные
+                                                    // полки личные, поэтому доступны всем ролям —
+                                                    // владелец проверяется в сервисе.
+                                                    .requestMatchers( "/api/v1/tags/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( "/api/v1/shelves/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( "/api/v1/smart-shelves/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    // Ввод данных: поиск по внешним каталогам и
+                                                    // импорт своей библиотеки.
+                                                    .requestMatchers( HttpMethod.GET, "/api/v1/metadata/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( "/api/v1/imports/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/types" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/types/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )

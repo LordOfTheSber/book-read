@@ -27,6 +27,9 @@ public class LibraryItemResponse {
     String sourceName;
     String sourceUrl;
     List<AuthorSummary> authors;
+    List<TagSummary> tags;
+    /** Полки спрашивающего, на которых лежит запись. */
+    List<ShelfSummary> shelves;
     UUID seriesId;
     String seriesName;
     BigDecimal orderInSeries;
@@ -59,6 +62,11 @@ public class LibraryItemResponse {
     BigDecimal ratingCharacters;
     BigDecimal ratingEnding;
     boolean favorite;
+    /** Список желаемого: ведётся отдельно от статуса «в планах». */
+    boolean wishlist;
+    BigDecimal price;
+    String currency;
+    String purchaseUrl;
     ReadingStatus status;
     OffsetDateTime createdAt;
     OffsetDateTime updatedAt;

@@ -4,6 +4,8 @@ import com.library.tracker.config.SecurityConfig;
 import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.security.JwtAuthenticationFilter;
 import com.library.tracker.security.JwtService;
+import com.library.tracker.service.BulkItemService;
+import com.library.tracker.service.DuplicateDetectionService;
 import com.library.tracker.service.LibraryItemService;
 import com.library.tracker.service.RequestMetricsService;
 import com.library.tracker.service.SessionService;
@@ -51,6 +53,12 @@ class LibraryItemControllerTest {
 
     @MockBean
     private LibraryItemService libraryItemService;
+
+    @MockBean
+    private DuplicateDetectionService duplicateDetectionService;
+
+    @MockBean
+    private BulkItemService bulkItemService;
 
     @MockBean
     private UserService userService;

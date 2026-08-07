@@ -17,19 +17,28 @@ interface NavItem {
   label: string;
   path: string;
   adminOnly?: boolean;
+  /**
+   * Пункты справочников не выносятся в шапку по отдельности: их пять, и вместе с остальным
+   * меню превращалось в одиннадцать равноправных вкладок, среди которых не видно главного.
+   */
+  group?: 'catalogues';
 }
 
 const navItems: NavItem[] = [
-  { key: 'books', label: 'Книги', path: '/' },
+  { key: 'books', label: 'Библиотека', path: '/' },
   { key: 'analytics', label: 'Аналитика', path: '/analytics' },
-  { key: 'authors', label: 'Авторы', path: '/authors' },
-  { key: 'series', label: 'Серии', path: '/series' },
   { key: 'quotes', label: 'Выписки', path: '/quotes' },
-  { key: 'types', label: 'Типы', path: '/types' },
-  { key: 'sources', label: 'Источники', path: '/sources' },
+  { key: 'import', label: 'Импорт', path: '/import' },
+  { key: 'shelves', label: 'Полки и теги', path: '/shelves', group: 'catalogues' },
+  { key: 'authors', label: 'Авторы', path: '/authors', group: 'catalogues' },
+  { key: 'series', label: 'Серии', path: '/series', group: 'catalogues' },
+  { key: 'types', label: 'Типы', path: '/types', group: 'catalogues' },
+  { key: 'sources', label: 'Источники', path: '/sources', group: 'catalogues' },
   { key: 'users', label: 'Пользователи', path: '/users', adminOnly: true },
   { key: 'nodes', label: 'Узлы', path: '/nodes', adminOnly: true }
 ];
+
+const CATALOGUES_KEY = 'catalogues';
 
 export const PageLayout: React.FC = () => {
   const location = useLocation();
@@ -59,10 +68,25 @@ export const PageLayout: React.FC = () => {
     return match?.key ?? 'books';
   }, [location.pathname, visibleNav]);
 
-  const menuItems: MenuProps['items'] = visibleNav.map((item) => ({
+  const toMenuItem = (item: NavItem) => ({
     key: item.key,
     label: <Link to={item.path}>{item.label}</Link>
-  }));
+  });
+
+  /**
+   * Справочники сворачиваются в один пункт: они нужны эпизодически, а место в шапке
+   * отбирали наравне с библиотекой и аналитикой.
+   */
+  const menuItems: MenuProps['items'] = [
+    ...visibleNav.filter((item) => !item.group && !item.adminOnly).map(toMenuItem),
+    {
+      key: CATALOGUES_KEY,
+      label: 'Справочники',
+      children: visibleNav.filter((item) => item.group === 'catalogues').map(toMenuItem)
+    },
+    // Администраторские разделы — после справочников: они и реже нужны, и видны не всем.
+    ...visibleNav.filter((item) => item.adminOnly).map(toMenuItem)
+  ];
 
   const handleLogout = async () => {
     await dispatch(logoutThunk());
@@ -173,6 +197,8 @@ export const PageLayout: React.FC = () => {
           mode="inline"
           style={styles.drawerMenu}
           selectedKeys={selectedKey ? [selectedKey] : []}
+          // На узком экране группа разворачивается сразу: свёрнутая, она прятала бы половину меню.
+          defaultOpenKeys={[CATALOGUES_KEY]}
           items={menuItems}
           onClick={() => setDrawerOpen(false)}
         />

@@ -69,6 +69,8 @@ test('введённый в карточке автор заводится и п
   // В списке автор идёт подписью под названием.
   await expect(page.getByText(author).first()).toBeVisible();
 
+  // Справочники свёрнуты в группу: одиннадцать равноправных вкладок в шапке не помещались.
+  await page.getByRole('menuitem', { name: 'Справочники' }).hover();
   await page.getByRole('link', { name: 'Авторы' }).click();
   await expect(page.getByText(author)).toBeVisible();
   await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();

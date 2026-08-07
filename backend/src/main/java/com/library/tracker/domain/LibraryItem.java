@@ -67,6 +67,25 @@ public class LibraryItem extends BaseAuditEntity {
     )
     private Set<Author> authors = new LinkedHashSet<>();
 
+    /**
+     * Свободные пометки в дополнение к типу: тип — жанр из общего справочника, тег — личный
+     * контекст. Заводятся по имени прямо из карточки, как авторы.
+     */
+    @ManyToMany( fetch = FetchType.LAZY )
+    @JoinTable(
+            name = "library_item_tags",
+            joinColumns = @JoinColumn( name = "item_id" ),
+            inverseJoinColumns = @JoinColumn( name = "tag_id" )
+    )
+    private Set<Tag> tags = new LinkedHashSet<>();
+
+    /**
+     * Обратная сторона {@link Shelf#getItems()}. Нужна ровно для одного: отфильтровать выдачу
+     * по полке одним join-ом вместо подзапроса.
+     */
+    @ManyToMany( mappedBy = "items", fetch = FetchType.LAZY )
+    private Set<Shelf> shelves = new LinkedHashSet<>();
+
     @ManyToOne( fetch = FetchType.LAZY )
     @JoinColumn( name = "series_id" )
     private Series series;
@@ -160,6 +179,22 @@ public class LibraryItem extends BaseAuditEntity {
 
     @Column( name = "favorite", nullable = false )
     private boolean favorite;
+
+    /**
+     * Список желаемого отдельно от статуса «в планах»: «планирую прочитать» и «надо купить» —
+     * разные вопросы, и общий статус терял оба.
+     */
+    @Column( name = "wishlist", nullable = false )
+    private boolean wishlist;
+
+    @Column( name = "price", precision = 12, scale = 2 )
+    private BigDecimal price;
+
+    @Column( name = "currency", length = 8 )
+    private String currency;
+
+    @Column( name = "purchase_url", length = 2048 )
+    private String purchaseUrl;
 
     @Enumerated( EnumType.STRING )
     @Column( name = "status", nullable = false )

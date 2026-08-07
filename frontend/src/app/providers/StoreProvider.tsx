@@ -6,6 +6,9 @@ import { bookTypeReducer } from '@/entities/book-type';
 import { sourceReducer } from '@/entities/source';
 import { authorReducer } from '@/entities/author';
 import { seriesReducer } from '@/entities/series';
+import { tagReducer } from '@/entities/tag';
+import { shelfReducer } from '@/entities/shelf';
+import { smartShelfReducer } from '@/entities/smart-shelf';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 import { authActions, authReducer } from '@/entities/auth';
 import { usersReducer } from '@/entities/user';
@@ -21,6 +24,9 @@ const store = configureStore({
     sources: sourceReducer,
     authors: authorReducer,
     series: seriesReducer,
+    tags: tagReducer,
+    shelves: shelfReducer,
+    smartShelves: smartShelfReducer,
     bookFilters: bookFilterReducer,
     users: usersReducer,
     nodes: nodesReducer,

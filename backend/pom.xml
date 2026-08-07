@@ -159,6 +159,13 @@
             <artifactId>guava</artifactId>
             <version>33.2.1-jre</version>
         </dependency>
+        <!-- Импорт из Goodreads и LiveLib: их выгрузки содержат отзывы с переносами строк и
+             кавычками внутри полей, и самописный split(',') на них разваливается. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.12.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -44,6 +44,35 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             """ )
     List<ItemAuthorRow> findAuthorsByItemIds( Collection<UUID> itemIds );
 
+    /**
+     * Совпадение по ISBN без разделителей: «978-5-17-104967-6» и «9785171049676» — одна книга.
+     * Индекс на V14 построен по тому же выражению.
+     */
+    @Query( """
+            select li
+            from LibraryItem li
+            left join fetch li.authors
+            where li.isbn is not null
+              and replace(replace(li.isbn, '-', ''), ' ', '') = :normalizedIsbn
+              and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    List<LibraryItem> findByNormalizedIsbn( String normalizedIsbn, UUID userId );
+
+    /**
+     * Нечёткое совпадение названия через pg_trgm: «Задача трёх тел» и «Задача трех тел» —
+     * одна книга, а точное сравнение их не сведёт. Оператор {@code %} опирается на GIN-индекс,
+     * поэтому проверка не превращается в полный проход по таблице.
+     */
+    @Query( value = """
+            select li.*
+            from library_items li
+            where lower(li.title) % lower(:title)
+              and (:userId is null or li.created_by = :userId)
+            order by similarity(lower(li.title), lower(:title)) desc
+            limit 10
+            """, nativeQuery = true )
+    List<LibraryItem> findSimilarByTitle( String title, UUID userId );
+
     interface ItemAuthorRow {
 
         UUID getItemId();

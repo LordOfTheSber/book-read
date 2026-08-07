@@ -66,6 +66,19 @@ export const useBooksListStyles = () => {
         gap: 8,
         pointerEvents: 'none'
       } as CSSProperties,
+      selectBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 26,
+        height: 26,
+        borderRadius: token.borderRadiusSM,
+        // Обложка под флажком может быть любой — подложка держит контраст.
+        background: token.colorBgElevated,
+        boxShadow: token.boxShadowTertiary,
+        // Контейнер значков не ловит указатель, а флажок должен.
+        pointerEvents: 'auto'
+      } as CSSProperties,
       favoriteBadge: {
         display: 'inline-flex',
         alignItems: 'center',

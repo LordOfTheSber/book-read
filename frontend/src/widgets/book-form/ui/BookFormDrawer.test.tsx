@@ -15,7 +15,11 @@ vi.mock('@/entities/book/api/bookApi', () => ({
   updateBook: (...args: unknown[]) => updateBook(...args),
   deleteBook: vi.fn(),
   uploadCover: vi.fn(),
+  uploadCoverFromUrl: vi.fn(),
   deleteCover: vi.fn(),
+  bulkUpdateBooks: vi.fn(),
+  // Подсказка о дублях спрашивает сервер на каждый осмысленный ввод названия.
+  findDuplicates: vi.fn().mockResolvedValue([]),
   coverUrl: (id: string) => `/api/v1/items/${id}/cover`
 }));
 
@@ -32,6 +36,25 @@ vi.mock('@/entities/series/api/seriesApi', () => ({
   createSeries: vi.fn(),
   updateSeries: vi.fn(),
   deleteSeries: vi.fn()
+}));
+
+vi.mock('@/entities/tag/api/tagApi', () => ({
+  fetchTags: vi.fn().mockResolvedValue([]),
+  createTag: vi.fn(),
+  updateTag: vi.fn(),
+  deleteTag: vi.fn()
+}));
+
+vi.mock('@/entities/shelf/api/shelfApi', () => ({
+  fetchShelves: vi.fn().mockResolvedValue([
+    { id: 's-1', name: 'Подарить', isPublic: false, itemCount: 0, createdAt: '', updatedAt: '' }
+  ]),
+  fetchShelfItems: vi.fn(),
+  createShelf: vi.fn(),
+  updateShelf: vi.fn(),
+  addShelfItems: vi.fn(),
+  removeShelfItems: vi.fn(),
+  deleteShelf: vi.fn()
 }));
 
 const existing: LibraryItem = {
@@ -130,6 +153,31 @@ describe('BookFormDrawer', () => {
 
     await waitFor(() => expect(updateBook).toHaveBeenCalled());
     expect(updateBook.mock.calls[0][1]).toMatchObject({ review: 'Лучшая твёрдая фантастика' });
+  });
+
+  /**
+   * Полки и серия — связи, а не издательские подробности. Серия раньше лежала в свёрнутом блоке,
+   * а положить запись на полку из карточки было нельзя вовсе: только выделением в списке.
+   */
+  it('отправляет выбранную полку и серию вместе с карточкой', async () => {
+    createBook.mockResolvedValue({ ...existing, id: 'b-4', authors: [], shelves: [] });
+
+    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
+    await userEvent.type(screen.getByLabelText('Серия'), 'Воспоминания о прошлом Земли');
+
+    // Полка выбирается из уже созданных: заводить её опечаткой в карточке нельзя.
+    await userEvent.click(screen.getByLabelText('Полки'));
+    await userEvent.click(await screen.findByTitle('Подарить'));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    await waitFor(() => expect(createBook).toHaveBeenCalled());
+    expect(createBook.mock.calls[0][0]).toMatchObject({
+      seriesName: 'Воспоминания о прошлом Земли',
+      shelfIds: ['s-1']
+    });
   });
 
   it('оставляет панель открытой, если сохранение не удалось', async () => {

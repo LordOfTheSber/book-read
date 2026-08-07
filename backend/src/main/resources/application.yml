@@ -58,6 +58,17 @@ storage:
     secret-key: ${STORAGE_S3_SECRET_KEY:}
     path-style-access: ${STORAGE_S3_PATH_STYLE:true}
 
+# Внешние каталоги книг: запрос идёт через сервер, а не из браузера, — у каталогов нет CORS.
+metadata:
+  open-library:
+    url: ${METADATA_OPEN_LIBRARY_URL:https://openlibrary.org}
+    covers-url: ${METADATA_OPEN_LIBRARY_COVERS_URL:https://covers.openlibrary.org}
+  google-books:
+    url: ${METADATA_GOOGLE_BOOKS_URL:https://www.googleapis.com/books/v1}
+  # Откуда разрешено забирать обложку по ссылке от клиента. Список закрытый: без него
+  # поле «адрес обложки» было бы готовым SSRF.
+  cover-hosts: ${METADATA_COVER_HOSTS:covers.openlibrary.org,books.google.com,books.googleusercontent.com}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
