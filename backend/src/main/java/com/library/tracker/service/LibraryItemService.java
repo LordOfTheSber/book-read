@@ -6,11 +6,13 @@ import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.Quote;
 import com.library.tracker.domain.ReadingStatus;
+import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.ReadingLogRepository;
+import com.library.tracker.repository.ShelfRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.TagRepository;
 import com.library.tracker.service.metadata.CoverDownloadService;
@@ -22,6 +24,7 @@ import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
 import com.library.tracker.web.dto.ProgressResponse;
+import com.library.tracker.web.dto.ShelfSummary;
 import com.library.tracker.web.dto.SourceCountResponse;
 import com.library.tracker.web.dto.TagSummary;
 import com.library.tracker.web.dto.TypeCountResponse;
@@ -71,6 +74,7 @@ public class LibraryItemService {
     private final BookTypeRepository bookTypeRepository;
     private final SourceRepository sourceRepository;
     private final TagRepository tagRepository;
+    private final ShelfRepository shelfRepository;
     private final AuthorService authorService;
     private final TagService tagService;
     private final SeriesService seriesService;
@@ -92,8 +96,25 @@ public class LibraryItemService {
         // на всю страницу, а не по запросу на строку.
         Map<UUID, List<AuthorSummary>> authorsByItem = loadAuthors( page.getContent() );
         Map<UUID, List<TagSummary>> tagsByItem = loadTags( page.getContent() );
+        Map<UUID, List<ShelfSummary>> shelvesByItem = loadShelves( page.getContent(), currentUser.getId() );
         return page.map( item -> toResponse( item, authorsByItem.get( item.getId() ),
-                                             tagsByItem.get( item.getId() ) ) );
+                                             tagsByItem.get( item.getId() ),
+                                             shelvesByItem.get( item.getId() ) ) );
+    }
+
+    private Map<UUID, List<ShelfSummary>> loadShelves( List<LibraryItem> items, UUID ownerId ) {
+        if ( items.isEmpty() ) {
+            return Map.of();
+        }
+        List<UUID> ids = items.stream().map( LibraryItem::getId ).toList();
+        return shelfRepository.findShelvesByItemIds( ids, ownerId ).stream()
+                              .collect( Collectors.groupingBy(
+                                      ShelfRepository.ItemShelfRow::getItemId,
+                                      Collectors.mapping( row -> ShelfSummary.builder()
+                                                                             .id( row.getShelfId() )
+                                                                             .name( row.getName() )
+                                                                             .build(),
+                                                          Collectors.toList() ) ) );
     }
 
     private Map<UUID, List<AuthorSummary>> loadAuthors( List<LibraryItem> items ) {
@@ -142,6 +163,8 @@ public class LibraryItemService {
         item.setCreatedBy( userService.getCurrentUser() );
         applyRequest( item, request );
         LibraryItem saved = libraryItemRepository.save( item );
+        // Состав полки задаётся со стороны полки, поэтому только после появления идентификатора.
+        applyShelves( saved, request.getShelfIds() );
         // Книгу можно завести сразу в статусе «читаю»: тогда проход открывается тут же.
         readingProgressService.applyStatusTransition( saved, null, LocalDate.now( clock ) );
         return toResponse( libraryItemRepository.save( saved ) );
@@ -157,6 +180,7 @@ public class LibraryItemService {
             }
             ReadingStatus previousStatus = existing.getStatus();
             applyRequest( existing, request );
+            applyShelves( existing, request.getShelfIds() );
             // Даты начала и завершения ведёт сама смена статуса — вручную их проставлять не нужно.
             readingProgressService.applyStatusTransition( existing, previousStatus, LocalDate.now( clock ) );
             return toResponse( libraryItemRepository.save( existing ) );
@@ -478,7 +502,7 @@ public class LibraryItemService {
     }
 
     private LibraryItemResponse toResponse( LibraryItem item ) {
-        return toResponse( item, authorsOf( item ), tagsOf( item ) );
+        return toResponse( item, authorsOf( item ), tagsOf( item ), shelvesOf( item ) );
     }
 
     /** Теги из самой сущности: одиночная выдача не пагинируется, лишний select тут не страшен. */
@@ -490,6 +514,58 @@ public class LibraryItemService {
                                           .name( tag.getName() )
                                           .color( tag.getColor() )
                                           .build() )
+                   .toList();
+    }
+
+    /**
+     * Приводит состав полок к присланному списку. Владелец связи — полка, а не запись
+     * ({@code mappedBy}), поэтому писать приходится с той стороны: правка {@code item.shelves}
+     * не доехала бы до join-таблицы вовсе.
+     * <p>
+     * Трогаются только полки владельца записи и только те, у которых членство меняется:
+     * положить книгу на чужую полку — это доступ к чужим данным через боковую дверь.
+     */
+    private void applyShelves( LibraryItem item, List<UUID> shelfIds ) {
+        if ( shelfIds == null ) {
+            // Поле не прислали — карточку можно сохранить, ничего не зная о полках.
+            return;
+        }
+        UUID ownerId = tagOwner( item ).getId();
+        Set<UUID> desired = shelfIds.stream()
+                                    .filter( java.util.Objects::nonNull )
+                                    .collect( Collectors.toCollection( LinkedHashSet::new ) );
+        Set<UUID> current = item.getShelves().stream()
+                                .filter( shelf -> shelf.getOwner() != null
+                                                  && shelf.getOwner().getId().equals( ownerId ) )
+                                .map( Shelf::getId )
+                                .collect( Collectors.toCollection( LinkedHashSet::new ) );
+
+        desired.stream().filter( id -> !current.contains( id ) )
+               .forEach( id -> updateShelfMembership( id, ownerId, item, true ) );
+        current.stream().filter( id -> !desired.contains( id ) )
+               .forEach( id -> updateShelfMembership( id, ownerId, item, false ) );
+    }
+
+    private void updateShelfMembership( UUID shelfId, UUID ownerId, LibraryItem item, boolean add ) {
+        shelfRepository.findWithItemsById( shelfId )
+                       .filter( shelf -> shelf.getOwner() != null && shelf.getOwner().getId().equals( ownerId ) )
+                       .ifPresent( shelf -> {
+                           if ( add ) {
+                               shelf.getItems().add( item );
+                           } else {
+                               shelf.getItems().remove( item );
+                           }
+                           shelfRepository.save( shelf );
+                       } );
+    }
+
+    /** Полки из самой сущности — только свои: чужие полки с этой записью спрашивающего не касаются. */
+    private List<ShelfSummary> shelvesOf( LibraryItem item ) {
+        UUID currentUserId = userService.getCurrentUser().getId();
+        return item.getShelves().stream()
+                   .filter( shelf -> shelf.getOwner() != null && shelf.getOwner().getId().equals( currentUserId ) )
+                   .sorted( Comparator.comparing( Shelf::getName, String.CASE_INSENSITIVE_ORDER ) )
+                   .map( shelf -> ShelfSummary.builder().id( shelf.getId() ).name( shelf.getName() ).build() )
                    .toList();
     }
 
@@ -510,7 +586,8 @@ public class LibraryItemService {
                    .toList();
     }
 
-    private LibraryItemResponse toResponse( LibraryItem item, List<AuthorSummary> authors, List<TagSummary> tags ) {
+    private LibraryItemResponse toResponse( LibraryItem item, List<AuthorSummary> authors, List<TagSummary> tags,
+                                            List<ShelfSummary> shelves ) {
         return LibraryItemResponse.builder()
                                   .id( item.getId() )
                                   .kind( item.getKind() )
@@ -523,6 +600,7 @@ public class LibraryItemService {
                                   .sourceUrl( item.getSource() != null ? item.getSource().getUrl() : null )
                                   .authors( authors != null ? authors : List.of() )
                                   .tags( tags != null ? tags : List.of() )
+                                  .shelves( shelves != null ? shelves : List.of() )
                                   .seriesId( item.getSeries() != null ? item.getSeries().getId() : null )
                                   .seriesName( item.getSeries() != null ? item.getSeries().getName() : null )
                                   .orderInSeries( item.getOrderInSeries() )

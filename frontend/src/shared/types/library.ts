@@ -112,6 +112,12 @@ export interface TagSummary {
   color?: string;
 }
 
+/** Полка внутри карточки: без описания и состава. */
+export interface ShelfSummary {
+  id: string;
+  name: string;
+}
+
 /** Полка: именованный набор с составом, заданным вручную. */
 export interface Shelf {
   id: string;
@@ -248,6 +254,8 @@ export interface LibraryItem {
   sourceUrl?: string;
   authors: AuthorSummary[];
   tags: TagSummary[];
+  /** Полки спрашивающего, на которых лежит запись. */
+  shelves: ShelfSummary[];
   seriesId?: string;
   seriesName?: string;
   orderInSeries?: number;

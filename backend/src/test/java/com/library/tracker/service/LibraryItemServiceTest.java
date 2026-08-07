@@ -4,11 +4,13 @@ import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.Role;
+import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.ReadingLogRepository;
+import com.library.tracker.repository.ShelfRepository;
 import com.library.tracker.repository.TagRepository;
 import com.library.tracker.service.metadata.CoverDownloadService;
 import com.library.tracker.storage.ObjectStorage;
@@ -17,6 +19,7 @@ import com.library.tracker.web.dto.LibraryItemRequest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,6 +56,9 @@ class LibraryItemServiceTest {
     private TagRepository tagRepository;
 
     @Mock
+    private ShelfRepository shelfRepository;
+
+    @Mock
     private AuthorService authorService;
 
     @Mock
@@ -78,8 +84,9 @@ class LibraryItemServiceTest {
 
     private LibraryItemService newService() {
         return new LibraryItemService( libraryItemRepository, bookTypeRepository, sourceRepository, tagRepository,
-                                       authorService, tagService, seriesService, objectStorage, coverDownloadService,
-                                       readingProgressService, readingLogRepository, FIXED_CLOCK, userService );
+                                       shelfRepository, authorService, tagService, seriesService, objectStorage,
+                                       coverDownloadService, readingProgressService, readingLogRepository,
+                                       FIXED_CLOCK, userService );
     }
 
     @Test
@@ -117,6 +124,85 @@ class LibraryItemServiceTest {
         assertThatThrownBy( () -> service.create( request ) )
                 .isInstanceOf( IllegalArgumentException.class )
                 .hasMessageContaining( "Type not found" );
+    }
+
+    /**
+     * Владелец связи «запись на полке» — полка ({@code mappedBy}), поэтому состав пишется с её
+     * стороны. Правка {@code item.shelves} до join-таблицы не доезжает вовсе, и сломать это
+     * можно совершенно незаметно: карточка сохранится, а полка останется пустой.
+     */
+    @Test
+    void createWritesShelfMembershipFromTheShelfSide() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        Shelf shelf = shelf( "Подарить", currentUser );
+        when( shelfRepository.findWithItemsById( eq( shelf.getId() ) ) ).thenReturn( Optional.of( shelf ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setShelfIds( List.of( shelf.getId() ) );
+
+        service.create( request );
+
+        assertThat( shelf.getItems() ).extracting( LibraryItem::getTitle ).containsExactly( "Задача трёх тел" );
+        verify( shelfRepository ).save( eq( shelf ) );
+    }
+
+    /** Положить свою книгу на чужую полку — это доступ к чужим данным через боковую дверь. */
+    @Test
+    void createIgnoresForeignShelves() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        Shelf foreign = shelf( "Чужая", user() );
+        when( shelfRepository.findWithItemsById( eq( foreign.getId() ) ) ).thenReturn( Optional.of( foreign ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setShelfIds( List.of( foreign.getId() ) );
+
+        service.create( request );
+
+        assertThat( foreign.getItems() ).isEmpty();
+        verify( shelfRepository, never() ).save( org.mockito.ArgumentMatchers.any( Shelf.class ) );
+    }
+
+    /** Поле не прислали — состав полок не трогаем: карточку можно сохранить, не зная о полках. */
+    @Test
+    void createWithoutShelfIdsLeavesShelvesAlone() {
+        LibraryItemService service = newService();
+        when( userService.getCurrentUser() ).thenReturn( user() );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+
+        service.create( request );
+
+        verify( shelfRepository, never() ).findWithItemsById( org.mockito.ArgumentMatchers.any() );
+    }
+
+    private User user() {
+        User user = new User();
+        user.setId( UUID.randomUUID() );
+        user.setRole( Role.USER );
+        return user;
+    }
+
+    private Shelf shelf( String name, User owner ) {
+        Shelf shelf = new Shelf();
+        shelf.setId( UUID.randomUUID() );
+        shelf.setName( name );
+        shelf.setOwner( owner );
+        return shelf;
     }
 
     @Test

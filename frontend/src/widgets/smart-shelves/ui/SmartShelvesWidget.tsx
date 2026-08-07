@@ -60,8 +60,9 @@ export const SmartShelvesWidget: React.FC = () => {
         ? shelves.map((shelf) => ({
             key: shelf.id,
             label: (
+              // Применение висит на самом пункте меню; на подписи оно было бы вторым обработчиком.
               <Space size={12} style={{ display: 'flex', justifyContent: 'space-between', minWidth: 200 }}>
-                <span onClick={() => dispatch(applySavedFilter(shelf.filter))}>{shelf.name}</span>
+                <span>{shelf.name}</span>
                 <DeleteOutlined
                   onClick={(event) => {
                     event.stopPropagation();

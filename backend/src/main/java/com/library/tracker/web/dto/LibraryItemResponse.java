@@ -28,6 +28,8 @@ public class LibraryItemResponse {
     String sourceUrl;
     List<AuthorSummary> authors;
     List<TagSummary> tags;
+    /** Полки спрашивающего, на которых лежит запись. */
+    List<ShelfSummary> shelves;
     UUID seriesId;
     String seriesName;
     BigDecimal orderInSeries;

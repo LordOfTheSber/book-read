@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { App, Button, Popconfirm, Select, Space, Typography, theme } from 'antd';
+import { App, Button, Select, Space, Typography, theme } from 'antd';
 import { ClearOutlined, TagsOutlined } from '@ant-design/icons';
 import { ReadingStatus } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
@@ -114,16 +114,10 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
         В желаемое
       </Button>
 
-      <Popconfirm
-        title="Снять выделение?"
-        okText="Снять"
-        cancelText="Отмена"
-        onConfirm={onClearSelection}
-      >
-        <Button type="text" icon={<ClearOutlined />} disabled={busy}>
-          Сбросить
-        </Button>
-      </Popconfirm>
+      {/* Снятие выделения ничего не портит и восстанавливается парой кликов — подтверждать нечего. */}
+      <Button type="text" icon={<ClearOutlined />} disabled={busy} onClick={onClearSelection}>
+        Снять выделение
+      </Button>
     </div>
   );
 };

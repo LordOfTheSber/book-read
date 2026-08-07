@@ -18,7 +18,7 @@ import {
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import { DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, InboxOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
@@ -492,6 +492,12 @@ export const BooksListWidget: React.FC<Props> = ({
                   {item.tags?.map((tag) => (
                     <Tag key={tag.id} color={tag.color ?? undefined} bordered={false} style={styles.tag}>
                       {tag.name}
+                    </Tag>
+                  ))}
+                  {/* Полка со значком: иначе её не отличить от тега, а это разные вещи. */}
+                  {item.shelves?.map((shelf) => (
+                    <Tag key={shelf.id} bordered={false} icon={<InboxOutlined />} style={styles.neutralTag}>
+                      {shelf.name}
                     </Tag>
                   ))}
                 </Space>

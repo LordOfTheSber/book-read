@@ -79,6 +79,16 @@ export const BooksPage: React.FC = () => {
     dispatch(loadBooks(filters));
   }, [dispatch, filters]);
 
+  /**
+   * Выделение переживает листание намеренно — отметить записи на двух страницах и применить
+   * действие разом это нормально. А вот смену фильтров оно переживать не должно: панель обещала
+   * применить правку к записям, которых в текущей выдаче уже нет.
+   */
+  const filterSignature = JSON.stringify({ ...filters, page: 0, size: 0, sort: '' });
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filterSignature]);
+
   useEffect(() => {
     dispatch(loadBookTypes());
     dispatch(loadSources());

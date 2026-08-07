@@ -39,6 +39,7 @@ import { createBookThunk, updateBookThunk, uploadCoverFromUrl } from '@/entities
 import { loadAuthors } from '@/entities/author';
 import { loadSeries } from '@/entities/series';
 import { loadTags } from '@/entities/tag';
+import { loadShelves } from '@/entities/shelf';
 import { useRequestError } from '@/shared/lib/errors';
 import { MetadataSearchModal } from '@/features/book/search-metadata';
 import { CoverField } from './CoverField';
@@ -83,6 +84,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const authors = useAppSelector((state) => state.authors.list);
   const series = useAppSelector((state) => state.series.list);
   const tags = useAppSelector((state) => state.tags.list);
+  const shelves = useAppSelector((state) => state.shelves.list);
   const filters = useAppSelector((state) => state.bookFilters);
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
@@ -103,6 +105,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     dispatch(loadAuthors());
     dispatch(loadSeries());
     dispatch(loadTags());
+    dispatch(loadShelves());
   }, [open, dispatch]);
 
   useEffect(() => {
@@ -115,6 +118,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
         authorNames: (editing.authors ?? []).map((author) => author.name),
         tagNames: (editing.tags ?? []).map((tag) => tag.name),
+        shelfIds: (editing.shelves ?? []).map((shelf) => shelf.id),
         seriesName: editing.seriesName,
         startedAt: toDate(editing.startedAt),
         finishedAt: toDate(editing.finishedAt),
@@ -135,6 +139,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   );
   const seriesOptions = useMemo(() => series.map((item) => ({ label: item.name, value: item.name })), [series]);
   const tagOptions = useMemo(() => tags.map((tag) => ({ label: tag.name, value: tag.name })), [tags]);
+  const shelfOptions = useMemo(() => shelves.map((shelf) => ({ label: shelf.name, value: shelf.id })), [shelves]);
 
   // Заглушка обложки и подписи шкалы должны меняться вместе с вводом, а не после сохранения.
   const watchedTitle = Form.useWatch<string>('title', form);
@@ -211,6 +216,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       dispatch(loadAuthors({ force: true }));
       dispatch(loadSeries({ force: true }));
       dispatch(loadTags({ force: true }));
+      // Счётчики на полках изменились вместе с составом.
+      dispatch(loadShelves({ force: true }));
       onClose();
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить запись');
@@ -303,6 +310,50 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       {/* Дубли показываются до сохранения: сообщать о них после — уже поздно. */}
       <DuplicateHint title={watchedTitle} isbn={watchedIsbn} excludeId={editing?.id} />
       {identityBlock}
+
+      {/* Серия и полки — связи, а не издательские подробности: раньше серия лежала в свёрнутом
+          блоке «Издание», и понять, как эта связь вообще заводится, было неоткуда. */}
+      <SectionLabel hint="Серия заводится по названию сама; полка выбирается из уже созданных">
+        Серия и полки
+      </SectionLabel>
+      <Row gutter={16}>
+        <Col xs={24} sm={10}>
+          {/* AutoComplete, а не Select: серия одна, и её название можно ввести руками. */}
+          <Form.Item name="seriesName" label="Серия" tooltip="Новое название заведёт серию на сервере">
+            <AutoComplete
+              allowClear
+              placeholder="Например, «Воспоминания о прошлом Земли»"
+              options={seriesOptions}
+              filterOption={(input, option) =>
+                String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={5}>
+          <Form.Item name="orderInSeries" label="Номер в серии" tooltip="Дробный номер для побочных повестей">
+            <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="1" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={9}>
+          {/* Полки — идентификаторами, а не именами: полка заводится осознанно, с описанием
+              и признаком публичности, и плодить её опечаткой в карточке нельзя. */}
+          <Form.Item
+            name="shelfIds"
+            label="Полки"
+            tooltip="Наборы, собранные вручную. Новую полку заводят на странице «Полки и теги»"
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder={shelfOptions.length ? 'Не на полках' : 'Полок пока нет'}
+              options={shelfOptions}
+              optionFilterProp="label"
+              notFoundContent="Полки создаются на странице «Полки и теги»"
+            />
+          </Form.Item>
+        </Col>
+      </Row>
 
       <SectionLabel hint="Вид задаёт единицу прогресса: у манги тома, у сериала эпизоды, у подкаста минуты">
         Что это и где взято
@@ -400,30 +451,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         items={[
           {
             key: 'edition',
-            label: 'Издание, серия и расположение',
+            label: 'Издание и расположение',
             children: (
               <>
-                <Row gutter={16}>
-                  <Col xs={24} sm={16}>
-                    {/* AutoComplete, а не Select: серия одна, и её название можно ввести руками. */}
-                    <Form.Item name="seriesName" label="Серия">
-                      <AutoComplete
-                        allowClear
-                        placeholder="Например, «Воспоминания о прошлом Земли»"
-                        options={seriesOptions}
-                        filterOption={(input, option) =>
-                          String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                        }
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name="orderInSeries" label="Номер" tooltip="Дробный номер для побочных повестей">
-                      <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="1" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="isbn" label="ISBN">

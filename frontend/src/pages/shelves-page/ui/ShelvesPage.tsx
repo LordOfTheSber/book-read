@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Col,
+  Dropdown,
   Empty,
   Form,
   Input,
@@ -18,7 +19,15 @@ import {
   Typography,
   theme
 } from 'antd';
-import { DeleteOutlined, EditOutlined, EyeOutlined, GlobalOutlined, PlusOutlined, TagsOutlined } from '@ant-design/icons';
+import {
+  CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  GlobalOutlined,
+  PlusOutlined,
+  TagsOutlined
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Shelf, ShelfItem, Tag as LibraryTag } from '@/shared/types/library';
@@ -28,10 +37,11 @@ import {
   deleteShelfThunk,
   fetchShelfItems,
   loadShelves,
+  removeShelfItemsThunk,
   updateShelfThunk
 } from '@/entities/shelf';
 import { deleteTagThunk, loadTags, updateTagThunk } from '@/entities/tag';
-import { setFilters } from '@/features/book/set-book-filters';
+import { applySavedFilter } from '@/features/book/set-book-filters';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
 
@@ -61,6 +71,8 @@ export const ShelvesPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<{ shelf: Shelf; items: ShelfItem[] } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  /** Идентификатор тега, который сейчас переименовывают: чип на это время становится полем ввода. */
+  const [renamingTag, setRenamingTag] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(loadShelves({ force: true }));
@@ -136,23 +148,30 @@ export const ShelvesPage: React.FC = () => {
     });
   };
 
-  const renameTag = (tag: LibraryTag) => {
-    let name = tag.name;
-    modal.confirm({
-      title: 'Переименовать тег',
-      content: <Input defaultValue={tag.name} maxLength={64} onChange={(event) => (name = event.target.value)} />,
-      okText: 'Сохранить',
-      cancelText: 'Отмена',
-      onOk: async () => {
-        if (!name.trim() || name.trim() === tag.name) return;
-        try {
-          await dispatch(updateTagThunk({ id: tag.id, payload: { name: name.trim(), color: tag.color } })).unwrap();
-          message.success('Тег переименован');
-        } catch (error) {
-          showRequestError(error, 'Не удалось переименовать тег');
-        }
-      }
-    });
+  const renameTag = async (tag: LibraryTag, name: string) => {
+    if (!name.trim() || name.trim() === tag.name) {
+      setRenamingTag(null);
+      return;
+    }
+    try {
+      await dispatch(updateTagThunk({ id: tag.id, payload: { name: name.trim(), color: tag.color } })).unwrap();
+      message.success('Тег переименован');
+      setRenamingTag(null);
+    } catch (error) {
+      showRequestError(error, 'Не удалось переименовать тег');
+    }
+  };
+
+  const removeFromShelf = async (shelf: Shelf, itemId: string) => {
+    try {
+      await dispatch(removeShelfItemsThunk({ id: shelf.id, itemIds: [itemId] })).unwrap();
+      setPreview((current) =>
+        current ? { ...current, items: current.items.filter((item) => item.id !== itemId) } : current
+      );
+      message.success('Снято с полки');
+    } catch (error) {
+      showRequestError(error, 'Не удалось снять запись с полки');
+    }
   };
 
   const openPreview = async (shelf: Shelf) => {
@@ -168,9 +187,13 @@ export const ShelvesPage: React.FC = () => {
     }
   };
 
-  /** «Показать в библиотеке» — тот же список, но с фильтром: там доступны правка и прогресс. */
+  /**
+   * «Показать в библиотеке» — тот же список, но с фильтром: там доступны правка и прогресс.
+   * Остальные фильтры сбрасываются: с оставшимся «только избранное» полка выглядела бы полупустой,
+   * и понять, почему, было бы неоткуда.
+   */
   const showInLibrary = (shelfId?: string, tagId?: string) => {
-    dispatch(setFilters({ shelfId, tagId, page: 0 }));
+    dispatch(applySavedFilter({ shelfId, tagId }));
     navigate('/');
   };
 
@@ -263,25 +286,64 @@ export const ShelvesPage: React.FC = () => {
       >
         {tags.length === 0 ? (
           <Typography.Text type="secondary">
-            Тегов пока нет — их проще всего завести прямо в карточке произведения.
+            Тегов пока нет — их проще всего завести прямо в карточке произведения: поле «Теги».
           </Typography.Text>
         ) : (
           <Space size={[8, 8]} wrap>
-            {tags.map((tag) => (
-              <Tag
-                key={tag.id}
-                color={tag.color ?? undefined}
-                closable
-                onClose={(event) => {
-                  event.preventDefault();
-                  confirmDeleteTag(tag);
-                }}
-                onDoubleClick={() => renameTag(tag)}
-                style={{ borderRadius: 999, paddingInline: 12, paddingBlock: 4, cursor: 'pointer' }}
-              >
-                <span onClick={() => showInLibrary(undefined, tag.id)}>{`${tag.name} · ${tag.itemCount}`}</span>
-              </Tag>
-            ))}
+            {/*
+              Действий у тега три, и вешать их на один чип нельзя: клик по нему уводил на список,
+              поэтому двойной клик для переименования не мог сработать в принципе — первый клик
+              успевал увести со страницы. Клик фильтрует, остальное — в явном меню.
+            */}
+            {tags.map((tag) =>
+              renamingTag === tag.id ? (
+                <Input
+                  key={tag.id}
+                  size="small"
+                  autoFocus
+                  defaultValue={tag.name}
+                  maxLength={64}
+                  style={{ width: 180 }}
+                  onBlur={(event) => renameTag(tag, event.target.value)}
+                  onPressEnter={(event) => renameTag(tag, (event.target as HTMLInputElement).value)}
+                />
+              ) : (
+                <Dropdown
+                  key={tag.id}
+                  trigger={['contextMenu']}
+                  menu={{
+                    items: [
+                      { key: 'rename', label: 'Переименовать', onClick: () => setRenamingTag(tag.id) },
+                      { key: 'delete', label: 'Удалить', danger: true, onClick: () => confirmDeleteTag(tag) }
+                    ]
+                  }}
+                >
+                  <Tag
+                    color={tag.color ?? undefined}
+                    style={{ borderRadius: 999, paddingInline: 12, paddingBlock: 4, cursor: 'pointer', margin: 0 }}
+                    onClick={() => showInLibrary(undefined, tag.id)}
+                  >
+                    <Space size={6}>
+                      <span>{`${tag.name} · ${tag.itemCount}`}</span>
+                      <EditOutlined
+                        aria-label={`Переименовать «${tag.name}»`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setRenamingTag(tag.id);
+                        }}
+                      />
+                      <CloseOutlined
+                        aria-label={`Удалить «${tag.name}»`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          confirmDeleteTag(tag);
+                        }}
+                      />
+                    </Space>
+                  </Tag>
+                </Dropdown>
+              )
+            )}
           </Space>
         )}
       </Card>
@@ -297,6 +359,11 @@ export const ShelvesPage: React.FC = () => {
         destroyOnHidden
       >
         <Form layout="vertical" form={form} initialValues={{ isPublic: false }}>
+          {/* Полка создаётся пустой, и без этой подсказки непонятно, чем её наполнять. */}
+          <Typography.Paragraph type="secondary">
+            Полка собирается вручную: отметьте её в карточке произведения (поле «Полки») или выделите
+            записи в списке библиотеки и выберите «На полку».
+          </Typography.Paragraph>
           <Form.Item name="name" label="Название" rules={[{ required: true, message: 'Название обязательно' }]}>
             <Input placeholder="Например, «Книжный клуб, весна»" maxLength={128} />
           </Form.Item>
@@ -327,9 +394,33 @@ export const ShelvesPage: React.FC = () => {
         ) : (
           <List
             dataSource={preview?.items ?? []}
-            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="На полке пока пусто" /> }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="На полке пока пусто. Записи попадают сюда из карточки — поле «Полки» — или выделением в списке библиотеки"
+                />
+              )
+            }}
             renderItem={(item) => (
-              <List.Item>
+              <List.Item
+                // Снять с полки нужно оттуда же, где видно состав: иначе единственный путь —
+                // открыть карточку и убрать полку в её поле.
+                actions={
+                  preview
+                    ? [
+                        <Button
+                          key="remove"
+                          type="text"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeFromShelf(preview.shelf, item.id)}
+                          aria-label={`Снять «${item.title}» с полки`}
+                        />
+                      ]
+                    : undefined
+                }
+              >
                 <List.Item.Meta
                   title={item.title}
                   description={item.authorNames.join(', ') || 'Автор не указан'}
