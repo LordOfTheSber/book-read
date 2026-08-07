@@ -16,6 +16,7 @@ import com.library.tracker.repository.TagRepository;
 import com.library.tracker.repository.UserRepository;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -57,6 +59,10 @@ class LibraryOrganizationIntegrationTest extends PostgresContainerTest {
     @Autowired
     private UserRepository userRepository;
 
+    /** Нужен, чтобы проверять чтение из БД, а не из контекста персистентности. */
+    @Autowired
+    private TestEntityManager entityManager;
+
     private User owner;
 
     @BeforeEach
@@ -88,12 +94,15 @@ class LibraryOrganizationIntegrationTest extends PostgresContainerTest {
     void itemKeepsTagsAndShelfMembership() {
         Tag tag = tagRepository.saveAndFlush( tag( "перечитать", owner ) );
         LibraryItem item = libraryItemRepository.saveAndFlush( item( "Задача трёх тел", "9785171049676" ) );
-        item.setTags( Set.of( tag ) );
+        // Коллекцию Hibernate забирает себе и правит на месте, поэтому набор должен быть изменяемым:
+        // от Set.of() тот же flush падает с UnsupportedOperationException.
+        item.setTags( new LinkedHashSet<>( Set.of( tag ) ) );
         libraryItemRepository.saveAndFlush( item );
 
         Shelf shelf = shelf( "Книжный клуб", owner );
         shelf.getItems().add( item );
         Shelf saved = shelfRepository.saveAndFlush( shelf );
+        entityManager.clear();
 
         Shelf loaded = shelfRepository.findWithItemsById( saved.getId() ).orElseThrow();
         assertThat( loaded.getItems() ).extracting( LibraryItem::getTitle ).containsExactly( "Задача трёх тел" );
@@ -119,7 +128,9 @@ class LibraryOrganizationIntegrationTest extends PostgresContainerTest {
         shelf.setFilter( filter );
 
         SmartShelf saved = smartShelfRepository.saveAndFlush( shelf );
-        smartShelfRepository.flush();
+        // Без очистки контекста вернулся бы тот же объект в памяти, и разбор jsonb — то есть
+        // ровно то, что здесь проверяется, — не выполнялся бы вовсе.
+        entityManager.clear();
 
         SavedFilter loaded = smartShelfRepository.findById( saved.getId() ).orElseThrow().getFilter();
         assertThat( loaded.getStatus() ).isEqualTo( ReadingStatus.PLANNED );
@@ -136,8 +147,10 @@ class LibraryOrganizationIntegrationTest extends PostgresContainerTest {
         item.setCurrency( "RUB" );
         item.setPurchaseUrl( "https://example.com/piranesi" );
 
-        LibraryItem loaded = libraryItemRepository.findById( libraryItemRepository.saveAndFlush( item ).getId() )
-                                                  .orElseThrow();
+        UUID savedId = libraryItemRepository.saveAndFlush( item ).getId();
+        entityManager.clear();
+
+        LibraryItem loaded = libraryItemRepository.findById( savedId ).orElseThrow();
 
         assertThat( loaded.isWishlist() ).isTrue();
         assertThat( loaded.getPrice() ).isEqualByComparingTo( "899.00" );
