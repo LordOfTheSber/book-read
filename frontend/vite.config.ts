@@ -1,10 +1,51 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      /*
+       * injectManifest, а не generateSW: правила кеширования у нас содержательные (обложки — одно,
+       * запросы библиотеки — другое, `/auth/` — никогда), и описывать их конфигом генератора
+       * тяжелее, чем написать сам worker. Плагин при этом всё равно нужен: список файлов сборки
+       * с хешами имён руками не собрать.
+       */
+      strategies: 'injectManifest',
+      srcDir: 'src/app/pwa',
+      filename: 'sw.ts',
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      /*
+       * В деве service worker выключен намеренно. Playwright гоняет сценарии против `npm run dev`,
+       * и зарегистрированный worker с собственным кешем превращается в источник межтестовой
+       * флакости. Очередь отложенных изменений при этом живёт на странице, а не в worker, поэтому
+       * проверяется и без него.
+       */
+      devOptions: { enabled: false },
+      manifest: {
+        name: 'Library Tracker',
+        short_name: 'Library',
+        description: 'Трекер прочитанного: библиотека, прогресс чтения, цели и выписки',
+        lang: 'ru',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#4096ff',
+        icons: [
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
+          // Отдельная иконка под маску Android: там глиф ужат в безопасную зону, иначе
+          // система срезала бы углы книги вместе с частью корешка.
+          { src: '/pwa-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ]
+      }
+    })
+  ],
   server: {
     port: 5173,
     proxy: {

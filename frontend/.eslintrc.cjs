@@ -32,6 +32,12 @@ module.exports = {
       files: ['*.cjs'],
       env: { node: true },
       parserOptions: { sourceType: 'script' }
+    },
+    {
+      // Service worker живёт в своём глобальном окружении: там нет window, зато есть self,
+      // clients и skipWaiting, которых браузерный env не знает.
+      files: ['src/app/pwa/sw.ts'],
+      env: { browser: false, serviceworker: true }
     }
   ]
 };
