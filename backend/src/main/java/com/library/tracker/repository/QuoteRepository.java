@@ -2,6 +2,7 @@ package com.library.tracker.repository;
 
 import com.library.tracker.domain.Quote;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,4 +31,7 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
     /** Сколько выписок сделал пользователь: нужно достижению «Собиратель». */
     @Query( "select count(q) from Quote q where q.item.createdBy.id = :userId" )
     long countByOwner( java.util.UUID userId );
+
+    /** Выписки для страницы записей — одним запросом, см. {@code ReadingLogRepository}. */
+    List<Quote> findByItemIdInOrderByItemIdAscPositionAsc( Collection<UUID> itemIds );
 }

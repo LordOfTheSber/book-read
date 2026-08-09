@@ -363,6 +363,24 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             """ )
     List<LibraryItem> findInProgressWithProgress( UUID userId );
 
+    /**
+     * Страница библиотеки владельца — для выгрузки своих данных. Граф тот же, что у списка книг:
+     * коллекции в него не входят, их забирают отдельными запросами на всю страницу сразу.
+     */
+    @EntityGraph( attributePaths = { "type", "source", "series" } )
+    Page<LibraryItem> findByCreatedById( UUID createdById, Pageable pageable );
+
+    /**
+     * Ключи обложек владельца. Файлы лежат в объектном хранилище, и каскад БД до них не достаёт:
+     * при удалении аккаунта их приходится вычищать отдельно.
+     */
+    @Query( """
+            select li.coverKey
+            from LibraryItem li
+            where li.createdBy.id = :userId and li.coverKey is not null
+            """ )
+    List<String> findCoverKeysByOwner( UUID userId );
+
     interface AuthorCount {
 
         UUID getAuthorId();

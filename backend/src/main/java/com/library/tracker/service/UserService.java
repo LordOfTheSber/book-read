@@ -286,7 +286,12 @@ public class UserService implements UserDetailsService {
                              .build();
     }
 
-    private void ensureAnotherSuperAdminExists( UUID excludedUserId ) {
+    /**
+     * Публичный, потому что то же правило действует не только при разжаловании и блокировке:
+     * последний супер-администратор не может и удалить свой аккаунт — вместе с ним из системы
+     * ушёл бы весь доступ к управлению.
+     */
+    public void ensureAnotherSuperAdminExists( UUID excludedUserId ) {
         long superAdmins = userRepository.countByRole( Role.SUPER_ADMIN );
         if ( superAdmins <= 1 && excludedUserId != null ) {
             throw new IllegalStateException( "Должен остаться хотя бы один супер админ" );

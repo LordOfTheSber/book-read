@@ -3,6 +3,7 @@ package com.library.tracker.repository;
 import com.library.tracker.domain.ReadingSession;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,12 @@ import org.springframework.data.jpa.repository.Query;
 public interface ReadingSessionRepository extends JpaRepository<ReadingSession, UUID> {
 
     List<ReadingSession> findByItemIdOrderBySessionDateDescCreatedAtDesc( UUID itemId );
+
+    /**
+     * Заходы для целой страницы записей: выгрузка идёт постранично, и запрос на каждую карточку
+     * превратил бы её в тысячи обращений к БД.
+     */
+    List<ReadingSession> findByItemIdInOrderByItemIdAscSessionDateAsc( Collection<UUID> itemIds );
 
     /**
      * Дни, в которые пользователь читал. Стрику и тепловой карте нужны именно даты, а не заходы:

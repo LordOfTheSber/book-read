@@ -3,6 +3,7 @@ package com.library.tracker.repository;
 import com.library.tracker.domain.Loan;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,4 +46,7 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
               and l.item.createdBy.id = :userId
             """ )
     long countOverdue( UUID userId, LocalDate today );
+
+    /** Выдачи для страницы записей — одним запросом, см. {@code ReadingLogRepository}. */
+    List<Loan> findByItemIdInOrderByItemIdAscLentOnAsc( Collection<UUID> itemIds );
 }
