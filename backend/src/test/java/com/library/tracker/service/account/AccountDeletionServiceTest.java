@@ -93,6 +93,7 @@ class AccountDeletionServiceTest {
     /** Последний супер-администратор уносит с собой доступ к системе — правило общее с UserService. */
     @Test
     void refusesToDeleteLastSuperAdmin() {
+        user.setRole( Role.SUPER_ADMIN );
         doThrow( new IllegalStateException( "Должен остаться хотя бы один супер админ" ) )
                 .when( userService ).ensureAnotherSuperAdminExists( eq( user.getId() ) );
 
@@ -101,6 +102,30 @@ class AccountDeletionServiceTest {
 
         verify( userRepository, never() ).delete( any() );
         verify( objectStorage, never() ).delete( any() );
+    }
+
+    /**
+     * Проверка на последнего супер-администратора спрашивается только у супер-администратора.
+     * Сама она считает их в базе и срабатывает, когда меньше двух, — вызванная безусловно, она
+     * запрещала бы удаление всем подряд на базе, где супер-администратора нет вовсе.
+     */
+    @Test
+    void doesNotAskAboutSuperAdminsWhenDeletingOrdinaryUser() {
+        service.deleteCurrentAccount( "correct" );
+
+        verify( userService, never() ).ensureAnotherSuperAdminExists( any() );
+        verify( userRepository ).delete( eq( user ) );
+    }
+
+    /** Супер-администратор, который не последний, уходит как все. */
+    @Test
+    void deletesSuperAdminWhenAnotherOneRemains() {
+        user.setRole( Role.SUPER_ADMIN );
+
+        service.deleteCurrentAccount( "correct" );
+
+        verify( userService ).ensureAnotherSuperAdminExists( eq( user.getId() ) );
+        verify( userRepository ).delete( eq( user ) );
     }
 
     /**

@@ -3,6 +3,7 @@ package com.library.tracker.service.account;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SessionRepository;
 import com.library.tracker.repository.UserRepository;
+import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.service.UserService;
 import com.library.tracker.storage.ObjectStorage;
@@ -46,9 +47,13 @@ public class AccountDeletionService {
         if ( !StringUtils.hasText( password ) || !passwordEncoder.matches( password, user.getPassword() ) ) {
             throw new IllegalArgumentException( "Неверный пароль" );
         }
-        // Последний супер-администратор уносит с собой доступ к системе. Правило то же, что
-        // у разжалования и блокировки, поэтому и проверка та же.
-        userService.ensureAnotherSuperAdminExists( user.getId() );
+        // Последний супер-администратор уносит с собой доступ к системе. Условие по роли
+        // обязательно: сама проверка считает супер-администраторов и срабатывает, когда их
+        // меньше двух, — на базе без единого супер-администратора она отказала бы в удалении
+        // вообще всем. В UserService она вызывается с тем же условием.
+        if ( user.getRole() == Role.SUPER_ADMIN ) {
+            userService.ensureAnotherSuperAdminExists( user.getId() );
+        }
 
         List<String> coverKeys = libraryItemRepository.findCoverKeysByOwner( user.getId() );
         coverKeys.forEach( key -> {
