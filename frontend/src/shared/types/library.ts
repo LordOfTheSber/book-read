@@ -396,6 +396,68 @@ export interface BookAnalytics {
   topSources: Array<{ sourceId: string; sourceName: string; count: number }>;
 }
 
+/** Итог периода: `2026-08` для месяцев, `2026` для лет. */
+export interface PeriodStats {
+  period: string;
+  finished: number;
+  pages: number;
+  minutes: number;
+}
+
+export interface DayActivity {
+  date: string;
+  minutes: number;
+  sessions: number;
+}
+
+export interface LabelCount {
+  label: string;
+  count: number;
+}
+
+export interface ReadingPace {
+  pagesPerDay?: number;
+  minutesPerDay?: number;
+  pagesPerHour?: number;
+  activeDays: number;
+  windowDays: number;
+}
+
+export interface FinishForecast {
+  itemId: string;
+  title: string;
+  remaining: number;
+  unit?: ProgressUnit;
+  /** Пусто, если темпа нет: сервер не подставляет выдуманную дату. */
+  expectedFinish?: string;
+}
+
+export interface PurchaseStats {
+  purchased: number;
+  finishedOfPurchased: number;
+  unreadPurchased: number;
+  spentByCurrency: Record<string, number>;
+}
+
+/**
+ * Аналитика во времени. Отдельный запрос от {@link BookAnalytics}: та висит в шапке списка книг
+ * и профиля, и тепловая карта с прогнозами оказалась бы в цене каждого открытия библиотеки.
+ */
+export interface ReadingAnalytics {
+  byMonth: PeriodStats[];
+  byYear: PeriodStats[];
+  /** Только дни с чтением — пустые достраивает календарь. */
+  heatmap: DayActivity[];
+  pace: ReadingPace;
+  forecasts: FinishForecast[];
+  byAuthor: Array<{ authorId: string; authorName: string; count: number }>;
+  byLanguage: LabelCount[];
+  byDecade: LabelCount[];
+  purchases: PurchaseStats;
+  currentYear: PeriodStats;
+  previousYear: PeriodStats;
+}
+
 export interface SessionSettings {
   sessionTtlMinutes: number;
   maxSessionLifetimeMinutes: number;

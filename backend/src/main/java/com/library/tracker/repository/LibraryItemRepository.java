@@ -3,6 +3,7 @@ package com.library.tracker.repository;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.ReadingStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -240,11 +241,175 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             """ )
     List<LibraryItem> findReviewed( UUID userId, Pageable pageable );
 
+    /**
+     * Помесячная динамика. Год и месяц отдаются числами, а склейку в {@code 2026-08} делает сервис:
+     * в JPQL это была бы конкатенация с приведением типов, читаемая хуже, чем строчка на Java.
+     */
+    @Query( """
+            select year(li.finishedAt) as year,
+                   month(li.finishedAt) as month,
+                   count(li) as finished,
+                   coalesce(sum(li.pageCount), 0) as pages
+            from LibraryItem li
+            where li.finishedAt is not null
+              and li.finishedAt >= :from
+              and (:userId is null or li.createdBy.id = :userId)
+            group by year(li.finishedAt), month(li.finishedAt)
+            order by year(li.finishedAt), month(li.finishedAt)
+            """ )
+    List<PeriodCount> countFinishedByMonth( UUID userId, LocalDate from );
+
+    /** Погодная динамика без окна: годов набирается десяток, а не сотня, и обрезать их незачем. */
+    @Query( """
+            select year(li.finishedAt) as year,
+                   0 as month,
+                   count(li) as finished,
+                   coalesce(sum(li.pageCount), 0) as pages
+            from LibraryItem li
+            where li.finishedAt is not null
+              and (:userId is null or li.createdBy.id = :userId)
+            group by year(li.finishedAt)
+            order by year(li.finishedAt)
+            """ )
+    List<PeriodCount> countFinishedByYear( UUID userId );
+
+    /**
+     * Счётчики авторов вместе с именами. {@link #countByAuthor} для этого не годится: он отдаёт
+     * только идентификаторы, потому что вызывающий уже держит список авторов и подставляет имена
+     * сам, — здесь такого списка нет, и без имени пришлось бы делать второй запрос.
+     */
+    @Query( """
+            select a.id as authorId, a.name as authorName, count(li) as count
+            from LibraryItem li
+            join li.authors a
+            where (:userId is null or li.createdBy.id = :userId)
+            group by a.id, a.name
+            order by count(li) desc, a.name
+            """ )
+    List<NamedAuthorCount> countByAuthorNamed( UUID userId, Pageable pageable );
+
+    /**
+     * Язык нормализуется к нижнему регистру: «Русский» и «русский» — один язык, а разводить их
+     * по двум строкам графика значит показать неверную картину из-за регистра ввода.
+     */
+    @Query( """
+            select lower(li.language) as label, count(li) as count
+            from LibraryItem li
+            where li.language is not null and length(trim(li.language)) > 0
+              and (:userId is null or li.createdBy.id = :userId)
+            group by lower(li.language)
+            order by count(li) desc
+            """ )
+    List<LabelCount> countByLanguage( UUID userId );
+
+    /** Десятилетие издания — целочисленное деление года: 1987 попадает в 1980-е. */
+    @Query( """
+            select (li.publishedYear / 10) * 10 as decade, count(li) as count
+            from LibraryItem li
+            where li.publishedYear is not null
+              and (:userId is null or li.createdBy.id = :userId)
+            group by (li.publishedYear / 10) * 10
+            order by (li.publishedYear / 10) * 10
+            """ )
+    List<DecadeCount> countByDecade( UUID userId );
+
+    /** Купленное — то, у чего проставлена цена; см. {@code PurchaseStatsResponse}. */
+    @Query( """
+            select count(li)
+            from LibraryItem li
+            where li.price is not null and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    long countPurchased( UUID userId );
+
+    @Query( """
+            select count(li)
+            from LibraryItem li
+            where li.price is not null
+              and li.status = com.library.tracker.domain.ReadingStatus.COMPLETED
+              and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    long countPurchasedFinished( UUID userId );
+
+    /**
+     * Купленное и не начатое — та самая полка «когда-нибудь». Из непрочитанного берётся только
+     * {@code PLANNED}: начатое и отложенное уже открывали, и упрёком оно не является.
+     */
+    @Query( """
+            select count(li)
+            from LibraryItem li
+            where li.price is not null
+              and li.status = com.library.tracker.domain.ReadingStatus.PLANNED
+              and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    long countPurchasedUnread( UUID userId );
+
+    @Query( """
+            select coalesce(li.currency, '') as currency, sum(li.price) as total
+            from LibraryItem li
+            where li.price is not null and (:userId is null or li.createdBy.id = :userId)
+            group by coalesce(li.currency, '')
+            """ )
+    List<CurrencyTotal> sumPriceByCurrency( UUID userId );
+
+    /** Кандидаты на прогноз завершения: читается прямо сейчас и шкала прогресса заполнена. */
+    @Query( """
+            select li
+            from LibraryItem li
+            where li.status = com.library.tracker.domain.ReadingStatus.READING
+              and li.progressCurrent is not null
+              and li.progressTotal is not null
+              and li.progressTotal > li.progressCurrent
+              and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    List<LibraryItem> findInProgressWithProgress( UUID userId );
+
     interface AuthorCount {
 
         UUID getAuthorId();
 
         long getCount();
+    }
+
+    interface NamedAuthorCount {
+
+        UUID getAuthorId();
+
+        String getAuthorName();
+
+        long getCount();
+    }
+
+    /** Месяц равен нулю у погодной выборки: год там и есть весь период. */
+    interface PeriodCount {
+
+        int getYear();
+
+        int getMonth();
+
+        long getFinished();
+
+        long getPages();
+    }
+
+    interface LabelCount {
+
+        String getLabel();
+
+        long getCount();
+    }
+
+    interface DecadeCount {
+
+        int getDecade();
+
+        long getCount();
+    }
+
+    interface CurrencyTotal {
+
+        String getCurrency();
+
+        BigDecimal getTotal();
     }
 
     interface SeriesCount {

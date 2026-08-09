@@ -22,15 +22,12 @@ import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.storage.StoredObject;
 import com.library.tracker.web.dto.AuthorSummary;
-import com.library.tracker.web.dto.BookAnalyticsResponse;
 import com.library.tracker.web.dto.LibraryItemFilter;
 import com.library.tracker.web.dto.LibraryItemRequest;
 import com.library.tracker.web.dto.LibraryItemResponse;
 import com.library.tracker.web.dto.ProgressResponse;
 import com.library.tracker.web.dto.ShelfSummary;
-import com.library.tracker.web.dto.SourceCountResponse;
 import com.library.tracker.web.dto.TagSummary;
-import com.library.tracker.web.dto.TypeCountResponse;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -300,56 +297,6 @@ public class LibraryItemService {
         return stored.contentType() != null
                 ? stored
                 : new StoredObject( stored.content(), item.getCoverContentType() );
-    }
-
-    @Transactional( readOnly = true )
-    public BookAnalyticsResponse getAnalytics( Optional<UUID> userId ) {
-        User currentUser = userService.getCurrentUser();
-        boolean isAdmin = userService.isAdmin( currentUser );
-
-        if ( userId.isPresent() && !isAdmin && !userId.get().equals( currentUser.getId() ) ) {
-            throw new AccessDeniedException( "Недостаточно прав для просмотра аналитики другого пользователя" );
-        }
-
-        UUID targetUserId = userId.filter( id -> isAdmin || id.equals( currentUser.getId() ) )
-                                  .orElseGet( () -> isAdmin ? null : currentUser.getId() );
-
-        long totalItems = libraryItemRepository.countAllByUserId( targetUserId );
-        long favoriteItems = libraryItemRepository.countFavorites( targetUserId );
-        Double avg = libraryItemRepository.averageRating( targetUserId );
-
-        var statusBreakdown = libraryItemRepository.countByStatus( targetUserId )
-                                                   .stream()
-                                                   .collect( Collectors.toMap(
-                                                           LibraryItemRepository.StatusCount::getStatus,
-                                                           LibraryItemRepository.StatusCount::getCount ) );
-
-        var topTypes = libraryItemRepository.countByType( targetUserId )
-                                            .stream()
-                                            .map( tc -> TypeCountResponse.builder()
-                                                                         .typeId( tc.getTypeId() )
-                                                                         .typeName( tc.getTypeName() )
-                                                                         .count( tc.getCount() )
-                                                                         .build() )
-                                            .toList();
-
-        var topSources = libraryItemRepository.countBySource( targetUserId )
-                                              .stream()
-                                              .map( sc -> SourceCountResponse.builder()
-                                                                             .sourceId( sc.getSourceId() )
-                                                                             .sourceName( sc.getSourceName() )
-                                                                             .count( sc.getCount() )
-                                                                             .build() )
-                                              .toList();
-
-        return BookAnalyticsResponse.builder()
-                                    .totalItems( totalItems )
-                                    .favoriteItems( favoriteItems )
-                                    .averageRating( avg != null ? BigDecimal.valueOf( avg ) : null )
-                                    .statusBreakdown( statusBreakdown )
-                                    .topTypes( topTypes )
-                                    .topSources( topSources )
-                                    .build();
     }
 
     private void recordActivity( LibraryItem item, ReadingStatus previousStatus, String previousReview ) {

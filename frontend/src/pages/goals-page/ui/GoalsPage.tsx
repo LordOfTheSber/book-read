@@ -20,12 +20,13 @@ import {
 } from 'antd';
 import { FireOutlined, TrophyOutlined } from '@ant-design/icons';
 import { Achievement, GoalMetric, ReadingGoal, Streak, YearInReview } from '@/shared/types/library';
-import { formatDate } from '@/shared/lib/date';
+import { formatDate, toLocalIso } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
 import { pluralize } from '@/shared/lib/plural';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { MetricList } from '@/shared/ui/MetricList';
+import { ColumnChart } from '@/shared/ui/ColumnChart';
 import {
   fetchAchievements,
   fetchGoal,
@@ -44,13 +45,6 @@ const MONTH_LABELS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'
 
 /** Восемь недель полоски активности: столько же, сколько отдаёт сервер. */
 const STREAK_DAYS = 56;
-
-/**
- * Дата в том же виде, в каком её присылает сервер. Через {@code toISOString} нельзя: он переводит
- * в UTC, и у всех западнее Гринвича полоска съезжала бы на день относительно серверных дат.
- */
-const toLocalIso = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 /**
  * Цели и вовлечение. Главное на странице — не проценты, а отставание от равномерного темпа:
@@ -129,7 +123,6 @@ export const GoalsPage: React.FC = () => {
   }, [streak]);
 
   const unlockedCount = achievements.filter((achievement) => achievement.unlocked).length;
-  const maxMonth = Math.max(...(review?.monthly.map((month) => month.count) ?? [0]), 0);
 
   const renderMetric = (title: string, unit: string, metric?: GoalMetric) => {
     if (!metric) {
@@ -303,37 +296,18 @@ export const GoalsPage: React.FC = () => {
               </Space>
               {/* Все двенадцать месяцев, включая пустые: BarList прячет нули, и год без февраля
                   и марта выглядел бы ровным вместо того, чтобы показать провал. */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-                {review.monthly.map((month) => {
-                  const share = maxMonth > 0 ? month.count / maxMonth : 0;
-                  return (
-                    <Tooltip
-                      key={month.month}
-                      title={`${MONTH_LABELS[month.month - 1]}: ${pluralize(month.count, [
-                        'запись',
-                        'записи',
-                        'записей'
-                      ])}`}
-                    >
-                      <div style={{ flex: 1, textAlign: 'center' }}>
-                        <div style={{ height: 90, display: 'flex', alignItems: 'flex-end' }}>
-                          <div
-                            style={{
-                              width: '100%',
-                              height: `${Math.max(share * 100, month.count > 0 ? 6 : 2)}%`,
-                              borderRadius: 4,
-                              background: month.count > 0 ? token.colorPrimary : token.colorFillSecondary
-                            }}
-                          />
-                        </div>
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                          {MONTH_LABELS[month.month - 1]}
-                        </Typography.Text>
-                      </div>
-                    </Tooltip>
-                  );
-                })}
-              </div>
+              <ColumnChart
+                items={review.monthly.map((month) => ({
+                  key: String(month.month),
+                  label: MONTH_LABELS[month.month - 1],
+                  value: month.count,
+                  tooltip: `${MONTH_LABELS[month.month - 1]}: ${pluralize(month.count, [
+                    'запись',
+                    'записи',
+                    'записей'
+                  ])}`
+                }))}
+              />
             </Col>
 
             <Col xs={24} lg={12}>

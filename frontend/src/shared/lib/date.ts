@@ -1,3 +1,11 @@
+/**
+ * Дата в том же виде, в каком её присылает сервер. Через `toISOString` нельзя: он переводит
+ * в UTC, и у всех западнее Гринвича календарные сетки съезжали бы на день относительно
+ * серверных дат.
+ */
+export const toLocalIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 export const parseServerDate = (value?: string | null): Date | null => {
   if (!value) return null;
   const trimmed = value.trim();

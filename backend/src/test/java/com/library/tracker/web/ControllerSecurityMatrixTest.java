@@ -23,6 +23,7 @@ import com.library.tracker.service.SmartShelfService;
 import com.library.tracker.service.SourceService;
 import com.library.tracker.service.TagService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.service.analytics.AnalyticsService;
 import com.library.tracker.service.engagement.AchievementService;
 import com.library.tracker.service.engagement.ReadingGoalService;
 import com.library.tracker.service.engagement.StreakService;
@@ -110,6 +111,9 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private LibraryItemService libraryItemService;
+
+    @MockBean
+    private AnalyticsService analyticsService;
 
     @MockBean
     private BookTypeService bookTypeService;
@@ -414,6 +418,7 @@ class ControllerSecurityMatrixTest {
                 Endpoint.put( "/api/v1/users/" + ID + "/block", "{\"blocked\":true}", SUPER_ADMIN ),
 
                 Endpoint.get( "/api/v1/analytics/books", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/analytics/reading", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Эксплуатация: узлы и мониторинг администраторам, логи и настройки — супер-администратору.
                 Endpoint.get( "/api/v1/nodes", SUPER_ADMIN, ADMIN ),

@@ -391,20 +391,6 @@ class LibraryItemServiceTest {
     }
 
     @Test
-    void analyticsRejectsUnauthorizedUserAccess() {
-        LibraryItemService service = newService();
-        User currentUser = new User();
-        currentUser.setId( UUID.randomUUID() );
-        currentUser.setRole( Role.USER );
-        when( userService.getCurrentUser() ).thenReturn( currentUser );
-        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
-
-        assertThatThrownBy( () -> service.getAnalytics( Optional.of( UUID.randomUUID() ) ) )
-                .isInstanceOf( AccessDeniedException.class )
-                .hasMessageContaining( "Недостаточно прав для просмотра аналитики другого пользователя" );
-    }
-
-    @Test
     void createUsesTypeAndSourceWhenProvided() {
         LibraryItemService service = newService();
         LibraryItemRequest request = new LibraryItemRequest();
