@@ -12,7 +12,9 @@ import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.ReadingLogRepository;
 import com.library.tracker.repository.ShelfRepository;
 import com.library.tracker.repository.TagRepository;
+import com.library.tracker.service.engagement.AchievementService;
 import com.library.tracker.service.metadata.CoverDownloadService;
+import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.web.dto.LibraryItemRequest;
 
@@ -82,11 +84,17 @@ class LibraryItemServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private ActivityService activityService;
+
+    @Mock
+    private AchievementService achievementService;
+
     private LibraryItemService newService() {
         return new LibraryItemService( libraryItemRepository, bookTypeRepository, sourceRepository, tagRepository,
                                        shelfRepository, authorService, tagService, seriesService, objectStorage,
                                        coverDownloadService, readingProgressService, readingLogRepository,
-                                       FIXED_CLOCK, userService );
+                                       FIXED_CLOCK, userService, activityService, achievementService );
     }
 
     @Test

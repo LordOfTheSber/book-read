@@ -23,6 +23,24 @@ public interface ShelfRepository extends JpaRepository<Shelf, UUID> {
     @EntityGraph( attributePaths = { "owner", "items" } )
     Optional<Shelf> findWithItemsById( UUID id );
 
+    @Query( "select count(i) from Shelf s join s.items i where s.id = :shelfId" )
+    long countItems( UUID shelfId );
+
+    /**
+     * Лежит ли запись хотя бы на одной полке, которую спрашивающему видно. По этому же вопросу
+     * решается, можно ли обсуждать отзыв: полка книжного клуба открывает участникам его состав,
+     * не открывая всю библиотеку владельца.
+     */
+    @Query( """
+            select count(s) > 0
+            from Shelf s
+            join s.items i
+            where i.id = :itemId
+              and (s.isPublic = true
+                   or exists (select m from ShelfMember m where m.shelf = s and m.user.id = :userId))
+            """ )
+    boolean existsReadableShelfWithItem( UUID itemId, UUID userId );
+
     @Query( """
             select s.id as shelfId, count(i) as count
             from Shelf s

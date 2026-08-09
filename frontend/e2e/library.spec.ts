@@ -76,6 +76,39 @@ test('введённый в карточке автор заводится и п
   await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
 });
 
+/**
+ * Профиль закрыт по умолчанию, и открывает его сам пользователь. Проверяется вся цепочка:
+ * переключатель в настройках → страница /u/username → цель года на своей странице целей.
+ */
+test('открытый профиль появляется на своей странице /u/:username', async ({ page }) => {
+  const username = await registerNewUser(page);
+
+  await page.goto('/profile');
+  await page.getByLabel('Имя для показа').fill('Читатель e2e');
+  await page.getByRole('switch').first().click();
+  await page.getByRole('button', { name: 'Сохранить' }).click();
+
+  await page.goto(`/u/${username}`);
+  await expect(page.getByRole('heading', { name: 'Читатель e2e' })).toBeVisible();
+  await expect(page.getByText(`@${username}`)).toBeVisible();
+  // Свою страницу не подписывают на себя: вместо кнопки подписки — переход в настройки.
+  await expect(page.getByRole('button', { name: 'Настроить профиль' })).toBeVisible();
+});
+
+/** Цель года считается от равномерного темпа, поэтому пустая цель ничего не показывает. */
+test('цель года заводится и показывает прогресс', async ({ page }) => {
+  await registerNewUser(page);
+
+  await page.goto('/goals');
+  await expect(page.getByText(/Цель ещё не поставлена/)).toBeVisible();
+
+  await page.getByLabel('Произведений').fill('40');
+  await page.getByRole('button', { name: 'Сохранить' }).click();
+
+  await expect(page.getByText('0 / 40')).toBeVisible();
+  await expect(page.getByText('Такими темпами')).toBeVisible();
+});
+
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {
   const username = await registerNewUser(page);
 

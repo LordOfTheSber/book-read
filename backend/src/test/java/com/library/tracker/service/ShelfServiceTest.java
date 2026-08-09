@@ -6,7 +6,9 @@ import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ShelfMemberRepository;
 import com.library.tracker.repository.ShelfRepository;
+import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.web.dto.ShelfItemsRequest;
 import com.library.tracker.web.dto.ShelfRequest;
 
@@ -36,10 +38,16 @@ class ShelfServiceTest {
     private ShelfRepository shelfRepository;
 
     @Mock
+    private ShelfMemberRepository shelfMemberRepository;
+
+    @Mock
     private LibraryItemRepository libraryItemRepository;
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private ActivityService activityService;
 
     private ShelfService service;
 
@@ -47,7 +55,9 @@ class ShelfServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ShelfService( shelfRepository, libraryItemRepository, userService );
+        ShelfAccess shelfAccess = new ShelfAccess( shelfMemberRepository, userService );
+        service = new ShelfService( shelfRepository, shelfMemberRepository, libraryItemRepository, userService,
+                                    shelfAccess, activityService );
         owner = user();
     }
 

@@ -1,5 +1,6 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.ActivityType;
 import com.library.tracker.domain.Author;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
@@ -15,7 +16,9 @@ import com.library.tracker.repository.ReadingLogRepository;
 import com.library.tracker.repository.ShelfRepository;
 import com.library.tracker.repository.SourceRepository;
 import com.library.tracker.repository.TagRepository;
+import com.library.tracker.service.engagement.AchievementService;
 import com.library.tracker.service.metadata.CoverDownloadService;
+import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.storage.ObjectStorage;
 import com.library.tracker.storage.StoredObject;
 import com.library.tracker.web.dto.AuthorSummary;
@@ -84,6 +87,8 @@ public class LibraryItemService {
     private final ReadingLogRepository readingLogRepository;
     private final Clock clock;
     private final UserService userService;
+    private final ActivityService activityService;
+    private final AchievementService achievementService;
 
     public Page<LibraryItemResponse> getItems( LibraryItemFilter filter ) {
         PageRequest pageRequest = PageRequest.of( filter.page(), filter.size(), filter.sort() );
@@ -167,7 +172,9 @@ public class LibraryItemService {
         applyShelves( saved, request.getShelfIds() );
         // Книгу можно завести сразу в статусе «читаю»: тогда проход открывается тут же.
         readingProgressService.applyStatusTransition( saved, null, LocalDate.now( clock ) );
-        return toResponse( libraryItemRepository.save( saved ) );
+        LibraryItem stored = libraryItemRepository.save( saved );
+        recordActivity( stored, null, null );
+        return toResponse( stored );
     }
 
     public Optional<LibraryItemResponse> update( UUID id, LibraryItemRequest request ) {
@@ -179,11 +186,15 @@ public class LibraryItemService {
                 throw new AccessDeniedException( "Вы можете редактировать только свои книги" );
             }
             ReadingStatus previousStatus = existing.getStatus();
+            BigDecimal previousRating = existing.getRating();
+            String previousReview = existing.getReview();
             applyRequest( existing, request );
             applyShelves( existing, request.getShelfIds() );
             // Даты начала и завершения ведёт сама смена статуса — вручную их проставлять не нужно.
             readingProgressService.applyStatusTransition( existing, previousStatus, LocalDate.now( clock ) );
-            return toResponse( libraryItemRepository.save( existing ) );
+            LibraryItem stored = libraryItemRepository.save( existing );
+            recordActivity( stored, previousStatus, previousReview, previousRating );
+            return toResponse( stored );
         } );
     }
 
@@ -339,6 +350,54 @@ public class LibraryItemService {
                                     .topTypes( topTypes )
                                     .topSources( topSources )
                                     .build();
+    }
+
+    private void recordActivity( LibraryItem item, ReadingStatus previousStatus, String previousReview ) {
+        recordActivity( item, previousStatus, previousReview, null );
+    }
+
+    /**
+     * Что из правки карточки попадает в ленту. Событий намеренно немного: лента, куда сыплется
+     * каждое изменение поля, читается как журнал ошибок, и её перестают открывать.
+     * <p>
+     * Владелец записи, а не правящий: администратор, поправивший чужую карточку, не должен
+     * оказаться в ленте так, будто он это прочитал.
+     */
+    private void recordActivity( LibraryItem item,
+                                 ReadingStatus previousStatus,
+                                 String previousReview,
+                                 BigDecimal previousRating ) {
+        User owner = item.getCreatedBy();
+        if ( owner == null ) {
+            return;
+        }
+
+        if ( item.getStatus() != previousStatus ) {
+            if ( item.getStatus() == ReadingStatus.READING ) {
+                activityService.record( owner, ActivityType.STARTED_READING, item, null, item.getTitle(), null );
+            } else if ( item.getStatus() == ReadingStatus.COMPLETED ) {
+                activityService.record( owner, ActivityType.FINISHED_READING, item, null, item.getTitle(),
+                                        item.getRating() != null ? item.getRating().toPlainString() : null );
+                // Достижения пересчитываются здесь же: половина из них завязана на завершённые,
+                // и ждать до открытия страницы значило бы выдавать их с опозданием.
+                achievementService.evaluate( owner );
+            }
+        }
+
+        boolean reviewAppeared = StringUtils.hasText( item.getReview() )
+                                 && !item.getReview().equals( previousReview );
+        if ( reviewAppeared ) {
+            activityService.record( owner, ActivityType.PUBLISHED_REVIEW, item, null, item.getTitle(), null );
+        }
+
+        boolean ratingChanged = item.getRating() != null
+                                && previousRating != null
+                                && item.getRating().compareTo( previousRating ) != 0;
+        // Оценка при завершении уже уехала в событие «дочитал» — второй раз о ней не сообщаем.
+        if ( ratingChanged && item.getStatus() == previousStatus ) {
+            activityService.record( owner, ActivityType.RATED, item, null, item.getTitle(),
+                                    item.getRating().toPlainString() );
+        }
     }
 
     private void applyRequest( LibraryItem item, LibraryItemRequest request ) {

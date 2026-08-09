@@ -26,7 +26,8 @@ import {
   EyeOutlined,
   GlobalOutlined,
   PlusOutlined,
-  TagsOutlined
+  TagsOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -44,6 +45,8 @@ import { deleteTagThunk, loadTags, updateTagThunk } from '@/entities/tag';
 import { applySavedFilter } from '@/features/book/set-book-filters';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
+import { ShelfMembersModal } from '@/widgets/shelf-members';
+import { shelfRoleMeta } from '@/shared/constants/social';
 
 interface ShelfFormValues {
   name: string;
@@ -70,6 +73,7 @@ export const ShelvesPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<{ shelf: Shelf; items: ShelfItem[] } | null>(null);
+  const [membersOf, setMembersOf] = useState<Shelf | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   /** Идентификатор тега, который сейчас переименовывают: чип на это время становится полем ввода. */
   const [renamingTag, setRenamingTag] = useState<string | null>(null);
@@ -235,6 +239,12 @@ export const ShelvesPage: React.FC = () => {
                         <GlobalOutlined style={{ color: token.colorPrimary }} />
                       </Tooltip>
                     )}
+                    {/* Совместная полка нужна участнику там же, где своя, — но перепутать их нельзя. */}
+                    {!shelf.owned && shelf.myRole && (
+                      <Tag color={shelfRoleMeta[shelf.myRole].color} bordered={false}>
+                        {shelfRoleMeta[shelf.myRole].label}
+                      </Tag>
+                    )}
                   </Space>
                 }
                 extra={
@@ -242,24 +252,39 @@ export const ShelvesPage: React.FC = () => {
                     <Tooltip title="Показать состав">
                       <Button type="text" icon={<EyeOutlined />} onClick={() => openPreview(shelf)} aria-label="Показать состав" />
                     </Tooltip>
-                    <Tooltip title="Переименовать">
-                      <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(shelf)} aria-label="Переименовать" />
-                    </Tooltip>
-                    <Tooltip title="Удалить">
+                    <Tooltip title="Участники">
                       <Button
                         type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => confirmDeleteShelf(shelf)}
-                        aria-label="Удалить"
+                        icon={<TeamOutlined />}
+                        onClick={() => setMembersOf(shelf)}
+                        aria-label="Участники"
                       />
                     </Tooltip>
+                    {shelf.canCurate && (
+                      <Tooltip title="Переименовать">
+                        <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(shelf)} aria-label="Переименовать" />
+                      </Tooltip>
+                    )}
+                    {shelf.owned && (
+                      <Tooltip title="Удалить">
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => confirmDeleteShelf(shelf)}
+                          aria-label="Удалить"
+                        />
+                      </Tooltip>
+                    )}
                   </Space>
                 }
               >
                 <Space direction="vertical" size={8} style={{ display: 'flex' }}>
                   <Typography.Text type="secondary">
                     {pluralize(shelf.itemCount, ['запись', 'записи', 'записей'])}
+                    {shelf.memberCount > 0 &&
+                      ` · ${pluralize(shelf.memberCount, ['участник', 'участника', 'участников'])}`}
+                    {!shelf.owned && shelf.ownerUsername ? ` · полка @${shelf.ownerUsername}` : ''}
                   </Typography.Text>
                   {shelf.description && (
                     <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
@@ -433,6 +458,8 @@ export const ShelvesPage: React.FC = () => {
           />
         )}
       </Modal>
+
+      <ShelfMembersModal shelf={membersOf} onClose={() => setMembersOf(null)} />
     </Space>
   );
 };

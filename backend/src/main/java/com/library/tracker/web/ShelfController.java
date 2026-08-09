@@ -1,8 +1,11 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.ShelfService;
+import com.library.tracker.service.social.ShelfMemberService;
 import com.library.tracker.web.dto.ShelfItemResponse;
 import com.library.tracker.web.dto.ShelfItemsRequest;
+import com.library.tracker.web.dto.ShelfMemberRequest;
+import com.library.tracker.web.dto.ShelfMemberResponse;
 import com.library.tracker.web.dto.ShelfRequest;
 import com.library.tracker.web.dto.ShelfResponse;
 import jakarta.validation.Valid;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ShelfController {
 
     private final ShelfService shelfService;
+    private final ShelfMemberService shelfMemberService;
 
     @GetMapping
     public List<ShelfResponse> list() {
@@ -86,5 +90,31 @@ public class ShelfController {
     public ResponseEntity<Void> delete( @PathVariable UUID id ) {
         shelfService.delete( id );
         return ResponseEntity.noContent().build();
+    }
+
+    /** Участники совместной полки: видны всем, кому видна сама полка. */
+    @GetMapping( "/{id}/members" )
+    public ResponseEntity<List<ShelfMemberResponse>> members( @PathVariable UUID id ) {
+        return shelfMemberService.findMembers( id )
+                                 .map( ResponseEntity::ok )
+                                 .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    /** Повторный вызов с другой ролью меняет её: отдельной точки «изменить роль» не нужно. */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PostMapping( "/{id}/members" )
+    public ResponseEntity<List<ShelfMemberResponse>> addMember( @PathVariable UUID id,
+                                                                @Valid @RequestBody ShelfMemberRequest request ) {
+        return shelfMemberService.addOrUpdate( id, request )
+                                 .map( ResponseEntity::ok )
+                                 .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @DeleteMapping( "/{id}/members/{userId}" )
+    public ResponseEntity<List<ShelfMemberResponse>> removeMember( @PathVariable UUID id, @PathVariable UUID userId ) {
+        return shelfMemberService.remove( id, userId )
+                                 .map( ResponseEntity::ok )
+                                 .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 }

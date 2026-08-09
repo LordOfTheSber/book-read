@@ -46,6 +46,7 @@ import { CoverField } from './CoverField';
 import { DuplicateHint } from './DuplicateHint';
 import { ProgressTab } from './ProgressTab';
 import { QuotesTab } from './QuotesTab';
+import { LoansTab } from './LoansTab';
 import { RatingTab } from './RatingTab';
 import { loadBooks } from '@/entities/book';
 
@@ -555,7 +556,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
                 children: <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
               },
               { key: 'review', label: 'Оценка и отзыв', children: <RatingTab item={editing} form={form} /> },
-              { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> }
+              { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> },
+              { key: 'loans', label: 'Выдачи', children: <LoansTab item={editing} /> }
             ]}
           />
         ) : (

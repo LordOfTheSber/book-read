@@ -150,6 +150,41 @@ creates the rows the client sends back, skipping duplicates unless told otherwis
 
 This is separate from `/api/v1/exports/**`, which is a whole-database backup for `SUPER_ADMIN` only.
 
+## Social layer
+Every endpoint below requires authentication: "public" here means "visible to other signed-in users of this
+instance", never anonymous.
+
+- `GET/PUT /api/v1/profiles/me` — your own profile (display name, bio, visibility). A profile is **private by
+  default**; opening it is an explicit choice, not a side effect of an upgrade.
+- `GET /api/v1/profiles/{username}` — someone else's page, backing the `/u/:username` route. A private profile
+  answers `404`, not `403`: a `403` would confirm the login exists to a caller who is not allowed to see it.
+- `POST/DELETE /api/v1/profiles/{username}/follow`, `GET /api/v1/profiles/me/feed` — one-way follows and the
+  activity feed. Events are written when something happens rather than derived from current library state, so
+  "finished" stays in the feed even if the item is later moved back to "reading". The feed filters by *current*
+  profile visibility, so closing a profile also removes what it published earlier.
+- `GET /api/v1/items/{id}/review`, `POST/DELETE .../review/reactions`, `POST/DELETE .../review/comments` —
+  reactions and comments live under the item because a review is a field of the card, not an entity of its own.
+  One reaction per person per review. A review is discussable only when it is already visible to the caller:
+  own item, open profile, or an item on a shelf the caller can read.
+- `GET/POST/DELETE /api/v1/shelves/{id}/members` — collaborative shelves with roles *inside* the collection
+  (`VIEWER`, `CONTRIBUTOR`, `CURATOR`), separate from the global roles.
+- `GET/POST /api/v1/items/{id}/loans`, `GET /api/v1/loans`, `POST /api/v1/loans/{id}/return` — lending records.
+  The borrower is a plain name, not a user account. Overdue is computed on read rather than stored.
+
+## Goals and engagement
+`/api/v1/engagement/**` is always about the caller — no user id is accepted anywhere.
+
+- `GET /api/v1/engagement/goals/current`, `PUT/DELETE /api/v1/engagement/goals/{year}` — the yearly challenge.
+  Only the targets are stored; progress is computed from the library and reading sessions. Each metric comes
+  with the evenly-paced expectation for today, so "12 of 40" reads differently in June and in December.
+- `GET /api/v1/engagement/streak` — consecutive days with a reading session. The streak survives one missed
+  day: requiring a session *today* would break it for anyone who reads in the evening.
+- `GET /api/v1/engagement/achievements` — the catalogue with unlock state. Conditions live in code (an
+  exhaustive `switch` over the enum); the database keeps only the code and the date. Evaluation happens on
+  demand and after an item is completed.
+- `GET /api/v1/engagement/year-in-review` — the shareable yearly summary, computed on the fly from the same
+  slices the goal and the streak use.
+
 ## Metrics and health
 Actuator is enabled on the application port:
 

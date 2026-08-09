@@ -26,4 +26,8 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
             order by q.updatedAt desc
             """ )
     List<Quote> search( String query, java.util.UUID userId );
+
+    /** Сколько выписок сделал пользователь: нужно достижению «Собиратель». */
+    @Query( "select count(q) from Quote q where q.item.createdBy.id = :userId" )
+    long countByOwner( java.util.UUID userId );
 }

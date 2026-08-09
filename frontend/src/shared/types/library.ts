@@ -129,6 +129,12 @@ export interface Shelf {
   ownerUsername?: string;
   createdAt: string;
   updatedAt: string;
+  /** Роль спрашивающего внутри полки; у владельца и постороннего её нет. */
+  myRole?: ShelfRole;
+  owned: boolean;
+  canCurate: boolean;
+  canContribute: boolean;
+  memberCount: number;
 }
 
 /** Произведение в составе полки: публично безопасный набор полей, без приватной заметки. */
@@ -477,4 +483,175 @@ export interface MonitoringMetrics {
   settings: MonitoringSettings;
   nodes: NodeMetricsSnapshot[];
   generatedAt: string;
+}
+
+/** Пользователь в списке: в подписках, в авторе события, в комментарии. Без роли и блокировки. */
+export interface ProfileSummary {
+  id: string;
+  username: string;
+  displayName?: string;
+  hasAvatar: boolean;
+  publicProfile: boolean;
+  followedByMe: boolean;
+}
+
+/** Отзыв, каким его видит другой пользователь: без приватной заметки, спойлер отдельным полем. */
+export interface PublicReview {
+  itemId: string;
+  kind: MediaKind;
+  title: string;
+  authorNames: string[];
+  hasCover: boolean;
+  rating?: number;
+  review?: string;
+  reviewSpoiler?: string;
+  finishedAt?: string;
+  reactionCount: number;
+  commentCount: number;
+}
+
+/** Страница /u/username: шапка, счётчики, открытые полки и последние отзывы. */
+export interface PublicProfile {
+  id: string;
+  username: string;
+  displayName?: string;
+  bio?: string;
+  hasAvatar: boolean;
+  publicProfile: boolean;
+  me: boolean;
+  followedByMe: boolean;
+  followerCount: number;
+  followingCount: number;
+  finishedCount: number;
+  reviewCount: number;
+  averageRating?: number;
+  currentStreak: number;
+  achievementCount: number;
+  joinedAt?: string;
+  shelves: Shelf[];
+  reviews: PublicReview[];
+}
+
+export type ActivityType =
+  | 'STARTED_READING'
+  | 'FINISHED_READING'
+  | 'PUBLISHED_REVIEW'
+  | 'RATED'
+  | 'SHARED_SHELF'
+  | 'UNLOCKED_ACHIEVEMENT'
+  | 'REACHED_GOAL';
+
+/** Событие ленты. Подпись — снимок на момент события, поэтому приходит строкой, а не ссылкой. */
+export interface Activity {
+  id: string;
+  type: ActivityType;
+  actor: ProfileSummary;
+  itemId?: string;
+  shelfId?: string;
+  subject?: string;
+  detail?: string;
+  createdAt: string;
+}
+
+export type ReactionKind = 'LIKE' | 'WANT_TO_READ' | 'DISAGREE';
+
+export interface ReviewComment {
+  id: string;
+  author: ProfileSummary;
+  body: string;
+  createdAt: string;
+  canDelete: boolean;
+}
+
+/** Обсуждение отзыва: счётчики реакций, своя реакция и плоский список комментариев. */
+export interface ReviewThread {
+  itemId: string;
+  reactions: Partial<Record<ReactionKind, number>>;
+  myReaction?: ReactionKind;
+  comments: ReviewComment[];
+}
+
+/** Роль внутри полки — своя, а не глобальная: она отвечает на вопрос «что можно на этой полке». */
+export type ShelfRole = 'VIEWER' | 'CONTRIBUTOR' | 'CURATOR';
+
+export interface ShelfMember {
+  id: string;
+  user: ProfileSummary;
+  role: ShelfRole;
+  createdAt: string;
+}
+
+/** Выданный экземпляр: заёмщик — просто имя, а не пользователь сервиса. */
+export interface Loan {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  borrowerName: string;
+  borrowerContact?: string;
+  lentOn: string;
+  dueOn?: string;
+  returnedOn?: string;
+  note?: string;
+  overdue: boolean;
+  daysOut: number;
+}
+
+/** Одна цифра цели вместе с графиком: без ожидаемого темпа проценты ни о чём не говорят. */
+export interface GoalMetric {
+  target: number;
+  done: number;
+  expected: number;
+  percent: number;
+  behind: number;
+  onTrack: boolean;
+  projected: number;
+}
+
+export interface ReadingGoal {
+  year: number;
+  configured: boolean;
+  items?: GoalMetric;
+  pages?: GoalMetric;
+  minutes?: GoalMetric;
+  daysLeft: number;
+  daysPassed: number;
+  completed: boolean;
+}
+
+/** Дни подряд с чтением. Вчерашняя отметка серию не рвёт. */
+export interface Streak {
+  currentStreak: number;
+  longestStreak: number;
+  lastReadOn?: string;
+  readToday: boolean;
+  recentDays: string[];
+}
+
+export interface Achievement {
+  code: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+  unlockedOn?: string;
+}
+
+export interface MonthCount {
+  month: number;
+  count: number;
+}
+
+/** «Год в обзоре»: собирается из тех же срезов, что цель и стрик. */
+export interface YearInReview {
+  year: number;
+  finishedCount: number;
+  pageCount: number;
+  minuteCount: number;
+  readingDays: number;
+  longestStreak: number;
+  averageRating?: number;
+  monthly: MonthCount[];
+  topRated: PublicReview[];
+  longestItem?: PublicReview;
+  topAuthors: AuthorSummary[];
+  topTypes: { typeId: string; typeName: string; count: number }[];
 }

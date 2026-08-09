@@ -51,4 +51,18 @@ public class User extends BaseAuditEntity {
 
     @Column( name = "blocked", nullable = false )
     private boolean blocked = false;
+
+    /**
+     * Имя для показа отдельно от логина: логин участвует в адресе {@code /u/username} и в
+     * аутентификации, поэтому менять его ради красивой подписи нельзя.
+     */
+    @Column( name = "display_name", length = 128 )
+    private String displayName;
+
+    @Column( name = "bio", columnDefinition = "TEXT" )
+    private String bio;
+
+    /** Профиль закрыт по умолчанию: открыть его — решение пользователя, а не следствие обновления. */
+    @Column( name = "public_profile", nullable = false )
+    private boolean publicProfile = false;
 }
