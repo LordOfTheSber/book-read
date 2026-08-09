@@ -348,6 +348,7 @@ class ControllerSecurityMatrixTest {
                 Endpoint.post( "/api/v1/profiles/reader/follow", null, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/profiles/reader/follow", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/shelves/" + ID + "/members", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves/" + ID + "/member-candidates", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.post( "/api/v1/shelves/" + ID + "/members",
                                "{\"username\":\"reader\",\"role\":\"VIEWER\"}",
                                SUPER_ADMIN, ADMIN, EDITOR, USER ),

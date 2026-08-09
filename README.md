@@ -167,7 +167,11 @@ instance", never anonymous.
   One reaction per person per review. A review is discussable only when it is already visible to the caller:
   own item, open profile, or an item on a shelf the caller can read.
 - `GET/POST/DELETE /api/v1/shelves/{id}/members` — collaborative shelves with roles *inside* the collection
-  (`VIEWER`, `CONTRIBUTOR`, `CURATOR`), separate from the global roles.
+  (`VIEWER`, `CONTRIBUTOR`, `CURATOR`), separate from the global roles. Only the shelf **owner** can flip
+  `isPublic`; a curator is trusted with the contents, not with exposing someone else's library.
+- `GET /api/v1/shelves/{id}/member-candidates?query=` — who can still be invited. Closed profiles are included
+  (you invite a relative, not a public blogger), so the listing is gated on being a curator **of that shelf**
+  and excludes the owner and existing members. There is no global user directory for non-admins.
 - `GET/POST /api/v1/items/{id}/loans`, `GET /api/v1/loans`, `POST /api/v1/loans/{id}/return` — lending records.
   The borrower is a plain name, not a user account. Overdue is computed on read rather than stored.
 
@@ -184,6 +188,16 @@ instance", never anonymous.
   demand and after an item is completed.
 - `GET /api/v1/engagement/year-in-review` — the shareable yearly summary, computed on the fly from the same
   slices the goal and the streak use.
+
+## Authentication errors
+`POST /api/v1/auth/login` validates only that the credentials are non-blank. The password policy (length,
+letters plus digits) belongs to `POST /api/v1/auth/register`: enforcing it on login locks out anyone whose
+password predates the rule, tells a brute-forcer the shape of a valid password, and — worst — writes the
+rejected value into the log.
+
+Failed authentication answers `401` with a single message for both an unknown login and a wrong password;
+distinguishing them only helps someone enumerating accounts. Client errors (4xx) are logged at `warn` without
+a stack trace, so request payloads never reach the log; only 5xx carries the exception.
 
 ## Metrics and health
 Actuator is enabled on the application port:

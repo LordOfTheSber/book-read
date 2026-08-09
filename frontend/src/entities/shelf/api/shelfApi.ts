@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { Shelf, ShelfItem, ShelfMember, ShelfRole } from '@/shared/types/library';
+import { ProfileSummary, Shelf, ShelfItem, ShelfMember, ShelfRole } from '@/shared/types/library';
 
 export interface ShelfPayload {
   name: string;
@@ -55,5 +55,11 @@ export const addShelfMember = async (id: string, username: string, role: ShelfRo
 
 export const removeShelfMember = async (id: string, userId: string) => {
   const { data } = await httpClient.delete<ShelfMember[]>(`/shelves/${id}/members/${userId}`);
+  return data;
+};
+
+/** Кого можно позвать на полку: отдаётся только тому, кто ведёт её участников. */
+export const fetchShelfMemberCandidates = async (id: string, query?: string) => {
+  const { data } = await httpClient.get<ProfileSummary[]>(`/shelves/${id}/member-candidates`, { params: { query } });
   return data;
 };

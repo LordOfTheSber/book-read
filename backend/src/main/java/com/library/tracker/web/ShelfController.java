@@ -2,6 +2,7 @@ package com.library.tracker.web;
 
 import com.library.tracker.service.ShelfService;
 import com.library.tracker.service.social.ShelfMemberService;
+import com.library.tracker.web.dto.ProfileSummaryResponse;
 import com.library.tracker.web.dto.ShelfItemResponse;
 import com.library.tracker.web.dto.ShelfItemsRequest;
 import com.library.tracker.web.dto.ShelfMemberRequest;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -96,6 +98,16 @@ public class ShelfController {
     @GetMapping( "/{id}/members" )
     public ResponseEntity<List<ShelfMemberResponse>> members( @PathVariable UUID id ) {
         return shelfMemberService.findMembers( id )
+                                 .map( ResponseEntity::ok )
+                                 .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    /** Кого можно позвать: отдаётся только тому, кто ведёт участников этой полки. */
+    @GetMapping( "/{id}/member-candidates" )
+    public ResponseEntity<List<ProfileSummaryResponse>> memberCandidates(
+            @PathVariable UUID id,
+            @RequestParam( value = "query", required = false ) String query ) {
+        return shelfMemberService.findCandidates( id, query )
                                  .map( ResponseEntity::ok )
                                  .orElseGet( () -> ResponseEntity.notFound().build() );
     }

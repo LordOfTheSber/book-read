@@ -1,22 +1,31 @@
 package com.library.tracker.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import lombok.Data;
 
+/**
+ * Вход. Требования к паролю здесь намеренно только «непустой»: политика применяется при
+ * регистрации ({@link RegisterRequest}), а на входе она вредна сразу трижды.
+ * <p>
+ * Во-первых, она отсекает тех, чей пароль заведён до её появления или другим путём: правило
+ * поменяли — и человек не может войти со своим настоящим паролем. Во-вторых, ответ «пароль должен
+ * содержать буквы и цифры» — это подсказка тому, кто перебирает: он узнаёт форму пароля, не зная
+ * ни одного. В-третьих, отказ валидации попадает в лог вместе с отвергнутым значением, то есть
+ * с самим паролем.
+ * <p>
+ * Верхняя граница длины оставлена: она не рассказывает ничего о пароле и защищает от заведомо
+ * бессмысленных запросов.
+ */
 @Data
 public class AuthRequest {
 
     @NotBlank
-    @Size( min = 3, max = 32 )
-    @Pattern( regexp = "^[A-Za-z0-9._-]+$", message = "Логин может содержать буквы, цифры, точку, тире и подчёркивание" )
+    @Size( max = 32 )
     private String username;
 
     @NotBlank
-    @Size( min = 8, max = 64 )
-    @Pattern( regexp = "^(?=.*[A-Za-z])(?=.*\\d)[\\S]+$",
-            message = "Пароль должен быть без пробелов и содержать буквы и цифры" )
+    @Size( max = 64 )
     private String password;
 }

@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -117,6 +118,42 @@ class ShelfMemberServiceTest {
         assertThatThrownBy( () -> service.remove( shelf.getId(), otherId ) )
                 .isInstanceOf( AccessDeniedException.class );
         verify( shelfMemberRepository, never() ).deleteByShelfIdAndUserId( any(), any() );
+    }
+
+    /**
+     * Кандидаты — это те, кого ещё можно позвать: владелец распоряжается полкой и так, а уже
+     * добавленного приглашать второй раз некуда.
+     */
+    @Test
+    void candidatesSkipOwnerAndExistingMembers() {
+        Shelf shelf = shelf( owner );
+        User existing = user( "already" );
+        User newcomer = user( "newcomer" );
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( shelfRepository.findById( shelf.getId() ) ).thenReturn( Optional.of( shelf ) );
+        when( shelfMemberRepository.findByShelfIdOrderByCreatedAtAsc( shelf.getId() ) )
+                .thenReturn( List.of( member( shelf, existing, ShelfRole.VIEWER ) ) );
+        when( userRepository.searchCandidates( eq( "" ), any() ) )
+                .thenReturn( List.of( owner, existing, newcomer ) );
+
+        var candidates = service.findCandidates( shelf.getId(), null ).orElseThrow();
+
+        assertThat( candidates ).extracting( com.library.tracker.web.dto.ProfileSummaryResponse::getUsername )
+                                .containsExactly( "newcomer" );
+    }
+
+    /** Перечисление пользователей привязано к праву: посторонний списка не получает. */
+    @Test
+    void candidatesAreDeniedToNonCurators() {
+        User viewer = user( "viewer" );
+        Shelf shelf = shelf( owner );
+        when( userService.getCurrentUser() ).thenReturn( viewer );
+        when( shelfRepository.findById( shelf.getId() ) ).thenReturn( Optional.of( shelf ) );
+        when( shelfMemberRepository.findByShelfIdAndUserId( eq( shelf.getId() ), eq( viewer.getId() ) ) )
+                .thenReturn( Optional.of( member( shelf, viewer, ShelfRole.VIEWER ) ) );
+
+        assertThatThrownBy( () -> service.findCandidates( shelf.getId(), null ) )
+                .isInstanceOf( AccessDeniedException.class );
     }
 
     private ShelfMemberRequest request( String username, ShelfRole role ) {

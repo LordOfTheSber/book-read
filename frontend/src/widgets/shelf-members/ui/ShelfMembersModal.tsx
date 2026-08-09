@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { App, Avatar, Button, Empty, Input, List, Modal, Select, Skeleton, Space, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Empty, List, Modal, Select, Skeleton, Space, Tag, Typography } from 'antd';
 import { DeleteOutlined, UserOutlined } from '@ant-design/icons';
-import { Shelf, ShelfMember, ShelfRole } from '@/shared/types/library';
+import { ProfileSummary, Shelf, ShelfMember, ShelfRole } from '@/shared/types/library';
 import { shelfRoleMeta } from '@/shared/constants/social';
 import { useRequestError } from '@/shared/lib/errors';
-import { addShelfMember, fetchShelfMembers, removeShelfMember } from '@/entities/shelf';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { addShelfMember, fetchShelfMemberCandidates, fetchShelfMembers, removeShelfMember } from '@/entities/shelf';
 
 interface Props {
   shelf: Shelf | null;
@@ -17,17 +18,22 @@ const roleOptions = (Object.keys(shelfRoleMeta) as ShelfRole[]).map((role) => ({
 }));
 
 /**
- * Участники совместной полки: семейной или клубной. Зовут по логину — идентификатор чужого
- * пользователя взять неоткуда, да и не нужно.
+ * Участники совместной полки: семейной или клубной. Кандидаты приходят списком и сужаются вводом —
+ * помнить чужой логин наизусть нельзя требовать от того, кто зовёт родственника на семейную полку.
+ * Список отдаётся только куратору этой полки, поэтому перечислением пользователей он не является.
  */
 export const ShelfMembersModal: React.FC<Props> = ({ shelf, onClose }) => {
   const { message } = App.useApp();
   const showRequestError = useRequestError();
   const [members, setMembers] = useState<ShelfMember[]>([]);
   const [loading, setLoading] = useState(false);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState<string | undefined>();
   const [role, setRole] = useState<ShelfRole>('CONTRIBUTOR');
   const [inviting, setInviting] = useState(false);
+  const [candidates, setCandidates] = useState<ProfileSummary[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [candidateQuery, setCandidateQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(candidateQuery, 300);
 
   useEffect(() => {
     if (!shelf) return;
@@ -48,12 +54,36 @@ export const ShelfMembersModal: React.FC<Props> = ({ shelf, onClose }) => {
     };
   }, [shelf, showRequestError]);
 
+  /** Список обновляется и после приглашения: добавленный должен уйти из кандидатов. */
+  useEffect(() => {
+    if (!shelf?.canCurate) {
+      setCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    setCandidatesLoading(true);
+    fetchShelfMemberCandidates(shelf.id, debouncedQuery.trim() || undefined)
+      .then((found) => {
+        if (!cancelled) setCandidates(found);
+      })
+      .catch(() => {
+        if (!cancelled) setCandidates([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCandidatesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [shelf, debouncedQuery, members]);
+
   const invite = async () => {
-    if (!shelf || !username.trim()) return;
+    if (!shelf || !username) return;
     setInviting(true);
     try {
-      setMembers(await addShelfMember(shelf.id, username.trim(), role));
-      setUsername('');
+      setMembers(await addShelfMember(shelf.id, username, role));
+      setUsername(undefined);
+      setCandidateQuery('');
       message.success('Участник добавлен');
     } catch (error) {
       showRequestError(error, 'Не удалось добавить участника');
@@ -80,18 +110,32 @@ export const ShelfMembersModal: React.FC<Props> = ({ shelf, onClose }) => {
       width={560}
     >
       {shelf?.canCurate && (
-        <Space.Compact style={{ display: 'flex', marginBottom: 16 }}>
-          <Input
+        <Space direction="vertical" size={8} style={{ display: 'flex', marginBottom: 16 }}>
+          <Select
+            showSearch
+            allowClear
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="Логин пользователя"
-            onPressEnter={invite}
+            onChange={setUsername}
+            onSearch={setCandidateQuery}
+            searchValue={candidateQuery}
+            // Фильтрует сервер: на клиенте лежат только первые двадцать найденных.
+            filterOption={false}
+            loading={candidatesLoading}
+            placeholder="Выберите пользователя или начните вводить логин"
+            notFoundContent={candidatesLoading ? 'Ищем…' : 'Никого не нашлось'}
+            style={{ width: '100%' }}
+            options={candidates.map((candidate) => ({
+              value: candidate.username,
+              label: candidate.displayName ? `${candidate.displayName} · @${candidate.username}` : candidate.username
+            }))}
           />
-          <Select value={role} onChange={setRole} options={roleOptions} style={{ minWidth: 260 }} />
-          <Button type="primary" loading={inviting} disabled={!username.trim()} onClick={invite}>
-            Добавить
-          </Button>
-        </Space.Compact>
+          <Space size={8} wrap style={{ display: 'flex' }}>
+            <Select value={role} onChange={setRole} options={roleOptions} style={{ minWidth: 280, flex: 1 }} />
+            <Button type="primary" loading={inviting} disabled={!username} onClick={invite}>
+              Добавить
+            </Button>
+          </Space>
+        </Space>
       )}
 
       {loading ? (
