@@ -390,9 +390,10 @@ public class LibraryItemService {
             activityService.record( owner, ActivityType.PUBLISHED_REVIEW, item, null, item.getTitle(), null );
         }
 
+        // Первая оценка — тоже событие: условие «прежняя не пуста» молча пропускало бы её,
+        // а именно она и есть тот случай, когда человеку есть что сказать.
         boolean ratingChanged = item.getRating() != null
-                                && previousRating != null
-                                && item.getRating().compareTo( previousRating ) != 0;
+                                && ( previousRating == null || item.getRating().compareTo( previousRating ) != 0 );
         // Оценка при завершении уже уехала в событие «дочитал» — второй раз о ней не сообщаем.
         if ( ratingChanged && item.getStatus() == previousStatus ) {
             activityService.record( owner, ActivityType.RATED, item, null, item.getTitle(),

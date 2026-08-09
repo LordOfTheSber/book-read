@@ -6,6 +6,7 @@ import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.ReadingGoalRepository;
 import com.library.tracker.repository.ReadingSessionRepository;
 import com.library.tracker.service.UserService;
+import com.library.tracker.web.dto.ReadingGoalRequest;
 import com.library.tracker.web.dto.ReadingGoalResponse;
 
 import java.time.Clock;
@@ -24,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Первое июля високосного 2028-го — ровно середина года, на ней проще всего проверять график. */
@@ -129,6 +132,19 @@ class ReadingGoalServiceTest {
 
         assertThat( response.getItems().getExpected() ).isEqualTo( 40 );
         assertThat( response.getDaysLeft() ).isZero();
+    }
+
+    /** Очистить все поля и нажать «Сохранить» — это отказ от цели, а не цель из трёх пустот. */
+    @Test
+    void savingEmptyTargetsRemovesTheGoal() {
+        ReadingGoal existing = goal( 40, null, null );
+
+        ReadingGoalRequest request = new ReadingGoalRequest();
+        ReadingGoalResponse response = service.save( YEAR, request );
+
+        verify( readingGoalRepository ).delete( existing );
+        verify( readingGoalRepository, never() ).save( any( ReadingGoal.class ) );
+        assertThat( response.isConfigured() ).isFalse();
     }
 
     private ReadingGoal goal( Integer items, Integer pages, Integer minutes ) {

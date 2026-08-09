@@ -25,7 +25,6 @@ import { useRequestError } from '@/shared/lib/errors';
 import { pluralize } from '@/shared/lib/plural';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
-import { BarList } from '@/shared/ui/BarList';
 import { MetricList } from '@/shared/ui/MetricList';
 import {
   fetchAchievements,
@@ -45,6 +44,13 @@ const MONTH_LABELS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'
 
 /** Восемь недель полоски активности: столько же, сколько отдаёт сервер. */
 const STREAK_DAYS = 56;
+
+/**
+ * Дата в том же виде, в каком её присылает сервер. Через {@code toISOString} нельзя: он переводит
+ * в UTC, и у всех западнее Гринвича полоска съезжала бы на день относительно серверных дат.
+ */
+const toLocalIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 /**
  * Цели и вовлечение. Главное на странице — не проценты, а отставание от равномерного темпа:
@@ -78,6 +84,9 @@ export const GoalsPage: React.FC = () => {
       setStreak(loadedStreak);
       setAchievements(loadedAchievements);
       setReview(loadedReview);
+      // Сброс перед подстановкой: без него цифры прошлого года остаются в полях года,
+      // для которого цель не заведена, и уезжают на сервер первым же «Сохранить».
+      form.resetFields();
       form.setFieldsValue({
         targetItems: loadedGoal.items?.target,
         targetPages: loadedGoal.pages?.target,
@@ -114,12 +123,13 @@ export const GoalsPage: React.FC = () => {
     return Array.from({ length: STREAK_DAYS }, (_, index) => {
       const date = new Date(today);
       date.setDate(today.getDate() - (STREAK_DAYS - 1 - index));
-      const iso = date.toISOString().slice(0, 10);
+      const iso = toLocalIso(date);
       return { iso, active: read.has(iso) };
     });
   }, [streak]);
 
   const unlockedCount = achievements.filter((achievement) => achievement.unlocked).length;
+  const maxMonth = Math.max(...(review?.monthly.map((month) => month.count) ?? [0]), 0);
 
   const renderMetric = (title: string, unit: string, metric?: GoalMetric) => {
     if (!metric) {
@@ -291,16 +301,39 @@ export const GoalsPage: React.FC = () => {
                   value={review.averageRating ? review.averageRating.toFixed(1) : '—'}
                 />
               </Space>
-              <BarList
-                total={Math.max(...review.monthly.map((month) => month.count), 1)}
-                emptyText="Записей за год нет"
-                items={review.monthly.map((month) => ({
-                  key: String(month.month),
-                  label: MONTH_LABELS[month.month - 1],
-                  value: month.count,
-                  color: token.colorPrimary
-                }))}
-              />
+              {/* Все двенадцать месяцев, включая пустые: BarList прячет нули, и год без февраля
+                  и марта выглядел бы ровным вместо того, чтобы показать провал. */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
+                {review.monthly.map((month) => {
+                  const share = maxMonth > 0 ? month.count / maxMonth : 0;
+                  return (
+                    <Tooltip
+                      key={month.month}
+                      title={`${MONTH_LABELS[month.month - 1]}: ${pluralize(month.count, [
+                        'запись',
+                        'записи',
+                        'записей'
+                      ])}`}
+                    >
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        <div style={{ height: 90, display: 'flex', alignItems: 'flex-end' }}>
+                          <div
+                            style={{
+                              width: '100%',
+                              height: `${Math.max(share * 100, month.count > 0 ? 6 : 2)}%`,
+                              borderRadius: 4,
+                              background: month.count > 0 ? token.colorPrimary : token.colorFillSecondary
+                            }}
+                          />
+                        </div>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                          {MONTH_LABELS[month.month - 1]}
+                        </Typography.Text>
+                      </div>
+                    </Tooltip>
+                  );
+                })}
+              </div>
             </Col>
 
             <Col xs={24} lg={12}>

@@ -62,6 +62,14 @@ public class ReadingGoalService {
         User currentUser = userService.getCurrentUser();
         int targetYear = year != null ? year : LocalDate.now( clock ).getYear();
 
+        // Пустой запрос — это отказ от цели, а не цель из трёх пустот: строка со всеми null
+        // ничего не значит и только мешала бы отличить «не загадывал» от «загадал ничего».
+        if ( request.getTargetItems() == null && request.getTargetPages() == null
+             && request.getTargetMinutes() == null ) {
+            delete( targetYear );
+            return toResponse( currentUser.getId(), targetYear, null );
+        }
+
         ReadingGoal goal = readingGoalRepository.findByOwnerIdAndYear( currentUser.getId(), targetYear )
                                                 .orElseGet( () -> {
                                                     ReadingGoal created = new ReadingGoal();

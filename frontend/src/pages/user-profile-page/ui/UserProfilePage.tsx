@@ -9,24 +9,26 @@ import {
   Collapse,
   Empty,
   List,
-  Rate,
+  Modal,
   Row,
   Skeleton,
   Space,
   Tag,
   Typography
 } from 'antd';
-import { FireOutlined, GlobalOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
-import { Activity, PublicProfile } from '@/shared/types/library';
+import { FireOutlined, GlobalOutlined, StarOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import { Activity, PublicProfile, Shelf, ShelfItem } from '@/shared/types/library';
 import { activityMeta } from '@/shared/constants/social';
 import { getMediaKindLabel } from '@/shared/constants/mediaKind';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
+import { formatScore } from '@/shared/lib/format';
 import { getErrorMessage, useRequestError } from '@/shared/lib/errors';
 import { pluralize } from '@/shared/lib/plural';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { ReviewThreadPanel } from '@/widgets/review-thread';
 import { fetchProfile, fetchProfileActivity, followUser, unfollowUser } from '@/entities/profile';
+import { fetchShelfItems } from '@/entities/shelf';
 
 /**
  * Страница {@code /u/username}. Закрытый профиль сервер отдаёт как отсутствующий, поэтому здесь
@@ -40,6 +42,8 @@ export const UserProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
+  const [preview, setPreview] = useState<{ shelf: Shelf; items: ShelfItem[] } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +72,20 @@ export const UserProfilePage: React.FC = () => {
       showRequestError(requestError, 'Не удалось изменить подписку');
     } finally {
       setFollowing(false);
+    }
+  };
+
+  /** Открытая полка, которую нельзя открыть, — тупик: состав показывается прямо отсюда. */
+  const openShelf = async (shelf: Shelf) => {
+    setPreview({ shelf, items: [] });
+    setPreviewLoading(true);
+    try {
+      setPreview({ shelf, items: await fetchShelfItems(shelf.id) });
+    } catch (requestError) {
+      showRequestError(requestError, 'Не удалось открыть полку');
+      setPreview(null);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -140,7 +158,7 @@ export const UserProfilePage: React.FC = () => {
         <Col xs={12} md={6}>
           <StatTile
             label="Средняя оценка"
-            value={profile.averageRating ? profile.averageRating.toFixed(1) : '—'}
+            value={profile.averageRating != null ? formatScore(profile.averageRating) : '—'}
             hint={profile.averageRating ? 'из 10' : 'оценок пока нет'}
           />
         </Col>
@@ -171,8 +189,10 @@ export const UserProfilePage: React.FC = () => {
                         <Space size={8} wrap>
                           <Typography.Text strong>{review.title}</Typography.Text>
                           <Tag bordered={false}>{getMediaKindLabel(review.kind)}</Tag>
-                          {review.rating !== undefined && (
-                            <Rate disabled allowHalf count={5} value={review.rating / 2} style={{ fontSize: 14 }} />
+                          {review.rating != null && (
+                            <Tag color="gold" bordered={false}>
+                              <StarOutlined /> {formatScore(review.rating)} / 10
+                            </Tag>
                           )}
                         </Space>
                       }
@@ -224,7 +244,13 @@ export const UserProfilePage: React.FC = () => {
               <List
                 dataSource={profile.shelves}
                 renderItem={(shelf) => (
-                  <List.Item>
+                  <List.Item
+                    actions={[
+                      <Button key="open" type="link" size="small" onClick={() => openShelf(shelf)}>
+                        Открыть
+                      </Button>
+                    ]}
+                  >
                     <List.Item.Meta
                       avatar={<GlobalOutlined />}
                       title={shelf.name}
@@ -278,6 +304,35 @@ export const UserProfilePage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title={preview?.shelf.name}
+        open={Boolean(preview)}
+        onCancel={() => setPreview(null)}
+        footer={null}
+        destroyOnHidden
+        width={640}
+      >
+        {previewLoading ? (
+          <Skeleton active paragraph={{ rows: 4 }} />
+        ) : (
+          <List
+            dataSource={preview?.items ?? []}
+            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="На полке пока пусто" /> }}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={item.title}
+                  description={item.authorNames.join(', ') || 'автор не указан'}
+                />
+                {item.rating != null && (
+                  <Typography.Text type="secondary">{formatScore(item.rating)} / 10</Typography.Text>
+                )}
+              </List.Item>
+            )}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

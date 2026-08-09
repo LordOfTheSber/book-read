@@ -135,7 +135,8 @@ export const ProfilePage: React.FC = () => {
   const completionPercent = total ? Math.round((completed / total) * 100) : undefined;
   const favoritePercent = total ? Math.round((favorites / total) * 100) : undefined;
 
-  const unlockedCount = achievements.filter((achievement) => achievement.unlocked).length;
+  const unlocked = achievements.filter((achievement) => achievement.unlocked);
+  const unlockedCount = unlocked.length;
 
   const handleAvatarUpload: UploadProps['beforeUpload'] = async (file) => {
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
@@ -230,7 +231,9 @@ export const ProfilePage: React.FC = () => {
         styles={{ body: styles.cardBody }}
         extra={
           user && (
-            <Link to={`/u/${user.username}`}>Открыть {publicProfile?.publicProfile ? '' : '(видна только вам)'}</Link>
+            <Link to={`/u/${user.username}`}>
+              {publicProfile?.publicProfile ? 'Открыть страницу' : 'Посмотреть, пока её видите только вы'}
+            </Link>
           )
         }
       >
@@ -374,27 +377,21 @@ export const ProfilePage: React.FC = () => {
               </Typography.Text>
             }
           >
-            <div style={styles.achievements}>
-              {achievements.map((achievement) => (
-                <div key={achievement.code} style={styles.achievementCard(achievement.unlocked)}>
-                  <span style={styles.achievementIcon(token.colorPrimary, achievement.unlocked)}>
-                    <TrophyOutlined />
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <Typography.Text strong>{achievement.title}</Typography.Text>
-                    <Typography.Paragraph type="secondary" style={{ margin: '4px 0 8px' }}>
-                      {achievement.description}
-                    </Typography.Paragraph>
-                    <Tag
-                      color={achievement.unlocked ? 'success' : 'default'}
-                      bordered={false}
-                      style={styles.tag}
-                    >
-                      {achievement.unlocked ? `Получено ${formatDate(achievement.unlockedOn)}` : 'В процессе'}
-                    </Tag>
-                  </div>
-                </div>
-              ))}
+            {unlocked.length === 0 ? (
+              <Typography.Text type="secondary">
+                Пока ни одного: первое достижение придёт с первым завершённым произведением.
+              </Typography.Text>
+            ) : (
+              <Space size={8} wrap>
+                {unlocked.map((achievement) => (
+                  <Tag key={achievement.code} color="success" bordered={false} style={styles.tag}>
+                    {achievement.title}
+                  </Tag>
+                ))}
+              </Space>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <Link to="/goals">Все достижения, серия и цель года</Link>
             </div>
           </Card>
         </Col>

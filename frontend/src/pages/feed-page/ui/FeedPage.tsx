@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AutoComplete, Avatar, Button, Card, Collapse, Empty, Input, List, Skeleton, Space, Tag, Typography } from 'antd';
-import { SearchOutlined, UserOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
 import { Activity, ProfileSummary } from '@/shared/types/library';
 import { activityMeta } from '@/shared/constants/social';
 import { formatDateTime } from '@/shared/lib/date';
@@ -70,7 +70,15 @@ export const FeedPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Лента" subtitle="Что читают те, на кого вы подписаны" />
+      <PageHeader
+        title="Лента"
+        subtitle="Что читают те, на кого вы подписаны"
+        actions={
+          <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
+            Обновить
+          </Button>
+        }
+      />
 
       <Card style={{ marginBottom: 16 }}>
         <AutoComplete
@@ -160,14 +168,10 @@ export const FeedPage: React.FC = () => {
         </Card>
       )}
 
-      <Typography.Paragraph type="secondary" style={{ marginTop: 16 }}>
+      <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
         В ленту попадают только открытые профили. Закрыв свой профиль в настройках, вы убираете из чужих
         лент и то, что успели написать раньше.
       </Typography.Paragraph>
-
-      <Button type="link" style={{ paddingInline: 0 }} onClick={load}>
-        Обновить
-      </Button>
     </div>
   );
 };

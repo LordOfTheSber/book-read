@@ -1,8 +1,10 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.ActivityType;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.ReadingStatus;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.User;
@@ -196,6 +198,74 @@ class LibraryItemServiceTest {
         service.create( request );
 
         verify( shelfRepository, never() ).findWithItemsById( org.mockito.ArgumentMatchers.any() );
+    }
+
+    /**
+     * Первая оценка — тоже событие. Условие «прежняя оценка не пуста» молча пропускало именно
+     * её, а это единственный случай, когда человеку действительно есть что сказать.
+     */
+    @Test
+    void firstRatingIsAnnouncedInTheFeed() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        LibraryItem existing = new LibraryItem();
+        existing.setId( UUID.randomUUID() );
+        existing.setTitle( "Задача трёх тел" );
+        existing.setCreatedBy( currentUser );
+        existing.setStatus( ReadingStatus.READING );
+        when( libraryItemRepository.findWithRelationsById( eq( existing.getId() ) ) )
+                .thenReturn( Optional.of( existing ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setStatus( ReadingStatus.READING );
+        request.setRating( new java.math.BigDecimal( "8.5" ) );
+
+        service.update( existing.getId(), request );
+
+        verify( activityService ).record( eq( currentUser ), eq( ActivityType.RATED ), eq( existing ),
+                                          org.mockito.ArgumentMatchers.isNull(), eq( "Задача трёх тел" ),
+                                          eq( "8.5" ) );
+    }
+
+    /** Оценка, выставленная в момент завершения, уже уехала в событие «дочитал». */
+    @Test
+    void ratingSetWhileFinishingIsNotAnnouncedTwice() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        LibraryItem existing = new LibraryItem();
+        existing.setId( UUID.randomUUID() );
+        existing.setTitle( "Задача трёх тел" );
+        existing.setCreatedBy( currentUser );
+        existing.setStatus( ReadingStatus.READING );
+        when( libraryItemRepository.findWithRelationsById( eq( existing.getId() ) ) )
+                .thenReturn( Optional.of( existing ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setStatus( ReadingStatus.COMPLETED );
+        request.setRating( new java.math.BigDecimal( "8.5" ) );
+
+        service.update( existing.getId(), request );
+
+        verify( activityService ).record( eq( currentUser ), eq( ActivityType.FINISHED_READING ), eq( existing ),
+                                          org.mockito.ArgumentMatchers.isNull(), eq( "Задача трёх тел" ),
+                                          eq( "8.5" ) );
+        verify( activityService, never() ).record( org.mockito.ArgumentMatchers.any(), eq( ActivityType.RATED ),
+                                                   org.mockito.ArgumentMatchers.any(),
+                                                   org.mockito.ArgumentMatchers.any(),
+                                                   org.mockito.ArgumentMatchers.any(),
+                                                   org.mockito.ArgumentMatchers.any() );
     }
 
     private User user() {

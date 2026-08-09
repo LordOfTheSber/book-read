@@ -140,7 +140,15 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   );
   const seriesOptions = useMemo(() => series.map((item) => ({ label: item.name, value: item.name })), [series]);
   const tagOptions = useMemo(() => tags.map((tag) => ({ label: tag.name, value: tag.name })), [tags]);
-  const shelfOptions = useMemo(() => shelves.map((shelf) => ({ label: shelf.name, value: shelf.id })), [shelves]);
+  // Полка, куда позвали читателем, в список не попадает: положить на неё запись всё равно
+  // не дадут, а выбор, кончающийся отказом сервера, — худший вид подсказки.
+  const shelfOptions = useMemo(
+    () =>
+      shelves
+        .filter((shelf) => shelf.canContribute)
+        .map((shelf) => ({ label: shelf.owned ? shelf.name : `${shelf.name} · @${shelf.ownerUsername}`, value: shelf.id })),
+    [shelves]
+  );
 
   // Заглушка обложки и подписи шкалы должны меняться вместе с вводом, а не после сохранения.
   const watchedTitle = Form.useWatch<string>('title', form);

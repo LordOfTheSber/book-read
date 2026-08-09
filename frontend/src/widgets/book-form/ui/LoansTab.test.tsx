@@ -64,7 +64,7 @@ describe('LoansTab', () => {
     fetchItemLoans.mockResolvedValue([loan()]);
     renderWithStore(<LoansTab item={item} />);
 
-    expect(await screen.findByText(/Экземпляр на руках у Аня/)).toBeInTheDocument();
+    expect(await screen.findByText(/Экземпляр на руках: Аня/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Кому выдана')).not.toBeInTheDocument();
   });
 
@@ -75,6 +75,14 @@ describe('LoansTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Вернули/ }));
 
     await waitFor(() => expect(returnLoan).toHaveBeenCalledWith('loan-1'));
+  });
+
+  /** Имя заёмщика не склоняется, поэтому оно вынесено из фразы, а нулевой срок — это «сегодня». */
+  it('в день выдачи пишет «сегодня», а не «0 дней»', async () => {
+    fetchItemLoans.mockResolvedValue([loan({ daysOut: 0 })]);
+    renderWithStore(<LoansTab item={item} />);
+
+    expect(await screen.findByText(/выдана сегодня/)).toBeInTheDocument();
   });
 
   it('помечает просроченную выдачу', async () => {

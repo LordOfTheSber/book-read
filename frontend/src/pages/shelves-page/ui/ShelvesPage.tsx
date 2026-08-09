@@ -432,7 +432,7 @@ export const ShelvesPage: React.FC = () => {
                 // Снять с полки нужно оттуда же, где видно состав: иначе единственный путь —
                 // открыть карточку и убрать полку в её поле.
                 actions={
-                  preview
+                  preview?.shelf.canContribute
                     ? [
                         <Button
                           key="remove"

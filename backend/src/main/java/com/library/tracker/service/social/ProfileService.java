@@ -23,9 +23,11 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -225,6 +227,11 @@ public class ProfileService {
      */
     private List<ShelfResponse> shelves( User user, boolean me ) {
         List<Shelf> shelves = shelfRepository.findByOwnerIdOrderByNameAsc( user.getId() );
+        // Счётчики состава — одним запросом на все полки владельца: по запросу на полку профиль
+        // человека с двумя десятками полок стоил бы двух десятков лишних обращений к базе.
+        Map<UUID, Long> counts = shelfRepository.countItemsByShelf( user.getId() ).stream()
+                                                .collect( Collectors.toMap( ShelfRepository.ShelfCount::getShelfId,
+                                                                            ShelfRepository.ShelfCount::getCount ) );
         return shelves.stream()
                       .filter( shelf -> me || shelf.isPublic() )
                       .sorted( Comparator.comparing( Shelf::getName, String.CASE_INSENSITIVE_ORDER ) )
@@ -233,7 +240,7 @@ public class ProfileService {
                                                   .name( shelf.getName() )
                                                   .description( shelf.getDescription() )
                                                   .isPublic( shelf.isPublic() )
-                                                  .itemCount( shelfRepository.countItems( shelf.getId() ) )
+                                                  .itemCount( counts.getOrDefault( shelf.getId(), 0L ) )
                                                   .ownerId( user.getId() )
                                                   .ownerUsername( user.getUsername() )
                                                   .owned( me )

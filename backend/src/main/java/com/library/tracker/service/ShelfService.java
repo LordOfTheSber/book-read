@@ -133,12 +133,17 @@ public class ShelfService {
             // Уникальность названия — в пределах владельца полки, а не того, кто её сейчас правит:
             // куратор чужой полки не должен натыкаться на одноимённую полку в своей библиотеке.
             UUID ownerId = shelf.getOwner().getId();
-            boolean shared = !shelf.isPublic() && request.isPublic();
+            // Открыть полку всему сервису может только владелец. Куратору доверен состав, а не
+            // решение показать чужую библиотеку посторонним — это разные по цене права.
+            boolean owner = shelfAccess.isOwner( shelf, currentUser );
+            boolean nextPublic = owner ? request.isPublic() : shelf.isPublic();
+            boolean shared = !shelf.isPublic() && nextPublic;
             if ( !shelf.getName().equalsIgnoreCase( name )
                  && shelfRepository.existsByOwnerIdAndNameIgnoreCase( ownerId, name ) ) {
                 throw new IllegalArgumentException( "Полка с таким названием уже есть" );
             }
             applyRequest( shelf, request );
+            shelf.setPublic( nextPublic );
             Shelf saved = shelfRepository.save( shelf );
             if ( shared ) {
                 activityService.record( currentUser, ActivityType.SHARED_SHELF, null, saved, saved.getName(), null );

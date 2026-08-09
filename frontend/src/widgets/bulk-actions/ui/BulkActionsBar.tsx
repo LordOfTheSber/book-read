@@ -27,6 +27,8 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
   const filters = useAppSelector((state) => state.bookFilters);
   const tags = useAppSelector((state) => state.tags.list);
   const shelves = useAppSelector((state) => state.shelves.list);
+  // На полку, где ты только читатель, положить нечего: сервер откажет, а выбор уже сделан.
+  const contributableShelves = shelves.filter((shelf) => shelf.canContribute);
   const [busy, setBusy] = useState(false);
   const [tagNames, setTagNames] = useState<string[]>([]);
 
@@ -102,8 +104,11 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
         placeholder="На полку"
         style={{ minWidth: 180 }}
         value={null}
-        disabled={busy || shelves.length === 0}
-        options={shelves.map((shelf) => ({ label: shelf.name, value: shelf.id }))}
+        disabled={busy || contributableShelves.length === 0}
+        options={contributableShelves.map((shelf) => ({
+          label: shelf.owned ? shelf.name : `${shelf.name} · @${shelf.ownerUsername}`,
+          value: shelf.id
+        }))}
         onChange={(addToShelfId: string) => apply({ addToShelfId }, 'Записи добавлены на полку')}
       />
 

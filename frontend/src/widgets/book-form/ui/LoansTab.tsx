@@ -90,10 +90,13 @@ export const LoansTab: React.FC<Props> = ({ item }) => {
   return (
     <Space direction="vertical" size={16} style={{ display: 'flex' }}>
       {openLoan ? (
-        <Typography.Text type="warning">
-          Экземпляр на руках у {openLoan.borrowerName} уже{' '}
-          {pluralize(openLoan.daysOut, ['день', 'дня', 'дней'])}
-          {openLoan.dueOn ? `, вернуть обещали ${formatDate(openLoan.dueOn)}` : ''}.
+        <Typography.Text type={openLoan.overdue ? 'danger' : 'warning'}>
+          Экземпляр на руках: {openLoan.borrowerName} —{' '}
+          {openLoan.daysOut > 0 ? pluralize(openLoan.daysOut, ['день', 'дня', 'дней']) : 'выдана сегодня'}
+          {openLoan.dueOn
+            ? `${openLoan.overdue ? ', вернуть обещали ещё ' : ', вернуть обещали '}${formatDate(openLoan.dueOn)}`
+            : ''}
+          . Пока запись не закрыта, вторую выдачу завести нельзя — сначала отметьте возврат.
         </Typography.Text>
       ) : (
         <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
