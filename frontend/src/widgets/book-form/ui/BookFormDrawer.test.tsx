@@ -47,9 +47,23 @@ vi.mock('@/entities/tag/api/tagApi', () => ({
 
 vi.mock('@/entities/shelf/api/shelfApi', () => ({
   fetchShelves: vi.fn().mockResolvedValue([
-    { id: 's-1', name: 'Подарить', isPublic: false, itemCount: 0, createdAt: '', updatedAt: '' }
+    {
+      id: 's-1',
+      name: 'Подарить',
+      isPublic: false,
+      itemCount: 0,
+      owned: true,
+      canCurate: true,
+      canContribute: true,
+      memberCount: 0,
+      createdAt: '',
+      updatedAt: ''
+    }
   ]),
   fetchShelfItems: vi.fn(),
+  fetchShelfMembers: vi.fn(),
+  addShelfMember: vi.fn(),
+  removeShelfMember: vi.fn(),
   createShelf: vi.fn(),
   updateShelf: vi.fn(),
   addShelfItems: vi.fn(),

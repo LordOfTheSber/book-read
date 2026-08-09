@@ -19,6 +19,9 @@ import { NodeDetailPage } from '@/pages/node-detail-page';
 import { fetchCurrentUser } from '@/entities/auth';
 import { AnalyticsPage } from '@/pages/analytics-page';
 import { ProfilePage } from '@/pages/profile-page';
+import { UserProfilePage } from '@/pages/user-profile-page';
+import { FeedPage } from '@/pages/feed-page';
+import { GoalsPage } from '@/pages/goals-page';
 import { isAdminLike } from '@/shared/lib/roles';
 
 const RequireAuth: React.FC = () => {
@@ -59,6 +62,10 @@ const router = createBrowserRouter([
           { index: true, element: <BooksPage /> },
           { path: 'analytics', element: <AnalyticsPage /> },
           { path: 'profile', element: <ProfilePage /> },
+          // Публичный профиль живёт на коротком /u/:username: этот адрес люди пересылают друг другу.
+          { path: 'u/:username', element: <UserProfilePage /> },
+          { path: 'feed', element: <FeedPage /> },
+          { path: 'goals', element: <GoalsPage /> },
           { path: 'types', element: <TypesPage /> },
           { path: 'sources', element: <SourcesPage /> },
           { path: 'authors', element: <AuthorsPage /> },

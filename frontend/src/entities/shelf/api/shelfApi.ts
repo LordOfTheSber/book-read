@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { Shelf, ShelfItem } from '@/shared/types/library';
+import { ProfileSummary, Shelf, ShelfItem, ShelfMember, ShelfRole } from '@/shared/types/library';
 
 export interface ShelfPayload {
   name: string;
@@ -40,4 +40,26 @@ export const removeShelfItems = async (id: string, itemIds: string[]) => {
 
 export const deleteShelf = async (id: string) => {
   await httpClient.delete(`/shelves/${id}`);
+};
+
+export const fetchShelfMembers = async (id: string) => {
+  const { data } = await httpClient.get<ShelfMember[]>(`/shelves/${id}/members`);
+  return data;
+};
+
+/** Повторный вызов с другой ролью меняет её: отдельной точки «изменить роль» не нужно. */
+export const addShelfMember = async (id: string, username: string, role: ShelfRole) => {
+  const { data } = await httpClient.post<ShelfMember[]>(`/shelves/${id}/members`, { username, role });
+  return data;
+};
+
+export const removeShelfMember = async (id: string, userId: string) => {
+  const { data } = await httpClient.delete<ShelfMember[]>(`/shelves/${id}/members/${userId}`);
+  return data;
+};
+
+/** Кого можно позвать на полку: отдаётся только тому, кто ведёт её участников. */
+export const fetchShelfMemberCandidates = async (id: string, query?: string) => {
+  const { data } = await httpClient.get<ProfileSummary[]>(`/shelves/${id}/member-candidates`, { params: { query } });
+  return data;
 };

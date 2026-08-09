@@ -1,11 +1,16 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.ActivityType;
 import com.library.tracker.domain.Author;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Shelf;
+import com.library.tracker.domain.ShelfMember;
+import com.library.tracker.domain.ShelfRole;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ShelfMemberRepository;
 import com.library.tracker.repository.ShelfRepository;
+import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.web.dto.ShelfItemResponse;
 import com.library.tracker.web.dto.ShelfItemsRequest;
 import com.library.tracker.web.dto.ShelfRequest;
@@ -14,13 +19,16 @@ import com.library.tracker.web.dto.ShelfResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,32 +49,63 @@ import org.springframework.util.StringUtils;
 public class ShelfService {
 
     private final ShelfRepository shelfRepository;
+    private final ShelfMemberRepository shelfMemberRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final UserService userService;
+    private final ShelfAccess shelfAccess;
+    private final ActivityService activityService;
 
+    /**
+     * Свои полки и те, куда позвали. Совместная полка нужна её участнику там же, где своя, —
+     * отдельным списком она превратилась бы в раздел, куда никто не заходит.
+     */
     @Transactional( readOnly = true )
     public List<ShelfResponse> findAll() {
         User currentUser = userService.getCurrentUser();
         Map<UUID, Long> counts = itemCounts( currentUser.getId() );
-        return shelfRepository.findByOwnerIdOrderByNameAsc( currentUser.getId() ).stream()
-                              .map( shelf -> toResponse( shelf, counts.getOrDefault( shelf.getId(), 0L ) ) )
-                              .toList();
+
+        List<Shelf> own = shelfRepository.findByOwnerIdOrderByNameAsc( currentUser.getId() );
+        List<ShelfMember> memberships = shelfMemberRepository.findByUserId( currentUser.getId() );
+
+        // Счётчики участников — одним запросом на весь список: по запросу на полку страница
+        // из двадцати полок стоила бы двадцати лишних обращений к базе.
+        List<UUID> ids = Stream.concat( own.stream(), memberships.stream().map( ShelfMember::getShelf ) )
+                               .map( Shelf::getId )
+                               .toList();
+        Map<UUID, Long> memberCounts = memberCounts( ids );
+
+        List<ShelfResponse> responses = new ArrayList<>( own.size() + memberships.size() );
+        own.forEach( shelf -> responses.add( toResponse( shelf,
+                                                         counts.getOrDefault( shelf.getId(), 0L ),
+                                                         currentUser,
+                                                         null,
+                                                         memberCounts.getOrDefault( shelf.getId(), 0L ) ) ) );
+        memberships.forEach( membership -> {
+            Shelf shelf = membership.getShelf();
+            responses.add( toResponse( shelf,
+                                       shelfRepository.countItems( shelf.getId() ),
+                                       currentUser,
+                                       membership.getRole(),
+                                       memberCounts.getOrDefault( shelf.getId(), 0L ) ) ) ;
+        } );
+        responses.sort( Comparator.comparing( ShelfResponse::getName, String.CASE_INSENSITIVE_ORDER ) );
+        return responses;
     }
 
     @Transactional( readOnly = true )
     public Optional<ShelfResponse> findById( UUID id ) {
         User currentUser = userService.getCurrentUser();
         return shelfRepository.findWithItemsById( id )
-                              .filter( shelf -> isReadable( shelf, currentUser ) )
-                              .map( shelf -> toResponse( shelf, shelf.getItems().size() ) );
+                              .filter( shelf -> shelfAccess.canRead( shelf, currentUser ) )
+                              .map( shelf -> toResponse( shelf, shelf.getItems().size(), currentUser ) );
     }
 
-    /** Состав полки. Владелец видит свою, остальные — только публичную. */
+    /** Состав полки. Владелец видит свою, участник — совместную, остальные — только публичную. */
     @Transactional( readOnly = true )
     public Optional<List<ShelfItemResponse>> findItems( UUID id ) {
         User currentUser = userService.getCurrentUser();
         return shelfRepository.findWithItemsById( id )
-                              .filter( shelf -> isReadable( shelf, currentUser ) )
+                              .filter( shelf -> shelfAccess.canRead( shelf, currentUser ) )
                               .map( shelf -> shelf.getItems().stream()
                                                   .sorted( Comparator.comparing( LibraryItem::getTitle,
                                                                                  String.CASE_INSENSITIVE_ORDER ) )
@@ -83,24 +122,37 @@ public class ShelfService {
         Shelf shelf = new Shelf();
         shelf.setOwner( currentUser );
         applyRequest( shelf, request );
-        return toResponse( shelfRepository.save( shelf ), 0 );
+        return toResponse( shelfRepository.save( shelf ), 0, currentUser );
     }
 
     public Optional<ShelfResponse> update( UUID id, ShelfRequest request ) {
         User currentUser = userService.getCurrentUser();
         return shelfRepository.findWithItemsById( id ).map( shelf -> {
-            requireOwner( shelf, currentUser );
+            requireCurator( shelf, currentUser );
             String name = request.getName().trim();
+            // Уникальность названия — в пределах владельца полки, а не того, кто её сейчас правит:
+            // куратор чужой полки не должен натыкаться на одноимённую полку в своей библиотеке.
+            UUID ownerId = shelf.getOwner().getId();
+            // Открыть полку всему сервису может только владелец. Куратору доверен состав, а не
+            // решение показать чужую библиотеку посторонним — это разные по цене права.
+            boolean owner = shelfAccess.isOwner( shelf, currentUser );
+            boolean nextPublic = owner ? request.isPublic() : shelf.isPublic();
+            boolean shared = !shelf.isPublic() && nextPublic;
             if ( !shelf.getName().equalsIgnoreCase( name )
-                 && shelfRepository.existsByOwnerIdAndNameIgnoreCase( currentUser.getId(), name ) ) {
+                 && shelfRepository.existsByOwnerIdAndNameIgnoreCase( ownerId, name ) ) {
                 throw new IllegalArgumentException( "Полка с таким названием уже есть" );
             }
             applyRequest( shelf, request );
-            return toResponse( shelfRepository.save( shelf ), shelf.getItems().size() );
+            shelf.setPublic( nextPublic );
+            Shelf saved = shelfRepository.save( shelf );
+            if ( shared ) {
+                activityService.record( currentUser, ActivityType.SHARED_SHELF, null, saved, saved.getName(), null );
+            }
+            return toResponse( saved, saved.getItems().size(), currentUser );
         } );
     }
 
-    /** Полка удаляется без произведений: она их только группирует. */
+    /** Полка удаляется без произведений: она их только группирует. Удаляет владелец, не куратор. */
     public void delete( UUID id ) {
         User currentUser = userService.getCurrentUser();
         shelfRepository.findById( id ).ifPresent( shelf -> {
@@ -120,40 +172,56 @@ public class ShelfService {
     private Optional<ShelfResponse> modifyItems( UUID id, ShelfItemsRequest request, boolean add ) {
         User currentUser = userService.getCurrentUser();
         return shelfRepository.findWithItemsById( id ).map( shelf -> {
-            requireOwner( shelf, currentUser );
-            // Чужое произведение на своей полке — это доступ к чужим данным через боковую дверь,
-            // поэтому состав ограничен тем, что пользователю и так видно.
-            Set<LibraryItem> allowed = readableItems( request.getItemIds(), currentUser );
+            if ( !shelfAccess.canContribute( shelf, currentUser ) ) {
+                throw new AccessDeniedException( "Вы можете править состав только своих полок" );
+            }
+            // Чужое произведение на полке — это доступ к чужим данным через боковую дверь, поэтому
+            // состав ограничен тем, что пользователю и так видно. Куратор совместной полки снимает
+            // с неё что угодно, а участник — только то, что сам туда положил.
+            boolean curator = shelfAccess.canCurate( shelf, currentUser );
+            Set<LibraryItem> allowed = add || !curator
+                    ? ownItems( request.getItemIds(), currentUser )
+                    : new LinkedHashSet<>( libraryItemRepository.findAllById( request.getItemIds() ) );
             if ( add ) {
                 shelf.getItems().addAll( allowed );
             } else {
                 shelf.getItems().removeAll( allowed );
             }
-            return toResponse( shelfRepository.save( shelf ), shelf.getItems().size() );
+            Shelf saved = shelfRepository.save( shelf );
+            return toResponse( saved, saved.getItems().size(), currentUser );
         } );
     }
 
-    private Set<LibraryItem> readableItems( List<UUID> itemIds, User currentUser ) {
+    private Set<LibraryItem> ownItems( List<UUID> itemIds, User currentUser ) {
         boolean isAdmin = userService.isAdmin( currentUser );
         return libraryItemRepository.findAllById( itemIds ).stream()
                                     .filter( item -> isAdmin || isOwnedBy( item, currentUser ) )
-                                    .collect( Collectors.toCollection( java.util.LinkedHashSet::new ) );
+                                    .collect( Collectors.toCollection( LinkedHashSet::new ) );
     }
 
     private boolean isOwnedBy( LibraryItem item, User user ) {
         return item.getCreatedBy() != null && item.getCreatedBy().getId().equals( user.getId() );
     }
 
-    private boolean isReadable( Shelf shelf, User currentUser ) {
-        return shelf.isPublic()
-               || userService.isAdmin( currentUser )
-               || ( shelf.getOwner() != null && shelf.getOwner().getId().equals( currentUser.getId() ) );
+    private void requireCurator( Shelf shelf, User currentUser ) {
+        if ( !shelfAccess.canCurate( shelf, currentUser ) ) {
+            throw new AccessDeniedException( "Вы можете править только свои полки" );
+        }
     }
 
     private void requireOwner( Shelf shelf, User currentUser ) {
-        if ( shelf.getOwner() == null || !shelf.getOwner().getId().equals( currentUser.getId() ) ) {
+        if ( !shelfAccess.isOwner( shelf, currentUser ) ) {
             throw new AccessDeniedException( "Вы можете править только свои полки" );
         }
+    }
+
+    private Map<UUID, Long> memberCounts( List<UUID> shelfIds ) {
+        if ( shelfIds.isEmpty() ) {
+            return Map.of();
+        }
+        return shelfMemberRepository.countByShelfIds( shelfIds ).stream()
+                                    .collect( Collectors.toMap( ShelfMemberRepository.ShelfCount::getShelfId,
+                                                                ShelfMemberRepository.ShelfCount::getCount ) );
     }
 
     private Map<UUID, Long> itemCounts( UUID ownerId ) {
@@ -170,8 +238,24 @@ public class ShelfService {
         shelf.setPublic( request.isPublic() );
     }
 
-    private ShelfResponse toResponse( Shelf shelf, long itemCount ) {
+    private ShelfResponse toResponse( Shelf shelf, long itemCount, User currentUser ) {
+        return toResponse( shelf,
+                           itemCount,
+                           currentUser,
+                           shelfAccess.memberRole( shelf, currentUser ).orElse( null ),
+                           shelf.getId() != null ? shelfMemberRepository.countByShelfId( shelf.getId() ) : 0 );
+    }
+
+    private ShelfResponse toResponse( Shelf shelf, long itemCount, User currentUser, ShelfRole myRole,
+                                      long memberCount ) {
+        boolean owned = shelfAccess.isOwner( shelf, currentUser );
+        boolean curator = owned || myRole == ShelfRole.CURATOR;
         return ShelfResponse.builder()
+                            .myRole( myRole )
+                            .owned( owned )
+                            .canCurate( curator )
+                            .canContribute( curator || myRole == ShelfRole.CONTRIBUTOR )
+                            .memberCount( memberCount )
                             .id( shelf.getId() )
                             .name( shelf.getName() )
                             .description( shelf.getDescription() )

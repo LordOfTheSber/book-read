@@ -2,7 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Space, Spin, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BgColorsOutlined, CheckOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  BgColorsOutlined,
+  CheckOutlined,
+  GlobalOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  UserOutlined
+} from '@ant-design/icons';
 import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
@@ -27,6 +34,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'books', label: 'Библиотека', path: '/' },
   { key: 'analytics', label: 'Аналитика', path: '/analytics' },
+  { key: 'goals', label: 'Цели', path: '/goals' },
+  { key: 'feed', label: 'Лента', path: '/feed' },
   { key: 'quotes', label: 'Выписки', path: '/quotes' },
   { key: 'import', label: 'Импорт', path: '/import' },
   { key: 'shelves', label: 'Полки и теги', path: '/shelves', group: 'catalogues' },
@@ -58,9 +67,9 @@ export const PageLayout: React.FC = () => {
     [user?.role]
   );
 
-  // Профиль не соответствует ни одному пункту меню — там подсветка снимается.
+  // Профиль и чужая страница /u/:username не соответствуют ни одному пункту меню.
   const selectedKey = useMemo(() => {
-    if (location.pathname.startsWith('/profile')) return undefined;
+    if (location.pathname.startsWith('/profile') || location.pathname.startsWith('/u/')) return undefined;
     const match = visibleNav
       .filter((item) => item.path !== '/' && location.pathname.startsWith(item.path))
       .sort((a, b) => b.path.length - a.path.length)[0];
@@ -114,6 +123,14 @@ export const PageLayout: React.FC = () => {
   const userMenu: MenuProps = {
     items: [
       { key: 'profile', icon: <UserOutlined />, label: 'Профиль', onClick: () => navigate('/profile') },
+      ...(user
+              ? [{
+                  key: 'public-profile',
+                  icon: <GlobalOutlined />,
+                  label: 'Моя страница',
+                  onClick: () => navigate(`/u/${user.username}`)
+                }]
+              : []),
       { type: 'divider' },
       { key: 'logout', icon: <LogoutOutlined />, label: 'Выйти', danger: true, onClick: handleLogout }
     ]

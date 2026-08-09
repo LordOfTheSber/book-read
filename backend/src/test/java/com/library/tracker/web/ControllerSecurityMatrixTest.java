@@ -23,8 +23,17 @@ import com.library.tracker.service.SmartShelfService;
 import com.library.tracker.service.SourceService;
 import com.library.tracker.service.TagService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.service.engagement.AchievementService;
+import com.library.tracker.service.engagement.ReadingGoalService;
+import com.library.tracker.service.engagement.StreakService;
+import com.library.tracker.service.engagement.YearInReviewService;
 import com.library.tracker.service.importing.LibraryImportService;
 import com.library.tracker.service.metadata.ExternalMetadataService;
+import com.library.tracker.service.social.ActivityService;
+import com.library.tracker.service.social.LoanService;
+import com.library.tracker.service.social.ProfileService;
+import com.library.tracker.service.social.ReviewInteractionService;
+import com.library.tracker.service.social.ShelfMemberService;
 
 import java.util.List;
 import java.util.Set;
@@ -78,7 +87,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         ShelfController.class,
         SmartShelfController.class,
         MetadataController.class,
-        LibraryImportController.class
+        LibraryImportController.class,
+        ProfileController.class,
+        ReviewInteractionController.class,
+        LoanController.class,
+        EngagementController.class
 } )
 @Import( { SecurityConfig.class, ControllerSecurityMatrixTest.FilterConfiguration.class } )
 class ControllerSecurityMatrixTest {
@@ -130,6 +143,33 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private SmartShelfService smartShelfService;
+
+    @MockBean
+    private ShelfMemberService shelfMemberService;
+
+    @MockBean
+    private ProfileService profileService;
+
+    @MockBean
+    private ActivityService activityService;
+
+    @MockBean
+    private ReviewInteractionService reviewInteractionService;
+
+    @MockBean
+    private LoanService loanService;
+
+    @MockBean
+    private ReadingGoalService readingGoalService;
+
+    @MockBean
+    private StreakService streakService;
+
+    @MockBean
+    private AchievementService achievementService;
+
+    @MockBean
+    private YearInReviewService yearInReviewService;
 
     @MockBean
     private ExternalMetadataService externalMetadataService;
@@ -295,6 +335,47 @@ class ControllerSecurityMatrixTest {
                 Endpoint.put( "/api/v1/smart-shelves/" + ID, "{\"name\":\"Непрочитанное\"}",
                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/smart-shelves/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+
+                // Социальный слой: точки открыты всем ролям, а видимость конкретного профиля,
+                // отзыва и полки проверяется в сервисе — правило там сложнее роли.
+                Endpoint.get( "/api/v1/profiles/me", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/profiles/me", "{\"publicProfile\":true}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/me/feed", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/search", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/reader", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/reader/activity", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/reader/followers", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/profiles/reader/follow", null, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/profiles/reader/follow", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves/" + ID + "/members", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/shelves/" + ID + "/member-candidates", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/shelves/" + ID + "/members",
+                               "{\"username\":\"reader\",\"role\":\"VIEWER\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/shelves/" + ID + "/members/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/review", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/review/reactions", "{\"kind\":\"LIKE\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/review/comments", "{\"body\":\"Согласен\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/items/" + ID + "/review/comments/" + ID,
+                                 SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/loans", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/items/" + ID + "/loans", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/" + ID + "/loans", "{\"borrowerName\":\"Аня\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/loans/" + ID + "/return", null, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/loans/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+
+                // Цели и вовлечение: всегда про самого спрашивающего.
+                Endpoint.get( "/api/v1/engagement/goals", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/engagement/goals/current", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/engagement/goals/2026", "{\"targetItems\":40}",
+                              SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/engagement/goals/2026", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/engagement/streak", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/engagement/achievements", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/engagement/year-in-review", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Ввод данных: поиск по каталогам и импорт своей библиотеки.
                 Endpoint.get( "/api/v1/metadata/search", SUPER_ADMIN, ADMIN, EDITOR, USER ),

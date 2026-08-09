@@ -46,6 +46,7 @@ import { CoverField } from './CoverField';
 import { DuplicateHint } from './DuplicateHint';
 import { ProgressTab } from './ProgressTab';
 import { QuotesTab } from './QuotesTab';
+import { LoansTab } from './LoansTab';
 import { RatingTab } from './RatingTab';
 import { loadBooks } from '@/entities/book';
 
@@ -139,7 +140,15 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   );
   const seriesOptions = useMemo(() => series.map((item) => ({ label: item.name, value: item.name })), [series]);
   const tagOptions = useMemo(() => tags.map((tag) => ({ label: tag.name, value: tag.name })), [tags]);
-  const shelfOptions = useMemo(() => shelves.map((shelf) => ({ label: shelf.name, value: shelf.id })), [shelves]);
+  // Полка, куда позвали читателем, в список не попадает: положить на неё запись всё равно
+  // не дадут, а выбор, кончающийся отказом сервера, — худший вид подсказки.
+  const shelfOptions = useMemo(
+    () =>
+      shelves
+        .filter((shelf) => shelf.canContribute)
+        .map((shelf) => ({ label: shelf.owned ? shelf.name : `${shelf.name} · @${shelf.ownerUsername}`, value: shelf.id })),
+    [shelves]
+  );
 
   // Заглушка обложки и подписи шкалы должны меняться вместе с вводом, а не после сохранения.
   const watchedTitle = Form.useWatch<string>('title', form);
@@ -555,7 +564,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
                 children: <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
               },
               { key: 'review', label: 'Оценка и отзыв', children: <RatingTab item={editing} form={form} /> },
-              { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> }
+              { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> },
+              { key: 'loans', label: 'Выдачи', children: <LoansTab item={editing} /> }
             ]}
           />
         ) : (

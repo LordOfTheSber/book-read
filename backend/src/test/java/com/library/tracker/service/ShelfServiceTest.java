@@ -4,9 +4,13 @@ import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.ReadingStatus;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Shelf;
+import com.library.tracker.domain.ShelfMember;
+import com.library.tracker.domain.ShelfRole;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ShelfMemberRepository;
 import com.library.tracker.repository.ShelfRepository;
+import com.library.tracker.service.social.ActivityService;
 import com.library.tracker.web.dto.ShelfItemsRequest;
 import com.library.tracker.web.dto.ShelfRequest;
 
@@ -36,10 +40,16 @@ class ShelfServiceTest {
     private ShelfRepository shelfRepository;
 
     @Mock
+    private ShelfMemberRepository shelfMemberRepository;
+
+    @Mock
     private LibraryItemRepository libraryItemRepository;
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private ActivityService activityService;
 
     private ShelfService service;
 
@@ -47,7 +57,9 @@ class ShelfServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ShelfService( shelfRepository, libraryItemRepository, userService );
+        ShelfAccess shelfAccess = new ShelfAccess( shelfMemberRepository, userService );
+        service = new ShelfService( shelfRepository, shelfMemberRepository, libraryItemRepository, userService,
+                                    shelfAccess, activityService );
         owner = user();
     }
 
@@ -108,6 +120,81 @@ class ShelfServiceTest {
         service.addItems( own.getId(), request );
 
         assertThat( own.getItems() ).containsExactly( mine );
+    }
+
+    /** Участнику-читателю состав видно, но править его нельзя. */
+    @Test
+    void viewerCannotChangeShelfContents() {
+        User shelfOwner = user();
+        Shelf shared = shelf( "Книжный клуб", shelfOwner, false );
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( shelfRepository.findWithItemsById( eq( shared.getId() ) ) ).thenReturn( Optional.of( shared ) );
+        when( shelfMemberRepository.findByShelfIdAndUserId( eq( shared.getId() ), eq( owner.getId() ) ) )
+                .thenReturn( Optional.of( member( shared, owner, ShelfRole.VIEWER ) ) );
+
+        ShelfItemsRequest request = new ShelfItemsRequest();
+        request.setItemIds( List.of( UUID.randomUUID() ) );
+
+        assertThatThrownBy( () -> service.addItems( shared.getId(), request ) )
+                .isInstanceOf( AccessDeniedException.class );
+        verify( shelfRepository, never() ).save( any( Shelf.class ) );
+    }
+
+    /** Соавтор кладёт на общую полку своё — и только своё. */
+    @Test
+    void contributorAddsOnlyOwnItems() {
+        User shelfOwner = user();
+        Shelf shared = shelf( "Книжный клуб", shelfOwner, false );
+        LibraryItem mine = item( "Моя" );
+        mine.setCreatedBy( owner );
+        LibraryItem foreign = item( "Чужая" );
+        foreign.setCreatedBy( shelfOwner );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( userService.isAdmin( eq( owner ) ) ).thenReturn( false );
+        when( shelfRepository.findWithItemsById( eq( shared.getId() ) ) ).thenReturn( Optional.of( shared ) );
+        when( shelfMemberRepository.findByShelfIdAndUserId( eq( shared.getId() ), eq( owner.getId() ) ) )
+                .thenReturn( Optional.of( member( shared, owner, ShelfRole.CONTRIBUTOR ) ) );
+        when( libraryItemRepository.findAllById( any() ) ).thenReturn( List.of( mine, foreign ) );
+        when( shelfRepository.save( any( Shelf.class ) ) ).thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        ShelfItemsRequest request = new ShelfItemsRequest();
+        request.setItemIds( List.of( mine.getId(), foreign.getId() ) );
+        service.addItems( shared.getId(), request );
+
+        assertThat( shared.getItems() ).containsExactly( mine );
+    }
+
+    /**
+     * Куратору доверен состав, а не решение показать чужую библиотеку всему сервису: признак
+     * публичности он менять не может, даже отправив его в запросе.
+     */
+    @Test
+    void curatorCannotPublishSomeoneElsesShelf() {
+        User shelfOwner = user();
+        Shelf shared = shelf( "Книжный клуб", shelfOwner, false );
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( shelfRepository.findWithItemsById( eq( shared.getId() ) ) ).thenReturn( Optional.of( shared ) );
+        when( shelfMemberRepository.findByShelfIdAndUserId( eq( shared.getId() ), eq( owner.getId() ) ) )
+                .thenReturn( Optional.of( member( shared, owner, ShelfRole.CURATOR ) ) );
+        when( shelfRepository.save( any( Shelf.class ) ) ).thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        ShelfRequest request = new ShelfRequest();
+        request.setName( "Книжный клуб" );
+        request.setPublic( true );
+        service.update( shared.getId(), request );
+
+        assertThat( shared.isPublic() ).isFalse();
+        verify( activityService, never() ).record( any(), any(), any(), any(), any(), any() );
+    }
+
+    private ShelfMember member( Shelf shelf, User user, ShelfRole role ) {
+        ShelfMember member = new ShelfMember();
+        member.setId( UUID.randomUUID() );
+        member.setShelf( shelf );
+        member.setUser( user );
+        member.setRole( role );
+        return member;
     }
 
     private User user() {

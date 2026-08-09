@@ -3,6 +3,7 @@ package com.library.tracker.repository;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.ReadingStatus;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -169,6 +170,75 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             where a.id = :authorId
             """ )
     boolean existsByAuthorId( UUID authorId );
+
+    /**
+     * Завершённые за период — общий срез для цели года, «Года в обзоре» и достижений. Даты берутся
+     * с карточки, а не с прохода: перечитывание года не меняет, а карточка есть у каждой записи.
+     */
+    @Query( """
+            select li
+            from LibraryItem li
+            left join fetch li.authors
+            where li.createdBy.id = :userId
+              and li.finishedAt is not null
+              and li.finishedAt between :from and :to
+            order by li.finishedAt
+            """ )
+    List<LibraryItem> findFinishedBetween( UUID userId, LocalDate from, LocalDate to );
+
+    @Query( """
+            select count(li)
+            from LibraryItem li
+            where li.createdBy.id = :userId
+              and li.finishedAt is not null
+              and li.finishedAt between :from and :to
+            """ )
+    long countFinishedBetween( UUID userId, LocalDate from, LocalDate to );
+
+    /**
+     * Прочитанные страницы за период. Шкала прогресса подходит не всегда (у фильма её нет),
+     * поэтому берётся объём издания, и только у того, что действительно дочитано.
+     */
+    @Query( """
+            select coalesce(sum(li.pageCount), 0)
+            from LibraryItem li
+            where li.createdBy.id = :userId
+              and li.pageCount is not null
+              and li.finishedAt is not null
+              and li.finishedAt between :from and :to
+            """ )
+    long sumPagesFinishedBetween( UUID userId, LocalDate from, LocalDate to );
+
+    @Query( """
+            select count(li)
+            from LibraryItem li
+            where li.createdBy.id = :userId and li.review is not null and length(trim(li.review)) > 0
+            """ )
+    long countReviews( UUID userId );
+
+    @Query( """
+            select count(distinct lower(li.language))
+            from LibraryItem li
+            where li.createdBy.id = :userId and li.language is not null and length(trim(li.language)) > 0
+            """ )
+    long countDistinctLanguages( UUID userId );
+
+    @Query( "select count(distinct li.kind) from LibraryItem li where li.createdBy.id = :userId" )
+    long countDistinctKinds( UUID userId );
+
+    /**
+     * Отзывы для публичного профиля. Приватная заметка сюда не попадает по построению — берутся
+     * только записи с непустым отзывом, а сборка ответа отдаёт публично безопасный набор полей.
+     */
+    @Query( """
+            select li
+            from LibraryItem li
+            left join fetch li.authors
+            where li.createdBy.id = :userId
+              and li.review is not null and length(trim(li.review)) > 0
+            order by coalesce(li.finishedAt, cast(li.updatedAt as date)) desc
+            """ )
+    List<LibraryItem> findReviewed( UUID userId, Pageable pageable );
 
     interface AuthorCount {
 

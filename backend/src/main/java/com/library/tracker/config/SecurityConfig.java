@@ -60,6 +60,18 @@ public class SecurityConfig {
                                                     .requestMatchers( "/api/v1/tags/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( "/api/v1/shelves/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( "/api/v1/smart-shelves/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    // Социальный слой. Анонимный доступ не
+                                                    // открывается ни к одной точке: «публичный»
+                                                    // здесь значит «видимый другим пользователям
+                                                    // сервиса», а видимость конкретного профиля,
+                                                    // отзыва и полки проверяется в сервисах.
+                                                    .requestMatchers( "/api/v1/profiles/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.POST, "/api/v1/items/*/review/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( HttpMethod.POST, "/api/v1/items/*/loans" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    .requestMatchers( "/api/v1/loans/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
+                                                    // Цели, стрик, достижения и «Год в обзоре» —
+                                                    // всегда про самого спрашивающего.
+                                                    .requestMatchers( "/api/v1/engagement/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     // Ввод данных: поиск по внешним каталогам и
                                                     // импорт своей библиотеки.
                                                     .requestMatchers( HttpMethod.GET, "/api/v1/metadata/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )

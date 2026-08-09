@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   App,
@@ -6,29 +6,34 @@ import {
   Button,
   Card,
   Col,
+  Form,
   Image,
+  Input,
   Row,
   Segmented,
   Skeleton,
   Space,
+  Switch,
   Tag,
   Typography,
   Upload,
   theme
 } from 'antd';
 import type { UploadProps } from 'antd';
+import { Link } from 'react-router-dom';
 import {
   BookOutlined,
   CameraOutlined,
   CheckCircleOutlined,
   HeartOutlined,
-  RiseOutlined,
   StarOutlined,
-  TagsOutlined,
   TrophyOutlined,
   UserOutlined
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
+import { fetchMyProfile, updateMyProfile } from '@/entities/profile';
+import { fetchAchievements } from '@/entities/engagement';
+import { Achievement as ServerAchievement, PublicProfile } from '@/shared/types/library';
 import { uploadAvatarThunk } from '@/entities/auth';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
@@ -50,13 +55,10 @@ const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/web
 
 const statusOrder: ReadingStatus[] = ['READING', 'COMPLETED', 'PLANNED', 'DROPPED'];
 
-interface Achievement {
-  key: string;
-  title: string;
-  description: string;
-  earned: boolean;
-  icon: React.ReactNode;
-  color: string;
+interface ProfileFormValues {
+  displayName?: string;
+  bio?: string;
+  publicProfile: boolean;
 }
 
 export const ProfilePage: React.FC = () => {
@@ -67,6 +69,10 @@ export const ProfilePage: React.FC = () => {
   const showRequestError = useRequestError();
   const { mode, setMode } = useThemeMode();
   const [avatarPreview, setAvatarPreview] = useState(false);
+  const [profileForm] = Form.useForm<ProfileFormValues>();
+  const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [achievements, setAchievements] = useState<ServerAchievement[]>([]);
 
   const user = useAppSelector((state) => state.auth.user);
   const updatingAvatar = useAppSelector((state) => state.auth.updatingAvatar);
@@ -79,6 +85,41 @@ export const ProfilePage: React.FC = () => {
       dispatch(loadBookAnalytics(user.id));
     }
   }, [dispatch, user?.id]);
+
+  // Достижения и настройки публичности приходят с сервера: считать их на клиенте значило бы
+  // завести вторую систему достижений, расходящуюся с той, что попадает в ленту.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchMyProfile(), fetchAchievements()])
+      .then(([profile, unlocked]) => {
+        if (cancelled) return;
+        setPublicProfile(profile);
+        setAchievements(unlocked);
+        profileForm.setFieldsValue({
+          displayName: profile.displayName,
+          bio: profile.bio,
+          publicProfile: profile.publicProfile
+        });
+      })
+      .catch((error) => {
+        if (!cancelled) showRequestError(error, 'Не удалось загрузить профиль');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profileForm, showRequestError]);
+
+  const saveProfile = async (values: ProfileFormValues) => {
+    setSavingProfile(true);
+    try {
+      setPublicProfile(await updateMyProfile(values));
+      message.success('Профиль сохранён');
+    } catch (error) {
+      showRequestError(error, 'Не удалось сохранить профиль');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const avatarSrc =
     user?.avatar && user.avatarContentType ? `data:${user.avatarContentType};base64,${user.avatar}` : undefined;
@@ -94,63 +135,8 @@ export const ProfilePage: React.FC = () => {
   const completionPercent = total ? Math.round((completed / total) * 100) : undefined;
   const favoritePercent = total ? Math.round((favorites / total) * 100) : undefined;
 
-  const achievements = useMemo<Achievement[]>(
-    () => [
-      {
-        key: 'first-book',
-        title: 'Первый том',
-        description: 'Добавьте хотя бы одну книгу, чтобы начать путь читателя.',
-        earned: total >= 1,
-        icon: <BookOutlined />,
-        color: '#f59e0b'
-      },
-      {
-        key: 'finisher',
-        title: 'Законченный читатель',
-        description: 'Завершите 5 книг — знак настойчивости.',
-        earned: completed >= 5,
-        icon: <CheckCircleOutlined />,
-        color: '#22c55e'
-      },
-      {
-        key: 'collector',
-        title: 'Коллекционер избранного',
-        description: 'Три книги в избранном показывают ваши вкусы.',
-        earned: favorites >= 3,
-        icon: <HeartOutlined />,
-        color: '#ec4899'
-      },
-      {
-        key: 'focused-genre',
-        title: topType ? `Верность типу «${topType.typeName}»` : 'Верность типу',
-        description: topType
-          ? `В коллекции ${pluralize(topType.count, ['книга', 'книги', 'книг'])} типа «${topType.typeName}».`
-          : 'Добавьте книги, чтобы увидеть любимый тип.',
-        earned: Boolean(topType && topType.count >= 3),
-        icon: <TagsOutlined />,
-        color: '#3b82f6'
-      },
-      {
-        key: 'steady',
-        title: 'Без брошенных',
-        description: 'Держите планку и не бросайте книги на полпути.',
-        earned: total > 0 && dropped === 0,
-        icon: <RiseOutlined />,
-        color: '#14b8a6'
-      },
-      {
-        key: 'rating',
-        title: 'Строгий критик',
-        description: 'Средняя оценка выше 7,0.',
-        earned: (averageRating ?? 0) >= 7,
-        icon: <StarOutlined />,
-        color: '#a855f7'
-      }
-    ],
-    [averageRating, completed, dropped, favorites, topType, total]
-  );
-
-  const earnedCount = achievements.filter((achievement) => achievement.earned).length;
+  const unlocked = achievements.filter((achievement) => achievement.unlocked);
+  const unlockedCount = unlocked.length;
 
   const handleAvatarUpload: UploadProps['beforeUpload'] = async (file) => {
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
@@ -238,6 +224,53 @@ export const ProfilePage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <Card
+        title="Публичная страница"
+        style={styles.card}
+        styles={{ body: styles.cardBody }}
+        extra={
+          user && (
+            <Link to={`/u/${user.username}`}>
+              {publicProfile?.publicProfile ? 'Открыть страницу' : 'Посмотреть, пока её видите только вы'}
+            </Link>
+          )
+        }
+      >
+        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+          Открытый профиль виден другим пользователям сервиса по адресу /u/{user?.username}: имя, описание,
+          публичные полки и отзывы. Анонимным посетителям он не открывается. Закрыв профиль, вы убираете
+          свои события и из чужих лент.
+        </Typography.Paragraph>
+        <Form form={profileForm} layout="vertical" onFinish={saveProfile}>
+          <Row gutter={16}>
+            <Col xs={24} md={10}>
+              <Form.Item name="displayName" label="Имя для показа" tooltip="Логин остаётся прежним — он в адресе">
+                <Input placeholder={user?.username} maxLength={128} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={14}>
+              <Form.Item name="bio" label="О себе">
+                <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} maxLength={2000} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Space size={16} wrap>
+            <Form.Item name="publicProfile" valuePropName="checked" noStyle>
+              <Switch checkedChildren="открыт" unCheckedChildren="закрыт" />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" loading={savingProfile}>
+              Сохранить
+            </Button>
+            {publicProfile && (
+              <Typography.Text type="secondary">
+                {pluralize(publicProfile.followerCount, ['подписчик', 'подписчика', 'подписчиков'])} ·{' '}
+                {publicProfile.followingCount} в подписках
+              </Typography.Text>
+            )}
+          </Space>
+        </Form>
+      </Card>
 
       {analyticsError && (
         <Alert
@@ -340,31 +373,25 @@ export const ProfilePage: React.FC = () => {
             styles={{ body: styles.cardBody }}
             extra={
               <Typography.Text type="secondary">
-                <TrophyOutlined /> {earnedCount} из {achievements.length}
+                <TrophyOutlined /> {unlockedCount} из {achievements.length}
               </Typography.Text>
             }
           >
-            <div style={styles.achievements}>
-              {achievements.map((achievement) => (
-                <div key={achievement.key} style={styles.achievementCard(achievement.earned)}>
-                  <span style={styles.achievementIcon(achievement.color, achievement.earned)}>
-                    {achievement.icon}
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <Typography.Text strong>{achievement.title}</Typography.Text>
-                    <Typography.Paragraph type="secondary" style={{ margin: '4px 0 8px' }}>
-                      {achievement.description}
-                    </Typography.Paragraph>
-                    <Tag
-                      color={achievement.earned ? 'success' : 'default'}
-                      bordered={false}
-                      style={styles.tag}
-                    >
-                      {achievement.earned ? 'Получено' : 'В процессе'}
-                    </Tag>
-                  </div>
-                </div>
-              ))}
+            {unlocked.length === 0 ? (
+              <Typography.Text type="secondary">
+                Пока ни одного: первое достижение придёт с первым завершённым произведением.
+              </Typography.Text>
+            ) : (
+              <Space size={8} wrap>
+                {unlocked.map((achievement) => (
+                  <Tag key={achievement.code} color="success" bordered={false} style={styles.tag}>
+                    {achievement.title}
+                  </Tag>
+                ))}
+              </Space>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <Link to="/goals">Все достижения, серия и цель года</Link>
             </div>
           </Card>
         </Col>
