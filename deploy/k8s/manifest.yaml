@@ -36,6 +36,20 @@ spec:
     requests:
       storage: ${DB_STORAGE_SIZE}
 ---
+# Обложки бэкенд пишет на диск (storage.type=filesystem). В контейнере они не переживают
+# перезапуск пода, поэтому каталог вынесен на том.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: book-read-covers
+  namespace: ${NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: ${COVERS_STORAGE_SIZE}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,6 +57,10 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   replicas: 1
+  # Том ReadWriteOnce не разрешает подключить себя дважды, а RollingUpdate поднимает новый под
+  # раньше, чем гасит старый: обновление встало бы намертво.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: db
@@ -99,6 +117,9 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   replicas: ${BACKEND_REPLICAS}
+  # Как и у базы: том с обложками — ReadWriteOnce.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: backend
@@ -106,10 +127,15 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations:
+        # Тег образа между установками не меняется, и без этой аннотации apply не увидел бы
+        # разницы в шаблоне — под остался бы на старом собранном образе.
+        book-read/image-id: "${BACKEND_IMAGE_ID}"
     spec:
       containers:
         - name: backend
           image: ${BACKEND_IMAGE}
+          imagePullPolicy: ${IMAGE_PULL_POLICY}
           ports:
             - containerPort: 8080
           env:
@@ -152,6 +178,14 @@ spec:
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 20
+          volumeMounts:
+            # WORKDIR образа — /app, а storage.filesystem.path по умолчанию относительный (storage).
+            - name: covers
+              mountPath: /app/storage
+      volumes:
+        - name: covers
+          persistentVolumeClaim:
+            claimName: book-read-covers
 ---
 apiVersion: v1
 kind: Service
@@ -180,10 +214,13 @@ spec:
     metadata:
       labels:
         app: frontend
+      annotations:
+        book-read/image-id: "${FRONTEND_IMAGE_ID}"
     spec:
       containers:
         - name: frontend
           image: ${FRONTEND_IMAGE}
+          imagePullPolicy: ${IMAGE_PULL_POLICY}
           ports:
             - containerPort: 80
             - containerPort: 9443

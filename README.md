@@ -2,6 +2,9 @@
 
 Full-stack application for tracking library items (books) with CRUD, filtering, and type management.
 
+Deploying it somewhere? [INSTALL.md](INSTALL.md) is the step-by-step guide — single server, Kubernetes,
+or a local development setup. This file covers the development cycle and how the features work.
+
 ## Prerequisites
 - Java 21
 - Node.js 18+ (`workbox-build` is pinned to 7.3.0 for this: 7.4 requires Node 20, and the build image
@@ -14,12 +17,12 @@ The compose file has no built-in password: copy the sample env file and set one 
 
 ```bash
 cp .env.example .env   # then fill POSTGRES_PASSWORD / DB_PASSWORD
-docker-compose up -d db
+docker compose up -d db
 ```
 Database defaults:
 - URL: `jdbc:postgresql://localhost:5432/library` (published on `127.0.0.1` only)
 - Database and user: `library`
-- Password: taken from `POSTGRES_PASSWORD`; `docker-compose up` fails if it is empty
+- Password: taken from `POSTGRES_PASSWORD`; `docker compose up` fails if it is empty
 
 `.env` is git-ignored — no credential in this repository is a working one.
 
@@ -286,30 +289,39 @@ aggregates by tag and keeps the series.
   uploaded as an artifact when the job fails.
 
 ## Ubuntu 22 deployment script (Docker)
-Run the provided script as root (or via `sudo`) on the target server to build Docker images, start containers (frontend + backend + PostgreSQL), and expose the app at `https://book.read.katernyuk.s.m`:
+Run the provided script as root (or via `sudo`) on the target server to build Docker images, start containers (frontend + backend + PostgreSQL), and expose the app at `https://<DOMAIN>:9443`:
 
 ```bash
-sudo bash deploy/install_on_ubuntu_22.sh
+sudo DOMAIN=book.example.com bash deploy/install_on_ubuntu_22.sh
 ```
+
+HTTPS listens on **9443**, not 443 — that is the port `frontend/nginx/default.conf.template` binds and the
+one the redirect from port 80 points at. Port 80 only redirects; it serves nothing.
+
+The full walkthrough — first login, TLS options, backups, upgrades, troubleshooting — is in
+[INSTALL.md](INSTALL.md).
 
 > Tip: you can run the script from any folder (including `deploy/`); it automatically uses the repository root as the source path.
 
 Tune behavior with environment variables:
-- `DOMAIN` — domain for Nginx in the frontend container (default `book.read.katernyuk.s.m`).
-- `APP_ROOT` — installation directory for the repo sync (default `/opt/book-read`).
-- `APP_SRC` — path to the repository to deploy (default current directory).
-- `VITE_API_URL` — API base path during frontend build (default `/api`).
+- `DOMAIN` — domain for Nginx in the frontend container (default `166.1.22.108`).
+- `APP_ROOT` — installation directory (default: the repository itself; when it differs from `APP_SRC`, the sources are `rsync`ed there).
+- `APP_SRC` — path to the repository to deploy (default: the repository the script lives in).
+- `VITE_API_URL` — API base path during frontend build (default `/api/v1`).
 - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_PROFILES_ACTIVE` — backend environment. The password defaults to `POSTGRES_PASSWORD`, since the backend talks to the bundled database.
 - `SECURITY_JWT_SECRET` — JWT signing key; generated on the first run and reused from `deploy/.env` afterwards.
 - `SECURITY_COOKIE_SECURE` — `Secure` flag of the auth cookies (default `true`; the deployment terminates TLS).
 - `POSTGRES_DB`, `POSTGRES_USER` — database name and user for the bundled PostgreSQL container (default `library`).
 - `POSTGRES_PASSWORD` — database password. **No default**: it is reused from `deploy/.env` or generated on the first run, the same way as the JWT secret. PostgreSQL only applies it when the volume is initialised, so if `deploy/.env` is lost while the volume survives, pass the original password explicitly.
-- `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (domain must resolve to the server); otherwise a self-signed certificate is generated.
-- `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`).
+- `USE_LETSENCRYPT=true` and `LETSENCRYPT_EMAIL=<you@example.com>` — issue a Let's Encrypt certificate (`DOMAIN` must be a name, not an IP, and must resolve to the server); otherwise a self-signed certificate is generated.
+- `CERT_DIR` — where certificates are stored and mounted into the frontend container (default `${APP_ROOT}/deploy/certs`). A certificate already present there is reused: delete both files to have a new self-signed one issued.
+
+Uploaded covers live on the `backend_storage` volume and the database on `db_data`, so re-running the
+script keeps both. `docker compose ... down -v` deletes them.
 
 ## Kubernetes deployment
 The Kubernetes rollout is automated via a script that builds images, loads or pushes them, renders manifests, and applies them to the cluster.
-If `kubectl` or `docker` are missing, the script attempts to install them via `apt` (requires sudo/root).
+`kubectl` must already be installed (it is not in the stock Ubuntu repositories, so the script asks for it instead of failing inside `apt`); missing `docker`, `python3` and `openssl` are installed via `apt` (requires sudo/root).
 The script applies manifests with validation disabled to avoid OpenAPI fetch failures on local clusters.
 
 ### Run
@@ -328,20 +340,27 @@ You can tune the rollout using environment variables:
 - `POSTGRES_DB`, `POSTGRES_USER` — database name and user (default `library`).
 - `POSTGRES_PASSWORD` — database password. **No default**: it is read from the existing `book-read-db` Secret or generated on the first rollout.
 - `DB_STORAGE_SIZE` — PVC size for PostgreSQL (default `1Gi`).
-- `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `2` for backend, `1` for frontend).
+- `COVERS_STORAGE_SIZE` — PVC size for the covers the backend stores on disk (default `1Gi`).
+- `BACKEND_REPLICAS`, `FRONTEND_REPLICAS` — deployment sizes (default `1` each). The backend keeps covers on a `ReadWriteOnce` volume, so scaling it past one replica requires shared storage — `STORAGE_TYPE=s3`.
 - `FRONTEND_SERVICE_TYPE` — Service type for the frontend (`ClusterIP` by default).
 - `IMAGE_TAG` — Docker tag for built images (default `local`).
 - `IMAGE_REGISTRY` — registry to push images to (when set, images are pushed and pulled from this registry).
+- `IMAGE_PULL_POLICY` — `IfNotPresent` without a registry, `Always` with one. Locally built images are not pullable from anywhere, and kubelet would otherwise default a `latest` tag to `Always`.
 - `ROLLOUT_TIMEOUT` — rollout wait timeout (default `180s`).
 - `SKIP_CLUSTER_CHECK` — skip the pre-flight `kubectl cluster-info` check (default `false`).
 If no current kubectl context is configured and only one context exists, the script auto-selects it. When no contexts exist, it will try to use a local k3s kubeconfig (`/etc/rancher/k3s/k3s.yaml`) and its current context, then select a running `kind` or `minikube` context automatically.
 
 ### Access
-If you are running with `ClusterIP` (default), consider port-forwarding:
+With `ClusterIP` (the default) nothing is reachable from outside the cluster — forward the HTTPS port:
 ```bash
-kubectl port-forward service/frontend 8080:80 -n book-read
+kubectl port-forward service/frontend 9443:9443 -n book-read   # then https://localhost:9443
 ```
-For HTTPS access, forward port 9443:
-```bash
-kubectl port-forward service/frontend 9443:9443 -n book-read
-```
+Forwarding port 80 is pointless: it only redirects to `:9443`.
+
+For access without a forward, set `FRONTEND_SERVICE_TYPE=NodePort` (Kubernetes assigns a port in the
+30000–32767 range — that is the one to open in the firewall, not 9443) or `LoadBalancer`. No Ingress
+ships with the manifest; point your own at the `frontend` Service, port 9443.
+
+Re-running the script picks up rebuilt images even though the tag has not changed: the built image id
+goes into a pod-template annotation, without which `kubectl apply` would see no diff and leave the pods
+on the previous build.

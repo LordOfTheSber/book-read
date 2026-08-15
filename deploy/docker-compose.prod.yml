@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16
@@ -26,6 +24,10 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET:?SECURITY_JWT_SECRET is required, generate it with `openssl rand -base64 48`}
       SECURITY_COOKIE_SECURE: ${SECURITY_COOKIE_SECURE:-true}
+    volumes:
+      # Обложки лежат на диске бэкенда (storage.type=filesystem, каталог /app/storage). Без тома
+      # они пропадают при каждой пересборке контейнера — то есть при каждом запуске установщика.
+      - backend_storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -42,11 +44,16 @@ services:
       SSL_KEY_PATH: ${SSL_KEY_PATH:-/etc/nginx/certs/privkey.pem}
     ports:
       - "80:80"
-      - "8443:443"
+      # Nginx слушает HTTPS на 9443 (frontend/nginx/default.conf.template), и на этот же порт
+      # уходит редирект с 80. Номер снаружи должен совпадать: иначе редирект ведёт в никуда.
+      - "9443:9443"
     depends_on:
       - backend
     volumes:
-      - ./deploy/certs:/etc/nginx/certs
+      # Путь относительный, и Compose считает его от каталога compose-файла, то есть от deploy/.
+      # Сертификаты установщик кладёт в deploy/certs — здесь должно быть ./certs, а не ./deploy/certs.
+      - ./certs:/etc/nginx/certs
 
 volumes:
   db_data:
+  backend_storage:
