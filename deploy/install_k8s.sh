@@ -23,7 +23,10 @@ export POSTGRES_DB="${POSTGRES_DB:-library}"
 export POSTGRES_USER="${POSTGRES_USER:-library}"
 # Пароль БД значения по умолчанию не имеет: он берётся из кластера или генерируется ниже.
 export DB_STORAGE_SIZE="${DB_STORAGE_SIZE:-1Gi}"
-export BACKEND_REPLICAS="${BACKEND_REPLICAS:-2}"
+export COVERS_STORAGE_SIZE="${COVERS_STORAGE_SIZE:-1Gi}"
+# Одна реплика: обложки лежат на диске бэкенда (storage.type=filesystem) на томе ReadWriteOnce.
+# Масштабировать бэкенд можно только вместе с общим хранилищем — STORAGE_TYPE=s3.
+export BACKEND_REPLICAS="${BACKEND_REPLICAS:-1}"
 export FRONTEND_REPLICAS="${FRONTEND_REPLICAS:-1}"
 export FRONTEND_SERVICE_TYPE="${FRONTEND_SERVICE_TYPE:-ClusterIP}"
 export IMAGE_TAG="${IMAGE_TAG:-local}"
@@ -33,6 +36,16 @@ export SECURITY_COOKIE_SECURE="${SECURITY_COOKIE_SECURE:-true}"
 
 export BACKEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-backend:${IMAGE_TAG}"
 export FRONTEND_IMAGE="${IMAGE_REGISTRY:+${IMAGE_REGISTRY}/}book-read-frontend:${IMAGE_TAG}"
+# Без реестра образы собираются на месте и тянуть их неоткуда; kubelet сам выбрал бы Always
+# для тега latest и уронил бы под на ErrImagePull.
+if [[ -z "${IMAGE_PULL_POLICY:-}" ]]; then
+  if [[ -n "${IMAGE_REGISTRY}" ]]; then
+    IMAGE_PULL_POLICY="Always"
+  else
+    IMAGE_PULL_POLICY="IfNotPresent"
+  fi
+fi
+export IMAGE_PULL_POLICY
 
 ensure_command() {
   local cmd="$1"
@@ -52,12 +65,20 @@ ensure_command() {
   ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkg}"
 }
 
-ensure_command kubectl kubectl
+# kubectl в стандартных репозиториях Ubuntu нет: apt-get install kubectl упал бы с невнятным
+# «Unable to locate package», поэтому просим поставить его руками.
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "kubectl is required but not installed." >&2
+  echo "Install it with 'snap install kubectl --classic' or follow https://kubernetes.io/docs/tasks/tools/#kubectl" >&2
+  exit 1
+fi
+
 ensure_command docker docker.io
 ensure_command python3 python3
 ensure_command openssl openssl
 
-if command -v ufw >/dev/null 2>&1; then
+# С ClusterIP снаружи ничего не слушает — правило открывало бы порт впустую (см. «Access» в README).
+if [[ "${FRONTEND_SERVICE_TYPE}" != "ClusterIP" ]] && command -v ufw >/dev/null 2>&1; then
   echo "Allowing inbound TCP/9443 via ufw..."
   ${SUDO} ufw allow 9443/tcp
 fi
@@ -134,6 +155,13 @@ echo "Building frontend image ${FRONTEND_IMAGE}..."
 docker build -f "${APP_ROOT}/frontend/Dockerfile" \
   --build-arg "VITE_API_URL=${VITE_API_URL}" \
   -t "${FRONTEND_IMAGE}" "${APP_ROOT}"
+
+# Идентификатор собранного образа уезжает в аннотацию пода: тег остаётся прежним, и без этого
+# повторная установка не перезапустила бы поды на новом образе. Присваивание отдельной строкой —
+# иначе `set -e` не заметил бы падения docker inspect.
+BACKEND_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "${BACKEND_IMAGE}")"
+FRONTEND_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "${FRONTEND_IMAGE}")"
+export BACKEND_IMAGE_ID FRONTEND_IMAGE_ID
 
 if [[ -n "${IMAGE_REGISTRY}" ]]; then
   echo "Pushing images to ${IMAGE_REGISTRY}..."

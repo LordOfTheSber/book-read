@@ -39,19 +39,45 @@ echo \
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-echo "Syncing repository to ${APP_ROOT}..."
 mkdir -p "${APP_ROOT}"
-# deploy/.env хранит сгенерированный JWT-секрет прошлой установки — его нельзя затирать.
-rsync -a --delete --exclude 'deploy/.env' "${APP_SRC}/" "${APP_ROOT}/"
+if [[ "$(cd "${APP_SRC}" && pwd)" == "$(cd "${APP_ROOT}" && pwd)" ]]; then
+  # По умолчанию APP_ROOT и есть каталог репозитория: копировать его сам в себя нечего.
+  echo "APP_SRC and APP_ROOT are the same directory (${APP_ROOT}) - skipping sync."
+else
+  echo "Syncing repository to ${APP_ROOT}..."
+  # deploy/.env хранит сгенерированный JWT-секрет прошлой установки — его нельзя затирать.
+  rsync -a --delete --exclude 'deploy/.env' "${APP_SRC}/" "${APP_ROOT}/"
+fi
 
 cd "${APP_ROOT}"
+
+ENV_FILE="deploy/.env"
+COMPOSE_FILE="deploy/docker-compose.prod.yml"
+
+# Порты открываем до выпуска сертификата: Let's Encrypt проверяет владение доменом, постучавшись
+# в 80-й порт снаружи.
+if command -v ufw >/dev/null 2>&1; then
+  echo "Allowing inbound TCP/80 and TCP/9443 via ufw..."
+  ufw allow 80/tcp
+  ufw allow 9443/tcp
+fi
 
 echo "Preparing TLS certificates in ${CERT_DIR}..."
 mkdir -p "${CERT_DIR}"
 
 if [[ "${USE_LETSENCRYPT}" == "true" && -n "${LETSENCRYPT_EMAIL}" ]]; then
+  if [[ "${DOMAIN}" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+    echo "USE_LETSENCRYPT=true, but DOMAIN=${DOMAIN} is an IP address." >&2
+    echo "Let's Encrypt issues certificates for domain names only: set DOMAIN to a name that resolves to this server, or drop USE_LETSENCRYPT to get a self-signed certificate." >&2
+    exit 1
+  fi
   echo "Requesting Let's Encrypt certificate for ${DOMAIN}..."
   DEBIAN_FRONTEND=noninteractive apt-get install -y certbot
+  # certbot --standalone сам занимает порт 80, а его при переустановке держит nginx прошлого
+  # запуска: без остановки контейнера выпуск сертификата падает.
+  if [[ -f "${ENV_FILE}" ]]; then
+    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" stop frontend >/dev/null 2>&1 || true
+  fi
   certbot certonly --standalone --non-interactive --agree-tos -m "${LETSENCRYPT_EMAIL}" -d "${DOMAIN}"
   live_path="/etc/letsencrypt/live/${DOMAIN}"
   if [[ ! -f "${live_path}/fullchain.pem" || ! -f "${live_path}/privkey.pem" ]]; then
@@ -60,6 +86,10 @@ if [[ "${USE_LETSENCRYPT}" == "true" && -n "${LETSENCRYPT_EMAIL}" ]]; then
   fi
   cp "${live_path}/fullchain.pem" "${CERT_DIR}/fullchain.pem"
   cp "${live_path}/privkey.pem" "${CERT_DIR}/privkey.pem"
+elif [[ -f "${CERT_DIR}/fullchain.pem" && -f "${CERT_DIR}/privkey.pem" ]]; then
+  # Установщик запускают повторно, а сертификат мог быть положен сюда вручную: перевыпуск
+  # самоподписанного затёр бы его. Чтобы выпустить новый, удалите файлы из ${CERT_DIR}.
+  echo "Reusing the certificate already present in ${CERT_DIR}..."
 else
   echo "Generating self-signed certificate for ${DOMAIN}..."
   openssl req -x509 -nodes -newkey rsa:4096 -days 365 \
@@ -68,7 +98,8 @@ else
     -out "${CERT_DIR}/fullchain.pem"
 fi
 
-ENV_FILE="deploy/.env"
+# Закрытый ключ не должен читаться никем, кроме root: ни openssl, ни cp прав не выставляют.
+chmod 0600 "${CERT_DIR}/privkey.pem"
 
 read_from_env_file() {
   local key="$1"
@@ -120,9 +151,10 @@ SSL_KEY_PATH=/etc/nginx/certs/privkey.pem
 EOF
 
 echo "Building Docker images..."
-docker compose -f deploy/docker-compose.prod.yml --env-file "${ENV_FILE}" build
+docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
 
 echo "Starting containers..."
-docker compose -f deploy/docker-compose.prod.yml --env-file "${ENV_FILE}" up -d
+docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d
 
-echo "Deployment complete. Visit http://${DOMAIN}"
+# Порт 80 только редиректит на HTTPS, поэтому рабочий адрес — с портом 9443.
+echo "Deployment complete. Visit https://${DOMAIN}:9443"
