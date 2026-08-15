@@ -16,6 +16,20 @@ export const listExports = async (): Promise<ExportFileInfo[]> => {
   return data;
 };
 
+/**
+ * Приём копии со стороны: восстановление после потери сервера начинается с файла, которого
+ * на самом сервере как раз и нет. Загруженная копия встаёт в общий список и восстанавливается
+ * тем же способом, что и снятая здесь.
+ */
+export const uploadExport = async (file: File): Promise<ExportFileInfo> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await httpClient.post<ExportFileInfo>('/exports/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return data;
+};
+
 export const deleteExportFile = async (fileName: string): Promise<void> => {
   await httpClient.delete(`/exports/${fileName}`);
 };

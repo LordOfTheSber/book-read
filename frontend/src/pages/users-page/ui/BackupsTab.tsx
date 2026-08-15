@@ -1,15 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, App, Button, Card, Empty, Space, Table, Tooltip, Typography } from 'antd';
+import { Alert, App, Button, Card, Empty, Space, Table, Tooltip, Typography, Upload } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { CloudUploadOutlined, DeleteOutlined, DownloadOutlined, HistoryOutlined } from '@ant-design/icons';
+import type { RcFile } from 'antd/es/upload';
+import {
+  CloudUploadOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  HistoryOutlined,
+  InboxOutlined
+} from '@ant-design/icons';
 import {
   deleteExportFile,
   downloadExport,
   listExports,
   requestExport,
-  restoreExport
+  restoreExport,
+  uploadExport
 } from '@/entities/export/api/exportApi';
-import { ExportFileInfo } from '@/shared/types/library';
+import { BackupCounts, ExportFileInfo, ImportResult } from '@/shared/types/library';
 import { formatDateTime } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
 import { useAppDispatch } from '@/shared/lib/hooks';
@@ -24,6 +32,52 @@ const formatBytes = (bytes: number) => {
   return `${index === 0 ? value : value.toFixed(1)} ${units[index]}`;
 };
 
+/**
+ * Подписи разделов копии. Порядок здесь задаёт порядок в сводке восстановления, а раздел без
+ * подписи не прячется, а показывается своим именем: копия новее интерфейса — не повод молчать
+ * о том, что из неё поднялось.
+ */
+const SECTION_LABELS: Record<string, string> = {
+  users: 'пользователей',
+  libraryItems: 'произведений',
+  bookTypes: 'типов',
+  sources: 'источников',
+  authors: 'авторов',
+  series: 'серий',
+  tags: 'тегов',
+  shelves: 'полок',
+  shelfMembers: 'участников полок',
+  smartShelves: 'умных полок',
+  itemAuthors: 'связей с авторами',
+  itemTags: 'связей с тегами',
+  shelfItems: 'записей на полках',
+  readingLogs: 'проходов',
+  readingSessions: 'заходов',
+  quotes: 'выписок',
+  loans: 'выдач',
+  reviewComments: 'комментариев',
+  reviewReactions: 'реакций',
+  userFollows: 'подписок',
+  activityEvents: 'событий ленты',
+  readingGoals: 'целей',
+  userAchievements: 'достижений',
+  systemNodes: 'узлов',
+  sessions: 'сессий',
+  sessionSettings: 'настроек сессий',
+  monitoringSettings: 'настроек мониторинга'
+};
+
+const formatCounts = (counts?: BackupCounts) =>
+  Object.entries(counts ?? {})
+    .filter(([, value]) => value > 0)
+    .map(([section, value]) => `${SECTION_LABELS[section] ?? section} ${value}`)
+    .join(', ');
+
+const formatRestored = (result: ImportResult) => {
+  const details = formatCounts(result.counts);
+  return details ? `Восстановлено: ${details}` : 'Копия пуста — восстанавливать нечего';
+};
+
 export const BackupsTab: React.FC = () => {
   const dispatch = useAppDispatch();
   const styles = useUsersPageStyles();
@@ -32,6 +86,7 @@ export const BackupsTab: React.FC = () => {
   const [files, setFiles] = useState<ExportFileInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [busyFile, setBusyFile] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -60,6 +115,26 @@ export const BackupsTab: React.FC = () => {
     } finally {
       setCreating(false);
     }
+  };
+
+  /**
+   * Файл уходит на сервер и встаёт в общий список — восстановление идёт оттуда же, откуда и для
+   * снятых здесь копий. Возврат {@code false} гасит собственную загрузку antd: запрос делаем сами.
+   */
+  const handleUpload = (file: RcFile) => {
+    setUploading(true);
+    void (async () => {
+      try {
+        const info = await uploadExport(file as unknown as File);
+        message.success(`Копия загружена: ${info.fileName}`);
+        await reload();
+      } catch (error) {
+        showRequestError(error, 'Не удалось загрузить файл копии');
+      } finally {
+        setUploading(false);
+      }
+    })();
+    return false;
   };
 
   const handleDownload = async (fileName: string) => {
@@ -91,6 +166,10 @@ export const BackupsTab: React.FC = () => {
           <Typography.Text type="danger">
             Всё, что добавлено после {formatDateTime(file.lastModifiedAt)}, будет потеряно.
           </Typography.Text>
+          <Typography.Text type="secondary">
+            Сессии тоже восстанавливаются из копии, поэтому вход в систему, скорее всего,
+            придётся повторить.
+          </Typography.Text>
         </Space>
       ),
       okText: 'Восстановить',
@@ -100,9 +179,7 @@ export const BackupsTab: React.FC = () => {
         setBusyFile(file.fileName);
         try {
           const result = await restoreExport(file.fileName);
-          message.success(
-            `Восстановлено: пользователей ${result.restoredUsers}, книг ${result.restoredItems}, типов ${result.restoredBookTypes}`
-          );
+          message.success(formatRestored(result), 6);
           dispatch(loadUsers({ force: true }));
         } catch (error) {
           showRequestError(error, 'Не удалось восстановить данные');
@@ -206,9 +283,16 @@ export const BackupsTab: React.FC = () => {
       style={styles.card}
       styles={{ body: styles.cardBody }}
       extra={
-        <Button type="primary" icon={<CloudUploadOutlined />} onClick={handleCreate} loading={creating}>
-          Создать копию
-        </Button>
+        <Space size={8}>
+          <Upload accept=".json" beforeUpload={handleUpload} showUploadList={false} disabled={uploading}>
+            <Button icon={<InboxOutlined />} loading={uploading}>
+              Загрузить копию
+            </Button>
+          </Upload>
+          <Button type="primary" icon={<CloudUploadOutlined />} onClick={handleCreate} loading={creating}>
+            Создать копию
+          </Button>
+        </Space>
       }
     >
       <Alert
@@ -216,7 +300,7 @@ export const BackupsTab: React.FC = () => {
         showIcon
         style={styles.alert}
         message="Копия содержит всю базу целиком"
-        description="Пользователи, книги, типы, источники и сессии сохраняются в JSON-файл на сервере. Восстановление заменяет текущие данные."
+        description="В JSON-файл на сервере уходят пользователи и профили, библиотека со всеми связями — авторы, серии, теги, полки, — история чтения, выписки, выдачи, социальный слой, цели, достижения, узлы, сессии и настройки. Обложки лежат в объектном хранилище и в файл не входят. Копию можно загрузить со стороны — восстановление идёт из общего списка и заменяет текущие данные."
       />
       <Table<ExportFileInfo>
         rowKey={(row) => row.fileName}

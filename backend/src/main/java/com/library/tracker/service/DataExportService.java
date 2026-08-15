@@ -1,50 +1,46 @@
 package com.library.tracker.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.library.tracker.domain.BookType;
-import com.library.tracker.domain.LibraryItem;
-import com.library.tracker.domain.Role;
-import com.library.tracker.domain.SessionSettings;
-import com.library.tracker.domain.Source;
-import com.library.tracker.domain.User;
-import com.library.tracker.repository.BookTypeRepository;
-import com.library.tracker.repository.LibraryItemRepository;
-import com.library.tracker.repository.SessionRepository;
-import com.library.tracker.repository.SessionSettingsRepository;
-import com.library.tracker.repository.SourceRepository;
-import com.library.tracker.repository.UserRepository;
-import com.library.tracker.repository.SystemNodeRepository;
+import com.library.tracker.service.export.ExportPayload;
+import com.library.tracker.service.export.SnapshotCollector;
+import com.library.tracker.service.export.SnapshotRestorer;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
+/**
+ * Административный бэкап: снимок всей базы в файл и восстановление системы из него. Не путать с
+ * {@code UserDataExportService} — та выгружает данные одного пользователя и доступна каждому,
+ * а эта закрыта на супер-администратора и содержит в том числе хеши паролей.
+ * <p>
+ * Сервис отвечает за файлы: где они лежат, как называются, как попадают на сервер и как читаются
+ * обратно. Что именно попадает в файл, знает {@link SnapshotCollector}, а как оно раскладывается
+ * по таблицам — {@link SnapshotRestorer}.
+ * <p>
+ * Копию можно не только снять, но и принести с собой ({@link #uploadExport}): восстановление после
+ * потери сервера начинается с файла, который лежит где угодно, только не на этом сервере. Файл
+ * при загрузке разбирается — в каталог не попадает то, что потом не прочитается.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -53,53 +49,51 @@ public class DataExportService {
 
     private static final DateTimeFormatter FILE_NAME_FORMATTER = DateTimeFormatter.ofPattern( "yyyy-MM-dd_HH-mm-ss" );
 
+    private static final String EXTENSION = ".json";
+
+    /** Что остаётся от принесённого имени файла: остальное заменяется подчёркиванием. */
+    private static final String SAFE_NAME_PATTERN = "[^A-Za-z0-9._-]";
+
     private final ObjectMapper objectMapper;
-    private final UserRepository userRepository;
-    private final LibraryItemRepository libraryItemRepository;
-    private final BookTypeRepository bookTypeRepository;
-    private final SourceRepository sourceRepository;
-    private final SessionRepository sessionRepository;
-    private final SessionSettingsRepository sessionSettingsRepository;
-    private final SystemNodeRepository systemNodeRepository;
+    private final SnapshotCollector snapshotCollector;
+    private final SnapshotRestorer snapshotRestorer;
 
     @org.springframework.beans.factory.annotation.Value( "${export.directory:exports}" )
     private String exportDirectory;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    /** Потолок на принесённый файл. Разбор идёт в памяти, поэтому он не может быть безграничным. */
+    @org.springframework.beans.factory.annotation.Value( "${export.max-upload-bytes:67108864}" )
+    private long maxUploadBytes;
 
     @Transactional( readOnly = true )
     public ExportResult exportData() {
         OffsetDateTime exportedAt = OffsetDateTime.now( ZoneOffset.UTC );
-        ExportPayload payload = ExportPayload.builder()
-                                             .exportedAt( exportedAt )
-                                             .users( mapUsers() )
-                                             .libraryItems( mapLibraryItems() )
-                                             .bookTypes( mapBookTypes() )
-                                             .sources( mapSources() )
-                                             .sessionSettings( mapSessionSettings() )
-                                             .build();
+        ExportPayload payload = snapshotCollector.collect( exportedAt );
 
         Path directory = resolveExportDirectory();
-        String fileName = "export-" + FILE_NAME_FORMATTER.format( exportedAt ) + ".json";
+        String fileName = "export-" + FILE_NAME_FORMATTER.format( exportedAt ) + EXTENSION;
         Path filePath = directory.resolve( fileName );
         try {
             Files.createDirectories( directory );
             objectMapper.writerWithDefaultPrettyPrinter().writeValue( filePath.toFile(), payload );
-            return ExportResult.builder()
-                               .fileName( fileName )
-                               .path( filePath.toAbsolutePath().toString() )
-                               .exportedAt( exportedAt )
-                               .usersCount( payload.getUsers().size() )
-                               .itemsCount( payload.getLibraryItems().size() )
-                               .bookTypesCount( payload.getBookTypes().size() )
-                               .sourcesCount( payload.getSources().size() )
-                               .sessionsCount( 0 )
-                               .systemNodesCount( 0 )
-                               .build();
         } catch ( IOException ex ) {
             throw new IllegalStateException( "Не удалось сохранить данные в файл", ex );
         }
+
+        Map<String, Long> counts = counts( payload );
+        return ExportResult.builder()
+                           .fileName( fileName )
+                           .path( filePath.toAbsolutePath().toString() )
+                           .schemaVersion( ExportPayload.CURRENT_SCHEMA_VERSION )
+                           .exportedAt( exportedAt )
+                           .usersCount( count( counts, "users" ) )
+                           .itemsCount( count( counts, "libraryItems" ) )
+                           .bookTypesCount( count( counts, "bookTypes" ) )
+                           .sourcesCount( count( counts, "sources" ) )
+                           .sessionsCount( count( counts, "sessions" ) )
+                           .systemNodesCount( count( counts, "systemNodes" ) )
+                           .counts( counts )
+                           .build();
     }
 
     @Transactional( readOnly = true )
@@ -109,13 +103,12 @@ public class DataExportService {
             return List.of();
         }
         try ( var stream = Files.list( directory ) ) {
-            return stream.filter( path -> path.getFileName().toString().endsWith( ".json" ) )
+            return stream.filter( this::isExportFile )
                          .map( path -> ExportFileInfo.builder()
                                                      .fileName( path.getFileName().toString() )
                                                      .sizeBytes( path.toFile().length() )
                                                      .lastModifiedAt( OffsetDateTime.ofInstant(
-                                                             java.time.Instant.ofEpochMilli(
-                                                                     path.toFile().lastModified() ),
+                                                             Instant.ofEpochMilli( path.toFile().lastModified() ),
                                                              ZoneOffset.UTC ) )
                                                      .build() )
                          .sorted( Comparator.comparing( ExportFileInfo::getLastModifiedAt ).reversed() )
@@ -125,42 +118,83 @@ public class DataExportService {
         }
     }
 
+    /**
+     * Принимает файл копии со стороны. Содержимое разбирается до записи на диск: файл, который
+     * не прочитается при восстановлении, в списке копий не нужен — он выглядит там страховкой,
+     * которой на самом деле нет.
+     */
+    public ExportFileInfo uploadExport( MultipartFile file ) {
+        if ( file == null || file.isEmpty() ) {
+            throw new IllegalArgumentException( "Файл не выбран" );
+        }
+        if ( file.getSize() > maxUploadBytes ) {
+            throw new IllegalArgumentException( "Файл больше допустимых " + maxUploadBytes / ( 1024 * 1024 ) + " МБ" );
+        }
+
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch ( IOException ex ) {
+            throw new IllegalStateException( "Не удалось прочитать загруженный файл", ex );
+        }
+
+        ExportPayload payload = parse( content );
+
+        Path directory = resolveExportDirectory();
+        Path target = freeName( directory, uploadedFileName( file.getOriginalFilename() ) );
+        try {
+            Files.createDirectories( directory );
+            Files.write( target, content );
+        } catch ( IOException ex ) {
+            throw new IllegalStateException( "Не удалось сохранить загруженный файл", ex );
+        }
+
+        log.info( "Загружена резервная копия {} (версия формата {}, снята {})",
+                  target.getFileName(), schemaVersion( payload ), payload.getExportedAt() );
+
+        return ExportFileInfo.builder()
+                             .fileName( target.getFileName().toString() )
+                             .sizeBytes( content.length )
+                             .lastModifiedAt( OffsetDateTime.now( ZoneOffset.UTC ) )
+                             .build();
+    }
+
     public void deleteExport( String fileName ) {
-        String sanitized = sanitizeFileName( fileName );
-        Path path = resolveExportDirectory().resolve( sanitized );
+        Path path = resolveExportPath( fileName )
+                .orElseThrow( () -> new IllegalArgumentException( "Файл не найден" ) );
         try {
             Files.deleteIfExists( path );
         } catch ( IOException ex ) {
-            throw new IllegalStateException( "Не удалось удалить файл экспорта" );
+            throw new IllegalStateException( "Не удалось удалить файл экспорта", ex );
         }
     }
 
+    /**
+     * Восстановление системы из копии. Текущее содержимое заменяется целиком — и, поскольку всё
+     * идёт одной транзакцией, копия, которая не легла, не оставляет после себя половину базы.
+     */
     public ImportResult importData( String fileName ) {
         ExportFile exportFile = resolveFile( fileName )
                 .orElseThrow( () -> new IllegalArgumentException( "Файл не найден" ) );
-        ExportPayload payload;
-        try {
-            payload = objectMapper.readValue( exportFile.getContent(), ExportPayload.class );
-        } catch ( IOException ex ) {
-            throw new IllegalArgumentException( "Некорректный формат файла экспорта" );
-        }
+        ExportPayload payload = parse( exportFile.getContent() );
+        int schemaVersion = schemaVersion( payload );
 
-        clearExistingData();
+        log.info( "Восстановление из {}: версия формата {}, копия снята {}",
+                  exportFile.getFileName(), schemaVersion, payload.getExportedAt() );
 
-        Map<UUID, User> users = saveUsers( payload );
-        Map<UUID, BookType> types = saveBookTypes( payload );
-        Map<UUID, Source> sources = saveSources( payload );
-        saveSessionSettings( payload );
-        long restoredItems = saveLibraryItems( payload, users, types, sources );
+        Map<String, Long> counts = snapshotRestorer.restore( payload );
 
         return ImportResult.builder()
-                           .fileName( fileName )
-                           .restoredUsers( users.size() )
-                           .restoredItems( restoredItems )
-                           .restoredBookTypes( types.size() )
-                           .restoredSources( sources.size() )
-                           .restoredSystemNodes( 0 )
-                           .restoredSessions( 0 )
+                           .fileName( exportFile.getFileName() )
+                           .schemaVersion( schemaVersion )
+                           .exportedAt( payload.getExportedAt() )
+                           .restoredUsers( count( counts, "users" ) )
+                           .restoredItems( count( counts, "libraryItems" ) )
+                           .restoredBookTypes( count( counts, "bookTypes" ) )
+                           .restoredSources( count( counts, "sources" ) )
+                           .restoredSystemNodes( count( counts, "systemNodes" ) )
+                           .restoredSessions( count( counts, "sessions" ) )
+                           .counts( counts )
                            .build();
     }
 
@@ -171,7 +205,7 @@ public class DataExportService {
             return Optional.empty();
         }
         try ( var stream = Files.list( directory ) ) {
-            return stream.filter( path -> path.getFileName().toString().endsWith( ".json" ) )
+            return stream.filter( this::isExportFile )
                          .max( Comparator.comparingLong( path -> path.toFile().lastModified() ) );
         } catch ( IOException ex ) {
             log.warn( "Failed to list export directory", ex );
@@ -181,23 +215,86 @@ public class DataExportService {
 
     @Transactional( readOnly = true )
     public Optional<ExportFile> resolveFile( String fileName ) {
+        Optional<Path> path = resolveExportPath( fileName );
+        if ( path.isEmpty() ) {
+            return Optional.empty();
+        }
+        try {
+            byte[] content = Files.readAllBytes( path.get() );
+            return Optional.of( new ExportFile( path.get().getFileName().toString(),
+                                                MediaType.APPLICATION_JSON_VALUE, content ) );
+        } catch ( IOException ex ) {
+            throw new IllegalStateException( "Не удалось прочитать файл экспорта", ex );
+        }
+    }
+
+    private ExportPayload parse( byte[] content ) {
+        try {
+            ExportPayload payload = objectMapper.readValue( content, ExportPayload.class );
+            if ( payload == null ) {
+                throw new IllegalArgumentException( "Некорректный формат файла экспорта" );
+            }
+            return payload;
+        } catch ( IOException ex ) {
+            throw new IllegalArgumentException( "Некорректный формат файла экспорта", ex );
+        }
+    }
+
+    /** У копий, снятых до появления поля, версии в файле нет — это первая. */
+    private int schemaVersion( ExportPayload payload ) {
+        return payload.getSchemaVersion() != null
+                ? payload.getSchemaVersion()
+                : ExportPayload.LEGACY_SCHEMA_VERSION;
+    }
+
+    /**
+     * Имя приводится к безопасному виду и остаётся узнаваемым: копию с чужого сервера ищут
+     * глазами по дате в имени. Каталог из имени вырезается — путь задаёт сервер, а не клиент.
+     */
+    private String uploadedFileName( String originalName ) {
+        String base = StringUtils.hasText( originalName )
+                ? Paths.get( originalName ).getFileName().toString()
+                : "";
+        base = base.replaceAll( SAFE_NAME_PATTERN, "_" );
+        if ( base.toLowerCase( Locale.ROOT ).endsWith( EXTENSION ) ) {
+            base = base.substring( 0, base.length() - EXTENSION.length() );
+        }
+        if ( !StringUtils.hasText( base.replace( "_", "" ) ) ) {
+            base = "upload-" + FILE_NAME_FORMATTER.format( OffsetDateTime.now( ZoneOffset.UTC ) );
+        }
+        return base + EXTENSION;
+    }
+
+    /** Одноимённая копия не затирается: у принесённого файла может не быть второго экземпляра. */
+    private Path freeName( Path directory, String fileName ) {
+        Path candidate = directory.resolve( fileName );
+        String base = fileName.substring( 0, fileName.length() - EXTENSION.length() );
+        for ( int suffix = 2; Files.exists( candidate ); suffix++ ) {
+            candidate = directory.resolve( base + "-" + suffix + EXTENSION );
+        }
+        return candidate;
+    }
+
+    /**
+     * Путь к файлу копии по имени от клиента. Каталог из имени отбрасывается, расширение
+     * проверяется: и то и другое здесь не формальность, а единственная преграда между
+     * {@code ../../etc/passwd} и файловой системой сервера.
+     */
+    private Optional<Path> resolveExportPath( String fileName ) {
         if ( !StringUtils.hasText( fileName ) ) {
             return Optional.empty();
         }
         String sanitized = Paths.get( fileName ).getFileName().toString();
-        if ( !sanitized.endsWith( ".json" ) ) {
+        if ( !sanitized.toLowerCase( Locale.ROOT ).endsWith( EXTENSION ) ) {
             return Optional.empty();
         }
         Path path = resolveExportDirectory().resolve( sanitized );
-        if ( !Files.exists( path ) ) {
-            return Optional.empty();
-        }
-        try {
-            byte[] content = Files.readAllBytes( path );
-            return Optional.of( new ExportFile( sanitized, MediaType.APPLICATION_JSON_VALUE, content ) );
-        } catch ( IOException ex ) {
-            throw new IllegalStateException( "Не удалось прочитать файл экспорта", ex );
-        }
+        return Files.isRegularFile( path ) ? Optional.of( path ) : Optional.empty();
+    }
+
+    private boolean isExportFile( Path path ) {
+        return Files.isRegularFile( path )
+               && path.getFileName().toString().toLowerCase( Locale.ROOT ).endsWith( EXTENSION );
     }
 
     private Path resolveExportDirectory() {
@@ -205,330 +302,40 @@ public class DataExportService {
         return Paths.get( directory );
     }
 
-    private String sanitizeFileName( String fileName ) {
-        return Paths.get( fileName ).getFileName().toString();
+    /** Столько записей ушло в файл — считается по самому файлу, а не повторным запросом к базе. */
+    private Map<String, Long> counts( ExportPayload payload ) {
+        java.util.LinkedHashMap<String, Long> counts = new java.util.LinkedHashMap<>();
+        counts.put( "users", size( payload.getUsers() ) );
+        counts.put( "bookTypes", size( payload.getBookTypes() ) );
+        counts.put( "sources", size( payload.getSources() ) );
+        counts.put( "authors", size( payload.getAuthors() ) );
+        counts.put( "series", size( payload.getSeries() ) );
+        counts.put( "tags", size( payload.getTags() ) );
+        counts.put( "shelves", size( payload.getShelves() ) );
+        counts.put( "shelfMembers", size( payload.getShelfMembers() ) );
+        counts.put( "smartShelves", size( payload.getSmartShelves() ) );
+        counts.put( "libraryItems", size( payload.getLibraryItems() ) );
+        counts.put( "readingLogs", size( payload.getReadingLogs() ) );
+        counts.put( "readingSessions", size( payload.getReadingSessions() ) );
+        counts.put( "quotes", size( payload.getQuotes() ) );
+        counts.put( "loans", size( payload.getLoans() ) );
+        counts.put( "reviewComments", size( payload.getReviewComments() ) );
+        counts.put( "reviewReactions", size( payload.getReviewReactions() ) );
+        counts.put( "userFollows", size( payload.getUserFollows() ) );
+        counts.put( "activityEvents", size( payload.getActivityEvents() ) );
+        counts.put( "readingGoals", size( payload.getReadingGoals() ) );
+        counts.put( "userAchievements", size( payload.getUserAchievements() ) );
+        counts.put( "systemNodes", size( payload.getSystemNodes() ) );
+        counts.put( "sessions", size( payload.getSessions() ) );
+        return counts;
     }
 
-    private void clearExistingData() {
-        sessionRepository.deleteAll();
-        libraryItemRepository.deleteAll();
-        bookTypeRepository.deleteAll();
-        sourceRepository.deleteAll();
-        userRepository.deleteAll();
-        systemNodeRepository.deleteAll();
-        sessionSettingsRepository.deleteAll();
-        entityManager.flush();
-        entityManager.clear();
+    private long size( List<?> rows ) {
+        return rows != null ? rows.size() : 0;
     }
 
-    private Map<UUID, User> saveUsers( ExportPayload payload ) {
-        if ( payload.getUsers() == null ) {
-            return Map.of();
-        }
-        Map<UUID, User> users = payload.getUsers()
-                                        .stream()
-                                        .map( dto -> {
-                                            User existing = entityManager.find( User.class, dto.getId() );
-                                            LocalDateTime createdAt = dto.getCreatedAt() != null
-                                                    ? dto.getCreatedAt().toLocalDateTime()
-                                                    : LocalDateTime.now( ZoneOffset.UTC );
-                                            LocalDateTime updatedAt = dto.getUpdatedAt() != null
-                                                    ? dto.getUpdatedAt().toLocalDateTime()
-                                                    : createdAt;
-                                            if ( existing == null ) {
-                                                entityManager.createNativeQuery(
-                                                                """
-                                                                        INSERT INTO users (id, username, password, role, avatar, avatar_content_type, session_ttl_override_minutes, max_session_lifetime_override_minutes, blocked, created_at, updated_at)
-                                                                        VALUES (:id, :username, :password, :role, :avatar, :avatarContentType, :sessionTtlOverrideMinutes, :maxSessionLifetimeOverrideMinutes, :blocked, :createdAt, :updatedAt)
-                                                                        """ )
-                                                             .setParameter( "id", dto.getId() )
-                                                             .setParameter( "username", dto.getUsername() )
-                                                             .setParameter( "password", dto.getPassword() )
-                                                             .setParameter( "role", ( dto.getRole() != null ? dto.getRole() : Role.USER ).name() )
-                                                             .setParameter( "avatar", decode( dto.getAvatarBase64() ) )
-                                                             .setParameter( "avatarContentType", dto.getAvatarContentType() )
-                                                             .setParameter( "sessionTtlOverrideMinutes", dto.getSessionTtlOverrideMinutes() )
-                                                             .setParameter( "maxSessionLifetimeOverrideMinutes", dto.getMaxSessionLifetimeOverrideMinutes() )
-                                                             .setParameter( "blocked", dto.isBlocked() )
-                                                             .setParameter( "createdAt", createdAt )
-                                                             .setParameter( "updatedAt", updatedAt )
-                                                             .executeUpdate();
-                                                return entityManager.find( User.class, dto.getId() );
-                                            }
-                                            existing.setUsername( dto.getUsername() );
-                                            existing.setPassword( dto.getPassword() );
-                                            existing.setRole( dto.getRole() != null ? dto.getRole() : Role.USER );
-                                            existing.setBlocked( dto.isBlocked() );
-                                            existing.setAvatar( decode( dto.getAvatarBase64() ) );
-                                            existing.setAvatarContentType( dto.getAvatarContentType() );
-                                            existing.setSessionTtlOverrideMinutes( dto.getSessionTtlOverrideMinutes() );
-                                            existing.setMaxSessionLifetimeOverrideMinutes( dto.getMaxSessionLifetimeOverrideMinutes() );
-                                            existing.setCreatedAt( createdAt );
-                                            existing.setUpdatedAt( updatedAt );
-                                            return existing;
-                                        } )
-                                        .collect( Collectors.toMap( User::getId, user -> user ) );
-        entityManager.flush();
-        return users;
-    }
-
-    private Map<UUID, BookType> saveBookTypes( ExportPayload payload ) {
-        if ( payload.getBookTypes() == null ) {
-            return Map.of();
-        }
-        Map<UUID, BookType> saved = payload.getBookTypes().stream().map( dto -> {
-            BookType type = entityManager.find( BookType.class, dto.getId() );
-            LocalDateTime createdAt = dto.getCreatedAt() != null
-                    ? dto.getCreatedAt().toLocalDateTime()
-                    : LocalDateTime.now( ZoneOffset.UTC );
-            LocalDateTime updatedAt = dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : createdAt;
-            if ( type == null ) {
-                entityManager.createNativeQuery(
-                                """
-                                        INSERT INTO book_types (id, name, created_at, updated_at)
-                                        VALUES (:id, :name, :createdAt, :updatedAt)
-                                        """ )
-                             .setParameter( "id", dto.getId() )
-                             .setParameter( "name", dto.getName() )
-                             .setParameter( "createdAt", createdAt )
-                             .setParameter( "updatedAt", updatedAt )
-                             .executeUpdate();
-                return entityManager.find( BookType.class, dto.getId() );
-            }
-            type.setName( dto.getName() );
-            type.setCreatedAt( createdAt );
-            type.setUpdatedAt( updatedAt );
-            return type;
-        } ).collect( Collectors.toMap( BookType::getId, t -> t ) );
-        entityManager.flush();
-        return saved;
-    }
-
-    private Map<UUID, Source> saveSources( ExportPayload payload ) {
-        if ( payload.getSources() == null ) {
-            return Map.of();
-        }
-        Map<UUID, Source> saved = payload.getSources().stream().map( dto -> {
-            Source source = entityManager.find( Source.class, dto.getId() );
-            LocalDateTime createdAt = dto.getCreatedAt() != null
-                    ? dto.getCreatedAt().toLocalDateTime()
-                    : LocalDateTime.now( ZoneOffset.UTC );
-            LocalDateTime updatedAt = dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : createdAt;
-            if ( source == null ) {
-                entityManager.createNativeQuery(
-                                """
-                                        INSERT INTO sources (id, name, url, description, created_at, updated_at)
-                                        VALUES (:id, :name, :url, :description, :createdAt, :updatedAt)
-                                        """ )
-                             .setParameter( "id", dto.getId() )
-                             .setParameter( "name", dto.getName() )
-                             .setParameter( "url", dto.getUrl() )
-                             .setParameter( "description", dto.getDescription() )
-                             .setParameter( "createdAt", createdAt )
-                             .setParameter( "updatedAt", updatedAt )
-                             .executeUpdate();
-                return entityManager.find( Source.class, dto.getId() );
-            }
-            source.setName( dto.getName() );
-            source.setUrl( dto.getUrl() );
-            source.setDescription( dto.getDescription() );
-            source.setCreatedAt( createdAt );
-            source.setUpdatedAt( updatedAt );
-            return source;
-        } ).collect( Collectors.toMap( Source::getId, s -> s ) );
-        entityManager.flush();
-        return saved;
-    }
-
-    private void saveSessionSettings( ExportPayload payload ) {
-        SessionSettingsExport settingsExport = payload.getSessionSettings();
-        SessionSettings settings = new SessionSettings();
-        settings.setId( 1L );
-        if ( settingsExport != null ) {
-            settings.setSessionTtlMinutes( settingsExport.getSessionTtlMinutes() );
-            settings.setMaxSessionLifetimeMinutes( settingsExport.getMaxSessionLifetimeMinutes() );
-            settings.setCreatedAt( settingsExport.getCreatedAt() != null ? settingsExport.getCreatedAt().toLocalDateTime()
-                                                                        : null );
-            settings.setUpdatedAt( settingsExport.getUpdatedAt() != null ? settingsExport.getUpdatedAt().toLocalDateTime()
-                                                                        : null );
-        } else {
-            settings.setSessionTtlMinutes( 30 );
-            settings.setMaxSessionLifetimeMinutes( 24 * 60 );
-        }
-        entityManager.merge( settings );
-        entityManager.flush();
-    }
-
-    private long saveLibraryItems(
-            ExportPayload payload,
-            Map<UUID, User> users,
-            Map<UUID, BookType> types,
-            Map<UUID, Source> sources
-                                  ) {
-        if ( payload.getLibraryItems() == null ) {
-            return 0;
-        }
-        payload.getLibraryItems().forEach( dto -> {
-            LibraryItem item = entityManager.find( LibraryItem.class, dto.getId() );
-            LocalDateTime createdAt = dto.getCreatedAt() != null
-                    ? dto.getCreatedAt().toLocalDateTime()
-                    : LocalDateTime.now( ZoneOffset.UTC );
-            LocalDateTime updatedAt = dto.getUpdatedAt() != null ? dto.getUpdatedAt().toLocalDateTime() : createdAt;
-            if ( item == null ) {
-                entityManager.createNativeQuery(
-                                """
-                                        INSERT INTO library_items (id, kind, title, alt_title, type_id, source_id, created_by, note, review, review_spoiler, rating, favorite, status, created_at, updated_at)
-                                        VALUES (:id, :kind, :title, :altTitle, :typeId, :sourceId, :createdById, :note, :review, :reviewSpoiler, :rating, :favorite, :status, :createdAt, :updatedAt)
-                                        """ )
-                             .setParameter( "id", dto.getId() )
-                             .setParameter( "kind", dto.getKind().name() )
-                             .setParameter( "title", dto.getTitle() )
-                             .setParameter( "altTitle", dto.getAltTitle() )
-                             .setParameter( "typeId", dto.getTypeId() )
-                             .setParameter( "sourceId", dto.getSourceId() )
-                             .setParameter( "createdById", dto.getCreatedById() )
-                             .setParameter( "note", resolveNote( dto ) )
-                             .setParameter( "review", dto.getReview() )
-                             .setParameter( "reviewSpoiler", dto.getReviewSpoiler() )
-                             .setParameter( "rating", dto.getRating() )
-                             .setParameter( "favorite", dto.isFavorite() )
-                             .setParameter( "status", dto.getStatus().name() )
-                             .setParameter( "createdAt", createdAt )
-                             .setParameter( "updatedAt", updatedAt )
-                             .executeUpdate();
-                item = entityManager.find( LibraryItem.class, dto.getId() );
-            }
-            item.setKind( dto.getKind() );
-            item.setTitle( dto.getTitle() );
-            item.setAltTitle( dto.getAltTitle() );
-            item.setType( dto.getTypeId() != null ? types.get( dto.getTypeId() ) : null );
-            item.setSource( dto.getSourceId() != null ? sources.get( dto.getSourceId() ) : null );
-            item.setCreatedBy( dto.getCreatedById() != null ? users.get( dto.getCreatedById() ) : null );
-            item.setNote( resolveNote( dto ) );
-            item.setReview( dto.getReview() );
-            item.setReviewSpoiler( dto.getReviewSpoiler() );
-            item.setRating( dto.getRating() );
-            item.setFavorite( dto.isFavorite() );
-            item.setStatus( dto.getStatus() );
-            item.setCreatedAt( createdAt );
-            item.setUpdatedAt( updatedAt );
-        } );
-        entityManager.flush();
-        return payload.getLibraryItems().size();
-    }
-
-    /**
-     * Старые выгрузки не знают о разделении: их {@code comment} всегда писался «для себя»,
-     * поэтому восстанавливается как приватная заметка, а не как публичный отзыв.
-     */
-    private String resolveNote( LibraryItemExport dto ) {
-        return dto.getNote() != null ? dto.getNote() : dto.getComment();
-    }
-
-    private List<UserExport> mapUsers() {
-        return userRepository.findAll()
-                             .stream()
-                             .map( user -> UserExport.builder()
-                                                     .id( user.getId() )
-                                                     .username( user.getUsername() )
-                                                     .password( user.getPassword() )
-                                                     .role( user.getRole() )
-                                                     .blocked( user.isBlocked() )
-                                                     .avatarBase64( encode( user.getAvatar() ) )
-                                                     .avatarContentType( user.getAvatarContentType() )
-                                                     .sessionTtlOverrideMinutes( user.getSessionTtlOverrideMinutes() )
-                                                     .maxSessionLifetimeOverrideMinutes(
-                                                             user.getMaxSessionLifetimeOverrideMinutes() )
-                                                     .createdAt( toOffsetDateTime( user.getCreatedAt() ) )
-                                                     .updatedAt( toOffsetDateTime( user.getUpdatedAt() ) )
-                                                     .build() )
-                             .toList();
-    }
-
-    private List<LibraryItemExport> mapLibraryItems() {
-        return libraryItemRepository.findAll()
-                                    .stream()
-                                    .map( item -> LibraryItemExport.builder()
-                                                                   .id( item.getId() )
-                                                                   .kind( item.getKind() )
-                                                                   .title( item.getTitle() )
-                                                                   .altTitle( item.getAltTitle() )
-                                                                   .typeId( item.getType() != null ? item.getType().getId() : null )
-                                                                   .typeName( item.getType() != null ? item.getType().getName() : null )
-                                                                   .sourceId( item.getSource() != null
-                                                                           ? item.getSource().getId()
-                                                                           : null )
-                                                                   .sourceName( item.getSource() != null
-                                                                           ? item.getSource().getName()
-                                                                           : null )
-                                                                   .createdById( item.getCreatedBy() != null
-                                                                           ? item.getCreatedBy().getId()
-                                                                           : null )
-                                                                   .note( item.getNote() )
-                                                                   .review( item.getReview() )
-                                                                   .reviewSpoiler( item.getReviewSpoiler() )
-                                                                   .rating( item.getRating() )
-                                                                   .favorite( item.isFavorite() )
-                                                                   .status( item.getStatus() )
-                                                                   .createdAt( toOffsetDateTime( item.getCreatedAt() ) )
-                                                                   .updatedAt( toOffsetDateTime( item.getUpdatedAt() ) )
-                                                                   .build() )
-                                    .toList();
-    }
-
-    private List<BookTypeExport> mapBookTypes() {
-        return bookTypeRepository.findAll()
-                                 .stream()
-                                 .map( type -> BookTypeExport.builder()
-                                                             .id( type.getId() )
-                                                             .name( type.getName() )
-                                                             .createdAt( toOffsetDateTime( type.getCreatedAt() ) )
-                                                             .updatedAt( toOffsetDateTime( type.getUpdatedAt() ) )
-                                                             .build() )
-                                 .toList();
-    }
-
-    private List<SourceExport> mapSources() {
-        return sourceRepository.findAll()
-                               .stream()
-                               .map( source -> SourceExport.builder()
-                                                           .id( source.getId() )
-                                                           .name( source.getName() )
-                                                           .url( source.getUrl() )
-                                                           .description( source.getDescription() )
-                                                           .createdAt( toOffsetDateTime( source.getCreatedAt() ) )
-                                                           .updatedAt( toOffsetDateTime( source.getUpdatedAt() ) )
-                                                           .build() )
-                               .toList();
-    }
-
-    private SessionSettingsExport mapSessionSettings() {
-        return sessionSettingsRepository.findById( 1L )
-                                        .map( settings -> SessionSettingsExport.builder()
-                                                                               .sessionTtlMinutes(
-                                                                                       settings.getSessionTtlMinutes() )
-                                                                               .maxSessionLifetimeMinutes(
-                                                                                       settings.getMaxSessionLifetimeMinutes() )
-                                                                               .createdAt(
-                                                                                       toOffsetDateTime(
-                                                                                               settings.getCreatedAt() ) )
-                                                                               .updatedAt(
-                                                                                       toOffsetDateTime(
-                                                                                               settings.getUpdatedAt() ) )
-                                                                               .build() )
-                                        .orElse( null );
-    }
-
-    private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {
-        return dateTime != null ? dateTime.atOffset( ZoneOffset.UTC ) : null;
-    }
-
-    private String encode( byte[] content ) {
-        return content != null ? Base64.getEncoder().encodeToString( content ) : null;
-    }
-
-    private byte[] decode( String content ) {
-        return content != null ? Base64.getDecoder().decode( content ) : null;
+    private long count( Map<String, Long> counts, String section ) {
+        return counts.getOrDefault( section, 0L );
     }
 
     @lombok.Value
@@ -537,6 +344,7 @@ public class DataExportService {
 
         String fileName;
         String path;
+        int schemaVersion;
         OffsetDateTime exportedAt;
         long usersCount;
         long itemsCount;
@@ -544,6 +352,12 @@ public class DataExportService {
         long sourcesCount;
         long sessionsCount;
         long systemNodesCount;
+        /**
+         * Разбивка по разделам файла. Именованные счётчики выше оставлены ради совместимости
+         * ответа: разделов теперь два десятка, и заводить поле на каждый — значит менять контракт
+         * при появлении любой новой сущности.
+         */
+        Map<String, Long> counts;
     }
 
     @lombok.Value
@@ -568,110 +382,15 @@ public class DataExportService {
     public static class ImportResult {
 
         String fileName;
+        /** Версия формата прочитанного файла: по ней видно, насколько старую копию подняли. */
+        int schemaVersion;
+        OffsetDateTime exportedAt;
         long restoredUsers;
         long restoredItems;
         long restoredBookTypes;
         long restoredSources;
         long restoredSystemNodes;
         long restoredSessions;
+        Map<String, Long> counts;
     }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class ExportPayload {
-
-        private OffsetDateTime exportedAt;
-        private List<UserExport> users;
-        private List<LibraryItemExport> libraryItems;
-        private List<BookTypeExport> bookTypes;
-        private List<SourceExport> sources;
-        private SessionSettingsExport sessionSettings;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class UserExport {
-
-        private UUID id;
-        private String username;
-        private String password;
-        private Role role;
-        private boolean blocked;
-        private String avatarBase64;
-        private String avatarContentType;
-        private Integer sessionTtlOverrideMinutes;
-        private Integer maxSessionLifetimeOverrideMinutes;
-        private OffsetDateTime createdAt;
-        private OffsetDateTime updatedAt;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class LibraryItemExport {
-
-        private UUID id;
-        private com.library.tracker.domain.MediaKind kind;
-        private String title;
-        private String altTitle;
-        private UUID typeId;
-        private String typeName;
-        private UUID sourceId;
-        private String sourceName;
-        private UUID createdById;
-        private java.math.BigDecimal rating;
-        private boolean favorite;
-        private com.library.tracker.domain.ReadingStatus status;
-        private String note;
-        private String review;
-        private String reviewSpoiler;
-        /** Поле старых выгрузок: до разделения заметки и отзыва всё лежало здесь. */
-        private String comment;
-        private OffsetDateTime createdAt;
-        private OffsetDateTime updatedAt;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class BookTypeExport {
-
-        private UUID id;
-        private String name;
-        private OffsetDateTime createdAt;
-        private OffsetDateTime updatedAt;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class SourceExport {
-
-        private UUID id;
-        private String name;
-        private String url;
-        private String description;
-        private OffsetDateTime createdAt;
-        private OffsetDateTime updatedAt;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class SessionSettingsExport {
-
-        private Integer sessionTtlMinutes;
-        private Integer maxSessionLifetimeMinutes;
-        private OffsetDateTime createdAt;
-        private OffsetDateTime updatedAt;
-    }
-
 }

@@ -13,9 +13,21 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      # Резервная копия базы — это десятки мегабайт JSON, а умолчание Spring Boot равно 1 МБ:
+      # с ним загрузка копии на сервер отвергалась бы ещё до контроллера.
+      max-file-size: ${MAX_UPLOAD_SIZE:64MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:64MB}
 
 server:
   port: ${PORT:8080}
+
+# Административные бэкапы: снимок всей базы (см. DataExportService).
+export:
+  directory: ${EXPORT_DIRECTORY:exports}
+  # Потолок на принесённый файл копии: разбор идёт в памяти, поэтому он не может быть безграничным.
+  max-upload-bytes: ${EXPORT_MAX_UPLOAD_BYTES:67108864}
 
 security:
   jwt:

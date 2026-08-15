@@ -125,6 +125,14 @@ Covers live in object storage, not in the database — unlike avatars, which are
 | `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY` | — | Leave empty to use the default AWS credential chain (instance role, environment, profile). |
 | `STORAGE_S3_PATH_STYLE` | `true` | Path-style addressing; usually required by non-AWS implementations. |
 
+Administrative backups (see [Administrative backups](#administrative-backups)):
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `EXPORT_DIRECTORY` | `exports` | Directory the database snapshots are written to and read back from. |
+| `EXPORT_MAX_UPLOAD_BYTES` | `67108864` (64 MB) | Ceiling for an uploaded snapshot; it is parsed in memory, so it cannot be unbounded. |
+| `MAX_UPLOAD_SIZE` | `64MB` | Servlet multipart limit. The Spring Boot default of 1 MB would reject a snapshot before it reached the controller. |
+
 ## External book catalogues
 `GET /api/v1/metadata/search?q=…` (or `&isbn=…`) proxies Open Library and Google Books and merges the
 two result sets. Requests go through the backend, not the browser: the catalogues send no CORS headers,
@@ -233,6 +241,37 @@ the backup to everyone.
   The last `SUPER_ADMIN` is refused (`409`), a wrong password answers `400`. Covers are removed from object
   storage before the rows, since a foreign key cascade cannot reach them and afterwards there would be no
   key left to find them by.
+
+## Administrative backups
+`/api/v1/exports/**` is the whole-database backup and stays `SUPER_ADMIN`-only: unlike `/api/v1/account/**`
+it contains password hashes and everyone else's data. A snapshot is taken nightly (02:00) and on demand.
+
+- `POST /api/v1/exports` — take a snapshot now; `GET /api/v1/exports` lists the files, `GET /api/v1/exports/{file}`
+  downloads one and `DELETE /api/v1/exports/{file}` removes it.
+- `POST /api/v1/exports/upload` (multipart `file`) — bring a snapshot from elsewhere. Recovering a lost server
+  starts with a file that is, by definition, not on that server. The upload is parsed before it is written:
+  a file that would not restore has no business sitting in the list looking like insurance.
+- `POST /api/v1/exports/{file}/restore` — replace the current database with the snapshot. It runs in one
+  transaction, so a snapshot that fails to load leaves the database as it was rather than half-replaced.
+
+The snapshot covers the database in full: users and profiles, the library with every relation (authors,
+series, tags, shelves and their contents, smart-shelf filters), reading history, quotes, loans, the social
+layer, goals, achievements, nodes, sessions and settings. Identifiers are preserved — they are what links
+the sections together — which is why restore writes rows with SQL rather than through JPA.
+
+Two things are worth knowing before relying on it:
+
+- **Covers are not inside.** They live in object storage (`STORAGE_*`), which has its own backup path; the
+  snapshot keeps the object key, so restoring a database over the same storage finds them where they were.
+  Avatars do live in the database and are included.
+- **Sessions are restored too**, so whoever pressed "restore" is signed out unless their session was in the
+  snapshot. That is the honest consequence of restoring the system, not just the library.
+
+Older files keep working. A snapshot carries a `schemaVersion`; a file written before that field existed is
+read as version 1, sections that did not exist yet are simply absent, unknown fields are ignored and an
+unknown enum value falls back to a default rather than failing the whole file. A reference that points at
+nothing is dropped (optional) or skips its row (required) — a hand-edited file should not take the restore
+down with it.
 
 ## Progressive web app
 The frontend ships a manifest and a service worker, so it installs on a phone and survives losing the network.
