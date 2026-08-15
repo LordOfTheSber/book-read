@@ -63,7 +63,20 @@ export const ActivityHeatmap: React.FC<Props> = ({ days, window = 371 }) => {
       grouped.push(cells.slice(index, index + WEEK_DAYS));
     }
 
-    return { weeks: grouped, maxMinutes: Math.max(...days.map((day) => day.minutes), 0) };
+    /*
+     * Подпись месяца ставится ровно один раз — над той неделей, с которой месяц начинается.
+     * Признак «в неделе есть число от 1 до 7» для этого не годится: первая неделя месяца часто
+     * разрезана границей столбца, и тогда подпись печаталась дважды подряд («Окт Окт»).
+     */
+    let previousMonth = -1;
+    const labelled = grouped.map((cells) => {
+      const month = cells[0].date.getMonth();
+      const label = month === previousMonth ? null : MONTH_LABELS[month];
+      previousMonth = month;
+      return { cells, label };
+    });
+
+    return { weeks: labelled, maxMinutes: Math.max(...days.map((day) => day.minutes), 0) };
   }, [days, window]);
 
   const intensity = (minutes: number) => {
@@ -76,18 +89,15 @@ export const ActivityHeatmap: React.FC<Props> = ({ days, window = 371 }) => {
     <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'flex', gap: 3, minWidth: 'min-content' }}>
         {weeks.map((week) => {
-          // Подпись месяца ставится над той неделей, в которую он начался.
-          const firstOfMonth = week.find((cell) => cell.date.getDate() <= WEEK_DAYS);
-
           return (
-            <div key={week[0].iso} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div key={week.cells[0].iso} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Typography.Text
                 type="secondary"
                 style={{ fontSize: 10, height: 14, whiteSpace: 'nowrap', lineHeight: '14px' }}
               >
-                {firstOfMonth ? MONTH_LABELS[firstOfMonth.date.getMonth()] : ' '}
+                {week.label}
               </Typography.Text>
-              {week.map((cell) => {
+              {week.cells.map((cell) => {
                 const level = intensity(cell.minutes);
                 return (
                   <Tooltip

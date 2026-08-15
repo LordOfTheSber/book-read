@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -132,8 +131,8 @@ public class AnalyticsService {
                                        .byLanguage( byLanguage( targetUserId ) )
                                        .byDecade( byDecade( targetUserId ) )
                                        .purchases( purchases( targetUserId ) )
-                                       .currentYear( yearStats( byYear, today.getYear() ) )
-                                       .previousYear( yearStats( byYear, today.getYear() - 1 ) )
+                                       .currentYear( yearToDate( targetUserId, today ) )
+                                       .previousYear( yearToDate( targetUserId, today.minusYears( 1 ) ) )
                                        .build();
     }
 
@@ -354,12 +353,23 @@ public class AnalyticsService {
         return currency == null || currency.isBlank() ? "—" : currency.toUpperCase( Locale.ROOT );
     }
 
-    private PeriodStatsResponse yearStats( List<PeriodStatsResponse> byYear, int year ) {
-        String period = String.valueOf( year );
-        return byYear.stream()
-                     .filter( stats -> Objects.equals( stats.getPeriod(), period ) )
-                     .findFirst()
-                     .orElseGet( () -> PeriodStatsResponse.builder().period( period ).build() );
+    /**
+     * Год с первого января по указанный день. Сравнение «год к году» берёт два таких отрезка,
+     * а не два полных года: в августе полный прошлый год всегда больше текущего просто потому,
+     * что текущий ещё не кончился, и «−57%» говорило бы о календаре, а не о чтении.
+     * <p>
+     * 29 февраля {@code minusYears} переводит в 28-е — отрезок остаётся сопоставимым.
+     */
+    private PeriodStatsResponse yearToDate( UUID userId, LocalDate through ) {
+        LocalDate from = through.withDayOfYear( 1 );
+        var totals = libraryItemRepository.finishedBetweenScoped( userId, from, through );
+
+        return PeriodStatsResponse.builder()
+                                  .period( String.valueOf( through.getYear() ) )
+                                  .finished( totals != null ? totals.getFinished() : 0 )
+                                  .pages( totals != null ? totals.getPages() : 0 )
+                                  .minutes( readingSessionRepository.sumMinutesScoped( userId, from, through ) )
+                                  .build();
     }
 
     private BigDecimal divide( long value, long divisor ) {

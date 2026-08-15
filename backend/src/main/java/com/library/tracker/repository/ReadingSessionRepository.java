@@ -80,6 +80,18 @@ public interface ReadingSessionRepository extends JpaRepository<ReadingSession, 
     List<MonthMinutes> minutesByMonth( UUID userId, LocalDate from );
 
     /**
+     * Минуты за отрезок в области видимости аналитики. От {@link #sumMinutes} отличается тем, что
+     * допускает {@code userId = null} — режим «вся база» у администратора.
+     */
+    @Query( """
+            select coalesce(sum(rs.durationMinutes), 0)
+            from ReadingSession rs
+            where rs.sessionDate between :from and :to
+              and (:userId is null or rs.item.createdBy.id = :userId)
+            """ )
+    long sumMinutesScoped( UUID userId, LocalDate from, LocalDate to );
+
+    /**
      * Сырьё для темпа: пройденные позиции, минуты и число дней с чтением за окно. Позиции берутся
      * только там, где заполнены обе границы, — заход «читал час» без страниц даёт минуты, но не
      * страницы, и подмешивать в скорость нули из-за него нельзя.

@@ -54,6 +54,30 @@ describe('ActivityHeatmap', () => {
   });
 
   /**
+   * Первая неделя месяца обычно разрезана границей столбца, и признак «в неделе есть число
+   * от 1 до 7» печатал подпись дважды подряд — «Окт Окт», «Янв Янв».
+   */
+  it('подписывает каждый месяц ровно один раз', () => {
+    const { container } = render(<ActivityHeatmap days={[]} window={371} />);
+
+    const labels = Array.from(container.querySelectorAll('.ant-typography'))
+      .map((node) => node.textContent?.trim())
+      .filter((text): text is string => Boolean(text));
+
+    // Окно в 53 недели чуть длиннее года, поэтому один месяц законно встречается дважды —
+    // но никогда двумя подписями подряд.
+    expect(labels.length).toBeGreaterThan(10);
+    labels.forEach((label, index) => {
+      if (index > 0) expect(label).not.toBe(labels[index - 1]);
+    });
+    const counts = labels.reduce<Record<string, number>>((acc, label) => {
+      acc[label] = (acc[label] ?? 0) + 1;
+      return acc;
+    }, {});
+    expect(Math.max(...Object.values(counts))).toBeLessThanOrEqual(2);
+  });
+
+  /**
    * Локальная дата, а не UTC: через `toISOString` вся сетка съезжала бы на день у всех
    * западнее Гринвича.
    */

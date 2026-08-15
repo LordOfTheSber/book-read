@@ -11,7 +11,9 @@ import lombok.Value;
  * с прогнозами значило бы платить за них при каждом открытии библиотеки.
  * <p>
  * Сравнение с прошлым годом — это два {@link PeriodStatsResponse}, а не отдельный тип с дельтами:
- * клиент рисует обе цифры рядом, и считать разницу на сервере незачем.
+ * клиент рисует обе цифры рядом, и считать разницу на сервере незачем. Оба отрезка идут
+ * с первого января по сегодняшний день своего года: сравнивать незакончившийся год с полным
+ * прошлым значит каждый раз показывать провал, которого нет.
  */
 @Value
 @Builder
@@ -26,6 +28,9 @@ public class ReadingAnalyticsResponse {
     List<LabelCountResponse> byLanguage;
     List<LabelCountResponse> byDecade;
     PurchaseStatsResponse purchases;
+    /** С 1 января по сегодня. */
     PeriodStatsResponse currentYear;
+
+    /** С 1 января прошлого года по этот же день прошлого года — отрезок той же длины. */
     PeriodStatsResponse previousYear;
 }

@@ -1,5 +1,20 @@
-import React, { useEffect, useMemo } from 'react';
-import { Alert, Card, Col, Empty, List, Row, Select, Skeleton, Space, Tag, Typography, theme } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Card,
+  Col,
+  Empty,
+  Grid,
+  List,
+  Row,
+  Segmented,
+  Select,
+  Skeleton,
+  Space,
+  Tag,
+  Typography,
+  theme
+} from 'antd';
 import {
   BookOutlined,
   CheckCircleOutlined,
@@ -10,6 +25,7 @@ import {
   StarOutlined,
   StopOutlined
 } from '@ant-design/icons';
+import type { BarListItem } from '@/shared/ui/BarList';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { analyticsActions, loadBookAnalytics, loadReadingAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
@@ -38,14 +54,53 @@ const statusIcons: Record<ReadingStatus, React.ReactNode> = {
 
 const MONTH_LABELS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
-/** `2026-08` → `Авг`; январь подписывается годом, иначе на шкале в два года не за что зацепиться. */
-const monthLabel = (period: string) => {
+type DynamicsScale = 'months' | 'years';
+
+type BreakdownKey = 'authors' | 'languages' | 'decades' | 'types' | 'sources';
+
+/** Больше шести строк — это уже справочник, а не «что в библиотеке»: карточка перестаёт читаться. */
+const BREAKDOWN_LIMIT = 6;
+
+/**
+ * Подписываются только январь и июль: двадцать четыре подписи подряд не помещаются, а январь
+ * с годом — единственное место, где видно границу лет. Прореживание «каждый третий» её теряло.
+ */
+const monthLabel = (period: string): string | undefined => {
   const [year, month] = period.split('-');
   const index = Number(month) - 1;
-  return index === 0 ? year : MONTH_LABELS[index] ?? period;
+  if (index === 0) return year;
+  if (index === 6) return MONTH_LABELS[index];
+  return undefined;
 };
 
 const number = (value: number) => value.toLocaleString('ru-RU');
+
+/**
+ * Карточка раздела. Управление (переключатель, подпись) на широком экране стоит в шапке справа,
+ * а на узком уезжает в тело: в одну строку с заголовком оно там не помещается, и заголовок
+ * обрезался многоточием — «Календарь активн…».
+ */
+const SectionCard: React.FC<{
+  title: string;
+  controls?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, controls, children }) => {
+  const screens = Grid.useBreakpoint();
+  const styles = useAnalyticsPageStyles();
+  const inline = Boolean(screens.md);
+
+  return (
+    <Card
+      title={title}
+      extra={inline ? controls : undefined}
+      style={styles.card}
+      styles={{ body: styles.cardBody }}
+    >
+      {!inline && controls && <div style={styles.controls}>{controls}</div>}
+      {children}
+    </Card>
+  );
+};
 
 /** «—» вместо нуля: пустой темп и темп «ноль страниц в день» — разные утверждения. */
 const decimal = (value?: number) => (value == null ? '—' : value.toLocaleString('ru-RU'));
@@ -77,6 +132,9 @@ export const AnalyticsPage: React.FC = () => {
   const isEmpty = !loading && (!data || total === 0);
   const readingSkeleton = readingLoading && !reading;
 
+  const [dynamicsScale, setDynamicsScale] = useState<DynamicsScale>('months');
+  const [breakdown, setBreakdown] = useState<BreakdownKey>('authors');
+
   const monthColumns = useMemo(
     () =>
       (reading?.byMonth ?? []).map((month) => ({
@@ -105,15 +163,101 @@ export const AnalyticsPage: React.FC = () => {
     [reading]
   );
 
-  /** Дельта к прошлому году. Пусто, если прошлого года просто не было, — тогда сравнивать не с чем. */
-  const yearDelta = (pick: (stats: PeriodStats) => number) => {
-    if (!reading) return null;
-    const now = pick(reading.currentYear);
-    const before = pick(reading.previousYear);
-    if (before === 0) return null;
-    const percent = Math.round(((now - before) / before) * 100);
-    return { percent, positive: percent >= 0 };
-  };
+  /**
+   * Сравнение с прошлым годом. Сервер отдаёт оба отрезка «с 1 января по этот день», поэтому цифры
+   * сопоставимы; дельта не считается, если год назад в этот момент ещё ничего не было.
+   */
+  const yearComparison = useMemo(() => {
+    const metrics: Array<{ label: string; pick: (stats: PeriodStats) => number }> = [
+      { label: 'книг', pick: (stats) => stats.finished },
+      { label: 'страниц', pick: (stats) => stats.pages },
+      { label: 'минут', pick: (stats) => stats.minutes }
+    ];
+
+    return metrics.map(({ label, pick }) => {
+      const current = reading ? pick(reading.currentYear) : 0;
+      const before = reading ? pick(reading.previousYear) : 0;
+      const percent = before === 0 ? null : Math.round(((current - before) / before) * 100);
+      return {
+        label,
+        current,
+        delta: percent === null ? null : { percent, positive: percent >= 0 }
+      };
+    });
+  }, [reading]);
+
+  /**
+   * Все разбивки живут в одной карточке с переключателем: по отдельности это пять почти
+   * одинаковых списков подряд, и страница из них состояла больше, чем из графиков.
+   */
+  const breakdowns = useMemo<Record<BreakdownKey, { label: string; items: BarListItem[] }>>(
+    () => ({
+      authors: {
+        label: 'Авторы',
+        items: (reading?.byAuthor ?? []).map((author) => ({
+          key: author.authorId,
+          label: author.authorName,
+          value: author.count
+        }))
+      },
+      languages: {
+        label: 'Языки',
+        items: (reading?.byLanguage ?? []).map((language) => ({
+          key: language.label,
+          label: language.label,
+          value: language.count,
+          color: token.colorSuccess
+        }))
+      },
+      decades: {
+        label: 'Десятилетия',
+        items: (reading?.byDecade ?? []).map((decade) => ({
+          key: decade.label,
+          label: decade.label,
+          value: decade.count,
+          color: token.colorInfo
+        }))
+      },
+      types: {
+        label: 'Типы',
+        items: (data?.topTypes ?? []).map((type) => ({
+          key: type.typeId,
+          label: type.typeName,
+          value: type.count
+        }))
+      },
+      sources: {
+        label: 'Источники',
+        items: (data?.topSources ?? []).map((source) => ({
+          key: source.sourceId,
+          label: source.sourceName,
+          value: source.count,
+          color: token.colorInfo
+        }))
+      }
+    }),
+    [reading, data, token]
+  );
+
+  // Пустая вкладка — это пустая карточка с картинкой «нет данных»: справочники заполнены не у всех,
+  // и показывать их незаполненность отдельным блоком незачем.
+  const breakdownOptions = useMemo(
+    () =>
+      (Object.keys(breakdowns) as BreakdownKey[])
+        .filter((key) => breakdowns[key].items.length > 0)
+        .map((key) => ({ label: breakdowns[key].label, value: key })),
+    [breakdowns]
+  );
+
+  useEffect(() => {
+    if (breakdownOptions.length > 0 && !breakdownOptions.some((option) => option.value === breakdown)) {
+      setBreakdown(breakdownOptions[0].value);
+    }
+  }, [breakdownOptions, breakdown]);
+
+  const breakdownAll = breakdowns[breakdown]?.items ?? [];
+  const breakdownItems = breakdownAll.slice(0, BREAKDOWN_LIMIT);
+  const breakdownHidden = breakdownAll.length - breakdownItems.length;
 
   const scopeLabel = currentUserId
     ? `Статистика пользователя ${users.find((u) => u.id === currentUserId)?.username ?? ''}`.trim()
@@ -184,66 +328,6 @@ export const AnalyticsPage: React.FC = () => {
           />
         </Card>
       ) : (
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={8}>
-            <Card title="Распределение по статусам" style={styles.card} styles={{ body: styles.cardBody }}>
-              {loading && !data ? (
-                <Skeleton active paragraph={{ rows: 4 }} />
-              ) : (
-                <BarList
-                  total={total}
-                  items={statusOrder.map((status) => ({
-                    key: status,
-                    label: statusMeta[status].label,
-                    value: statusCount(status),
-                    color: token[statusMeta[status].token]
-                  }))}
-                />
-              )}
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={8}>
-            <Card title="Популярные типы" style={styles.card} styles={{ body: styles.cardBody }}>
-              {loading && !data ? (
-                <Skeleton active paragraph={{ rows: 4 }} />
-              ) : (
-                <BarList
-                  total={total}
-                  emptyText="Типы ещё не добавлены"
-                  items={(data?.topTypes ?? []).map((type) => ({
-                    key: type.typeId,
-                    label: type.typeName,
-                    value: type.count,
-                    color: token.colorPrimary
-                  }))}
-                />
-              )}
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={8}>
-            <Card title="Популярные источники" style={styles.card} styles={{ body: styles.cardBody }}>
-              {loading && !data ? (
-                <Skeleton active paragraph={{ rows: 4 }} />
-              ) : (
-                <BarList
-                  total={total}
-                  emptyText="Источники ещё не добавлены"
-                  items={(data?.topSources ?? []).map((source) => ({
-                    key: source.sourceId,
-                    label: source.sourceName,
-                    value: source.count,
-                    color: token.colorInfo
-                  }))}
-                />
-              )}
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {!isEmpty && (
         <>
           {readingError && (
             <Alert
@@ -251,182 +335,178 @@ export const AnalyticsPage: React.FC = () => {
               showIcon
               message="Не удалось загрузить динамику чтения"
               description={readingError}
-              style={{ ...styles.alert, marginTop: 16 }}
+              style={styles.alert}
             />
           )}
 
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            <Col xs={24} lg={16}>
-              <Card title="Дочитано по месяцам" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 4 }} />
-                ) : (
-                  <ColumnChart
-                    items={monthColumns}
-                    labelEvery={3}
-                    emptyText="За два года ничего не дочитано"
+          <Row gutter={[16, 16]}>
+            <Col xs={24}>
+              <SectionCard
+                title="Динамика чтения"
+                controls={
+                  <Segmented
+                    size="small"
+                    value={dynamicsScale}
+                    onChange={(value) => setDynamicsScale(value as DynamicsScale)}
+                    options={[
+                      { label: 'Месяцы', value: 'months' },
+                      { label: 'Годы', value: 'years' }
+                    ]}
                   />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={8}>
-              <Card title="Дочитано по годам" style={styles.card} styles={{ body: styles.cardBody }}>
+                }
+              >
                 {readingSkeleton ? (
                   <Skeleton active paragraph={{ rows: 4 }} />
                 ) : (
-                  <ColumnChart items={yearColumns} color={token.colorInfo} emptyText="История ещё не набралась" />
+                  <>
+                    <ColumnChart
+                      items={dynamicsScale === 'months' ? monthColumns : yearColumns}
+                      emptyText="Дочитанного за этот период пока нет"
+                    />
+                    {reading && (
+                      <div style={styles.footnote}>
+                        <Typography.Text type="secondary">
+                          {reading.currentYear.period} против {reading.previousYear.period} за тот же
+                          отрезок года:
+                        </Typography.Text>
+                        {yearComparison.map((metric) => (
+                          <Typography.Text key={metric.label}>
+                            {metric.label}{' '}
+                            <Typography.Text strong>{number(metric.current)}</Typography.Text>
+                            {metric.delta && (
+                              <Typography.Text type={metric.delta.positive ? 'success' : 'warning'}>
+                                {' '}
+                                {metric.delta.positive ? '+' : ''}
+                                {metric.delta.percent}%
+                              </Typography.Text>
+                            )}
+                          </Typography.Text>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
-              </Card>
+              </SectionCard>
             </Col>
 
             <Col xs={24}>
-              <Card
+              <SectionCard
                 title="Календарь активности"
-                extra={
-                  <Typography.Text type="secondary">
-                    {reading ? pluralize(reading.heatmap.length, ['день', 'дня', 'дней']) + ' с чтением' : null}
-                  </Typography.Text>
+                controls={
+                  reading && (
+                    <Typography.Text type="secondary">
+                      {pluralize(reading.heatmap.length, ['день', 'дня', 'дней'])} с чтением за год
+                    </Typography.Text>
+                  )
                 }
-                style={styles.card}
-                styles={{ body: styles.cardBody }}
               >
                 {readingSkeleton ? (
                   <Skeleton active paragraph={{ rows: 3 }} />
                 ) : (
                   <ActivityHeatmap days={reading?.heatmap ?? []} />
                 )}
-              </Card>
+              </SectionCard>
             </Col>
 
-            <Col xs={24} lg={12}>
-              <Card
-                title="Темп чтения"
-                extra={
+            <Col xs={24}>
+              <SectionCard
+                title="Темп и прогноз"
+                controls={
                   reading && (
                     <Typography.Text type="secondary">
                       за {pluralize(reading.pace.windowDays, ['день', 'дня', 'дней'])}
                     </Typography.Text>
                   )
                 }
-                style={styles.card}
-                styles={{ body: styles.cardBody }}
               >
                 {readingSkeleton ? (
                   <Skeleton active paragraph={{ rows: 3 }} />
                 ) : (
+                  <Row gutter={[24, 16]}>
+                    <Col xs={24} lg={11}>
+                      <Space size={12} wrap>
+                        <StatTile label="Страниц в день" value={decimal(reading?.pace.pagesPerDay)} />
+                        <StatTile label="Минут в день" value={decimal(reading?.pace.minutesPerDay)} />
+                        <StatTile label="Страниц в час" value={decimal(reading?.pace.pagesPerHour)} />
+                      </Space>
+                      {/* Оговорка обязательна: темп делится на дни с чтением, и без неё «60 страниц
+                          в день» читается как обещание, которого никто не давал. */}
+                      <Typography.Paragraph type="secondary" style={styles.hint}>
+                        Считается по {pluralize(reading?.pace.activeDays ?? 0, ['дню', 'дням', 'дням'])} с
+                        чтением, а не по всем дням окна.
+                      </Typography.Paragraph>
+                    </Col>
+
+                    <Col xs={24} lg={13}>
+                      {(reading?.forecasts.length ?? 0) === 0 ? (
+                        <Empty
+                          image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          description="Нечего прогнозировать: у книг в чтении не заполнен прогресс"
+                        />
+                      ) : (
+                        <List
+                          size="small"
+                          header={<Typography.Text type="secondary">Когда дочитаете</Typography.Text>}
+                          dataSource={reading?.forecasts ?? []}
+                          renderItem={(forecast) => (
+                            <List.Item
+                              extra={
+                                forecast.expectedFinish ? (
+                                  <Typography.Text strong>{formatDate(forecast.expectedFinish)}</Typography.Text>
+                                ) : (
+                                  <Typography.Text type="secondary">темпа пока нет</Typography.Text>
+                                )
+                              }
+                            >
+                              <List.Item.Meta
+                                title={forecast.title}
+                                description={`осталось ${forecast.remaining} ${
+                                  forecast.unit ? progressUnitGenitive[forecast.unit] : ''
+                                }`.trim()}
+                              />
+                            </List.Item>
+                          )}
+                        />
+                      )}
+                    </Col>
+                  </Row>
+                )}
+              </SectionCard>
+            </Col>
+
+            <Col xs={24} lg={14}>
+              <SectionCard
+                title="Что в библиотеке"
+                controls={
+                  breakdownOptions.length > 1 && (
+                    <Segmented
+                      size="small"
+                      value={breakdown}
+                      onChange={(value) => setBreakdown(value as BreakdownKey)}
+                      options={breakdownOptions}
+                    />
+                  )
+                }
+              >
+                {readingSkeleton ? (
+                  <Skeleton active paragraph={{ rows: 5 }} />
+                ) : (
                   <>
-                    <Space size={12} wrap>
-                      <StatTile label="Страниц в день чтения" value={decimal(reading?.pace.pagesPerDay)} />
-                      <StatTile label="Минут в день чтения" value={decimal(reading?.pace.minutesPerDay)} />
-                      <StatTile label="Страниц в час" value={decimal(reading?.pace.pagesPerHour)} />
-                      <StatTile
-                        label="Дней с чтением"
-                        value={number(reading?.pace.activeDays ?? 0)}
-                        icon={<ClockCircleOutlined />}
-                      />
-                    </Space>
-                    {/* Оговорка обязательна: темп делится на дни с чтением, и без неё «60 страниц
-                        в день» читается как обещание, которого никто не давал. */}
-                    <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-                      Темп считается по дням, в которые вы читали, а не по всем дням окна.
-                    </Typography.Paragraph>
+                    {/* База процентов — вся библиотека, а не лидер списка: иначе первый автор
+                        всегда «100%», и две разные величины выглядят одинаково. */}
+                    <BarList total={total} items={breakdownItems} emptyText="Данных для разбивки пока нет" />
+                    {breakdownHidden > 0 && (
+                      <Typography.Paragraph type="secondary" style={styles.hint}>
+                        и ещё {breakdownHidden} — хвост длинного списка ничего не добавляет к картине
+                      </Typography.Paragraph>
+                    )}
                   </>
                 )}
-              </Card>
+              </SectionCard>
             </Col>
 
-            <Col xs={24} lg={12}>
-              <Card title="Когда дочитаете" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 3 }} />
-                ) : (reading?.forecasts.length ?? 0) === 0 ? (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Нечего прогнозировать: у книг в чтении не заполнен прогресс"
-                  />
-                ) : (
-                  <List
-                    size="small"
-                    dataSource={reading?.forecasts ?? []}
-                    renderItem={(forecast) => (
-                      <List.Item
-                        extra={
-                          forecast.expectedFinish ? (
-                            <Typography.Text strong>{formatDate(forecast.expectedFinish)}</Typography.Text>
-                          ) : (
-                            <Typography.Text type="secondary">темпа пока нет</Typography.Text>
-                          )
-                        }
-                      >
-                        <List.Item.Meta
-                          title={forecast.title}
-                          description={`осталось ${forecast.remaining} ${
-                            forecast.unit ? progressUnitGenitive[forecast.unit] : ''
-                          }`.trim()}
-                        />
-                      </List.Item>
-                    )}
-                  />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={8}>
-              <Card title="Любимые авторы" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 4 }} />
-                ) : (
-                  <BarList
-                    emptyText="Авторы ещё не проставлены"
-                    items={(reading?.byAuthor ?? []).map((author) => ({
-                      key: author.authorId,
-                      label: author.authorName,
-                      value: author.count
-                    }))}
-                  />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={8}>
-              <Card title="Языки изданий" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 4 }} />
-                ) : (
-                  <BarList
-                    emptyText="Язык нигде не указан"
-                    items={(reading?.byLanguage ?? []).map((language) => ({
-                      key: language.label,
-                      label: language.label,
-                      value: language.count,
-                      color: token.colorSuccess
-                    }))}
-                  />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={8}>
-              <Card title="Десятилетия" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 4 }} />
-                ) : (
-                  <BarList
-                    emptyText="Год издания нигде не указан"
-                    items={(reading?.byDecade ?? []).map((decade) => ({
-                      key: decade.label,
-                      label: decade.label,
-                      value: decade.count,
-                      color: token.colorInfo
-                    }))}
-                  />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Card title="Куплено и прочитано" style={styles.card} styles={{ body: styles.cardBody }}>
+            <Col xs={24} lg={10}>
+              <SectionCard title="Куплено и прочитано">
                 {readingSkeleton ? (
                   <Skeleton active paragraph={{ rows: 3 }} />
                 ) : (
@@ -438,25 +518,25 @@ export const AnalyticsPage: React.FC = () => {
                         icon={<ShoppingOutlined />}
                       />
                       <StatTile
-                        label="Из них прочитано"
+                        label="Прочитано"
                         value={number(reading?.purchases.finishedOfPurchased ?? 0)}
                         hint={
                           reading && reading.purchases.purchased > 0
                             ? `${Math.round(
                                 (reading.purchases.finishedOfPurchased / reading.purchases.purchased) * 100
-                              )}%`
+                              )}% покупок`
                             : undefined
                         }
                         accent={token.colorSuccess}
                       />
                       <StatTile
-                        label="Ещё не начато"
+                        label="Не начато"
                         value={number(reading?.purchases.unreadPurchased ?? 0)}
                         accent={token.colorWarning}
                       />
                     </Space>
-                    <div style={{ marginTop: 12 }}>
-                      {Object.entries(reading?.purchases.spentByCurrency ?? {}).length === 0 ? (
+                    <div style={styles.hint}>
+                      {Object.keys(reading?.purchases.spentByCurrency ?? {}).length === 0 ? (
                         <Typography.Text type="secondary">Цены нигде не проставлены</Typography.Text>
                       ) : (
                         <Space size={8} wrap>
@@ -473,42 +553,7 @@ export const AnalyticsPage: React.FC = () => {
                     </div>
                   </>
                 )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Card title="Год к году" style={styles.card} styles={{ body: styles.cardBody }}>
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 3 }} />
-                ) : !reading ? (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Данных пока нет" />
-                ) : (
-                  <Space size={12} wrap>
-                    {(
-                      [
-                        ['Дочитано', (stats: PeriodStats) => stats.finished],
-                        ['Страниц', (stats: PeriodStats) => stats.pages],
-                        ['Минут', (stats: PeriodStats) => stats.minutes]
-                      ] as const
-                    ).map(([label, pick]) => {
-                      const delta = yearDelta(pick);
-                      return (
-                        <StatTile
-                          key={label}
-                          label={`${label} · ${reading.currentYear.period}`}
-                          value={number(pick(reading.currentYear))}
-                          hint={
-                            delta
-                              ? `${delta.positive ? '+' : ''}${delta.percent}% к ${reading.previousYear.period}`
-                              : `в ${reading.previousYear.period} — ${number(pick(reading.previousYear))}`
-                          }
-                          accent={delta && !delta.positive ? token.colorWarning : token.colorSuccess}
-                        />
-                      );
-                    })}
-                  </Space>
-                )}
-              </Card>
+              </SectionCard>
             </Col>
           </Row>
         </>

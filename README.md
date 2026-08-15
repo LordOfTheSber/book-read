@@ -207,6 +207,9 @@ different things and are easy to confuse:
 - **The finish forecast**, in contrast, uses calendar days — otherwise it would promise "two days" to
   someone who opens a book once a week. With no reading sessions at all, no date is returned rather than
   an invented one.
+- **The year-over-year comparison** puts two equal slices side by side: January 1st through today, and
+  January 1st through the same day a year ago. Comparing an unfinished year against a whole one would
+  report a decline every year until December, describing the calendar rather than the reading.
 
 Purchases count an item as bought when it has a price: a shop link without one is still an intention.
 Money spent is reported per currency — the tracker has no exchange rates, and summing roubles with euros

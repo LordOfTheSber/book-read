@@ -3,8 +3,11 @@ import { Empty, Tooltip, Typography, theme } from 'antd';
 
 export interface ColumnChartItem {
   key: string;
-  /** Подпись под столбцом. */
-  label: string;
+  /**
+   * Подпись под столбцом. Необязательная: какие столбцы подписывать, решает вызывающий — только
+   * он знает, что на шкале в два года подписать надо январь, а не каждый третий месяц подряд.
+   */
+  label?: string;
   value: number;
   tooltip?: React.ReactNode;
 }
@@ -15,11 +18,6 @@ interface Props {
   height?: number;
   color?: string;
   emptyText?: string;
-  /**
-   * Подписывать каждый n-й столбец. Двадцать четыре месяца подряд подписями не помещаются,
-   * а прореживать их в самом графике проще, чем подбирать угол наклона текста.
-   */
-  labelEvery?: number;
 }
 
 /**
@@ -34,8 +32,7 @@ export const ColumnChart: React.FC<Props> = ({
   items,
   height = 90,
   color,
-  emptyText = 'Данных пока нет',
-  labelEvery = 1
+  emptyText = 'Данных пока нет'
 }) => {
   const { token } = theme.useToken();
 
@@ -48,12 +45,11 @@ export const ColumnChart: React.FC<Props> = ({
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, overflowX: 'auto' }}>
-      {items.map((item, index) => {
+      {items.map((item) => {
         const share = max > 0 ? item.value / max : 0;
-        const showLabel = index % labelEvery === 0;
 
         return (
-          <Tooltip key={item.key} title={item.tooltip ?? `${item.label}: ${item.value}`}>
+          <Tooltip key={item.key} title={item.tooltip ?? `${item.label ?? item.key}: ${item.value}`}>
             <div style={{ flex: '1 1 0', minWidth: 8, textAlign: 'center' }}>
               <div style={{ height, display: 'flex', alignItems: 'flex-end' }}>
                 <div
@@ -68,11 +64,13 @@ export const ColumnChart: React.FC<Props> = ({
                   }}
                 />
               </div>
+              {/* Высота задана явно: пустая подпись не должна схлопывать строку и ронять
+                  выравнивание соседних столбцов. */}
               <Typography.Text
                 type="secondary"
-                style={{ fontSize: 11, display: 'block', whiteSpace: 'nowrap' }}
+                style={{ fontSize: 11, display: 'block', height: 16, whiteSpace: 'nowrap' }}
               >
-                {showLabel ? item.label : ' '}
+                {item.label}
               </Typography.Text>
             </div>
           </Tooltip>

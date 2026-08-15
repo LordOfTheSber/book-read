@@ -274,6 +274,19 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
     List<PeriodCount> countFinishedByYear( UUID userId );
 
     /**
+     * Итог произвольного отрезка. Нужен сравнению «год к году»: текущий год сравнивается не
+     * с полным прошлым, а с тем же отрезком прошлого года — иначе в августе любой год выглядит
+     * провалом просто потому, что он ещё не кончился.
+     */
+    @Query( """
+            select count(li) as finished, coalesce(sum(li.pageCount), 0) as pages
+            from LibraryItem li
+            where li.finishedAt between :from and :to
+              and (:userId is null or li.createdBy.id = :userId)
+            """ )
+    RangeTotals finishedBetweenScoped( UUID userId, LocalDate from, LocalDate to );
+
+    /**
      * Счётчики авторов вместе с именами. {@link #countByAuthor} для этого не годится: он отдаёт
      * только идентификаторы, потому что вызывающий уже держит список авторов и подставляет имена
      * сам, — здесь такого списка нет, и без имени пришлось бы делать второй запрос.
@@ -395,6 +408,13 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
         String getAuthorName();
 
         long getCount();
+    }
+
+    interface RangeTotals {
+
+        long getFinished();
+
+        long getPages();
     }
 
     /** Месяц равен нулю у погодной выборки: год там и есть весь период. */

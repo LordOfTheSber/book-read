@@ -76,6 +76,8 @@ class AnalyticsServiceTest {
         when( readingSessionRepository.activityByDay( any(), any(), any() ) ).thenReturn( List.of() );
         when( readingSessionRepository.minutesByMonth( any(), any() ) ).thenReturn( List.of() );
         when( readingSessionRepository.paceTotals( any(), any(), any() ) ).thenReturn( paceTotals( 0, 0, 0 ) );
+        when( readingSessionRepository.sumMinutesScoped( any(), any(), any() ) ).thenReturn( 0L );
+        when( libraryItemRepository.finishedBetweenScoped( any(), any(), any() ) ).thenReturn( rangeTotals( 0, 0 ) );
     }
 
     @Test
@@ -140,8 +142,32 @@ class AnalyticsServiceTest {
         assertThat( response.getByYear() ).extracting( PeriodStatsResponse::getPeriod )
                                           .containsExactly( "2023", "2024", "2025", "2026" );
         assertThat( response.getByYear().get( 1 ).getFinished() ).isZero();
-        assertThat( response.getCurrentYear().getFinished() ).isEqualTo( 1 );
-        assertThat( response.getPreviousYear().getFinished() ).isZero();
+    }
+
+    /**
+     * Сравнение берёт два отрезка «с 1 января по этот день», а не два полных года: в марте полный
+     * прошлый год всегда больше текущего, и разница говорила бы о календаре, а не о чтении.
+     */
+    @Test
+    void yearComparisonUsesMatchingSlicesOfBothYears() {
+        when( libraryItemRepository.finishedBetweenScoped( any(), eq( LocalDate.of( 2026, 1, 1 ) ),
+                                                           eq( LocalDate.of( 2026, 3, 15 ) ) ) )
+                .thenReturn( rangeTotals( 4, 1200 ) );
+        when( libraryItemRepository.finishedBetweenScoped( any(), eq( LocalDate.of( 2025, 1, 1 ) ),
+                                                           eq( LocalDate.of( 2025, 3, 15 ) ) ) )
+                .thenReturn( rangeTotals( 2, 500 ) );
+        when( readingSessionRepository.sumMinutesScoped( any(), eq( LocalDate.of( 2026, 1, 1 ) ),
+                                                         eq( LocalDate.of( 2026, 3, 15 ) ) ) )
+                .thenReturn( 300L );
+
+        ReadingAnalyticsResponse response = service.readingAnalytics( Optional.empty() );
+
+        assertThat( response.getCurrentYear().getPeriod() ).isEqualTo( "2026" );
+        assertThat( response.getCurrentYear().getFinished() ).isEqualTo( 4 );
+        assertThat( response.getCurrentYear().getPages() ).isEqualTo( 1200 );
+        assertThat( response.getCurrentYear().getMinutes() ).isEqualTo( 300 );
+        assertThat( response.getPreviousYear().getPeriod() ).isEqualTo( "2025" );
+        assertThat( response.getPreviousYear().getFinished() ).isEqualTo( 2 );
     }
 
     @Test
@@ -264,6 +290,21 @@ class AnalyticsServiceTest {
             public int getMonth() {
                 return month;
             }
+
+            @Override
+            public long getFinished() {
+                return finished;
+            }
+
+            @Override
+            public long getPages() {
+                return pages;
+            }
+        };
+    }
+
+    private LibraryItemRepository.RangeTotals rangeTotals( long finished, long pages ) {
+        return new LibraryItemRepository.RangeTotals() {
 
             @Override
             public long getFinished() {
