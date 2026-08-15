@@ -93,6 +93,13 @@ public class SecurityConfig {
                                                     .requestMatchers( HttpMethod.POST, "/api/v1/sources" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
                                                     .requestMatchers( HttpMethod.PUT, "/api/v1/sources/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN", "EDITOR" )
                                                     .requestMatchers( HttpMethod.DELETE, "/api/v1/sources/**" ).hasAnyRole( "SUPER_ADMIN", "ADMIN" )
+                                                    // Свои данные — выгрузка и удаление аккаунта.
+                                                    // Отдельно от /exports: та ветка целиком
+                                                    // административная, и подмешивать в неё
+                                                    // пользовательский путь значило бы поставить
+                                                    // весь бэкап в зависимость от порядка правил.
+                                                    .requestMatchers( "/api/v1/account/**" ).hasAnyRole(
+                                                    "SUPER_ADMIN", "ADMIN", "EDITOR", "USER" )
                                                     .requestMatchers( "/api/v1/exports/**" ).hasRole( "SUPER_ADMIN" )
                                                     .requestMatchers( "/api/v1/sessions/**" ).hasAnyRole(
                                                     "SUPER_ADMIN", "ADMIN" )

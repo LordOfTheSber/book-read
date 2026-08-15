@@ -23,6 +23,9 @@ import com.library.tracker.service.SmartShelfService;
 import com.library.tracker.service.SourceService;
 import com.library.tracker.service.TagService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.service.analytics.AnalyticsService;
+import com.library.tracker.service.account.AccountDeletionService;
+import com.library.tracker.service.account.UserDataExportService;
 import com.library.tracker.service.engagement.AchievementService;
 import com.library.tracker.service.engagement.ReadingGoalService;
 import com.library.tracker.service.engagement.StreakService;
@@ -83,6 +86,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         ReadingProgressController.class,
         QuoteController.class,
         ExportController.class,
+        AccountController.class,
         TagController.class,
         ShelfController.class,
         SmartShelfController.class,
@@ -110,6 +114,15 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private LibraryItemService libraryItemService;
+
+    @MockBean
+    private AnalyticsService analyticsService;
+
+    @MockBean
+    private UserDataExportService userDataExportService;
+
+    @MockBean
+    private AccountDeletionService accountDeletionService;
 
     @MockBean
     private BookTypeService bookTypeService;
@@ -201,6 +214,10 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private JwtService jwtService;
+
+    /** AccountController гасит куки при удалении аккаунта тем же способом, что выход из системы. */
+    @MockBean
+    private AccessTokenCookieService accessTokenCookieService;
 
     /** Нужен фильтру логирования, который {@code @WebMvcTest} поднимает вместе с MVC. */
     @MockBean
@@ -414,6 +431,12 @@ class ControllerSecurityMatrixTest {
                 Endpoint.put( "/api/v1/users/" + ID + "/block", "{\"blocked\":true}", SUPER_ADMIN ),
 
                 Endpoint.get( "/api/v1/analytics/books", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/analytics/reading", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+
+                // Свои данные доступны каждому — в отличие от административного бэкапа ниже,
+                // который лежит под соседним префиксом и остаётся только у супер-администратора.
+                Endpoint.get( "/api/v1/account/export", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/account", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Эксплуатация: узлы и мониторинг администраторам, логи и настройки — супер-администратору.
                 Endpoint.get( "/api/v1/nodes", SUPER_ADMIN, ADMIN ),

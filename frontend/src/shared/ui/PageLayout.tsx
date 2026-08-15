@@ -16,6 +16,7 @@ import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { logoutThunk } from '@/entities/auth';
 import { isAdminLike } from '@/shared/lib/roles';
+import { OfflineBanner } from '@/widgets/offline-banner';
 
 const { Header, Content } = Layout;
 
@@ -235,6 +236,8 @@ export const PageLayout: React.FC = () => {
           </Button>
         </div>
       </Drawer>
+
+      <OfflineBanner />
 
       <Content style={styles.content}>
         <Outlet />

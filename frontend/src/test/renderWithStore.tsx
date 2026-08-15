@@ -13,6 +13,7 @@ import { tagReducer } from '@/entities/tag';
 import { shelfReducer } from '@/entities/shelf';
 import { smartShelfReducer } from '@/entities/smart-shelf';
 import { usersReducer } from '@/entities/user';
+import { analyticsReducer } from '@/entities/analytics';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 
 const rootReducer = combineReducers({
@@ -26,7 +27,8 @@ const rootReducer = combineReducers({
   shelves: shelfReducer,
   smartShelves: smartShelfReducer,
   bookFilters: bookFilterReducer,
-  users: usersReducer
+  users: usersReducer,
+  analytics: analyticsReducer
 });
 
 export type TestRootState = ReturnType<typeof rootReducer>;

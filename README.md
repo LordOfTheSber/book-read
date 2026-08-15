@@ -4,7 +4,8 @@ Full-stack application for tracking library items (books) with CRUD, filtering, 
 
 ## Prerequisites
 - Java 21
-- Node.js 18+
+- Node.js 18+ (`workbox-build` is pinned to 7.3.0 for this: 7.4 requires Node 20, and the build image
+  is `node:18`)
 - Maven
 - Docker (for PostgreSQL)
 
@@ -188,6 +189,72 @@ instance", never anonymous.
   demand and after an item is completed.
 - `GET /api/v1/engagement/year-in-review` — the shareable yearly summary, computed on the fly from the same
   slices the goal and the streak use.
+
+## Reading analytics
+Two endpoints, split by cost rather than by topic.
+
+- `GET /api/v1/analytics/books` — the cheap summary (totals, status breakdown, top types and sources).
+  The books list and the profile page put it in their header, so it stays six counters.
+- `GET /api/v1/analytics/reading` — everything that walks the reading history: monthly and yearly series,
+  the activity calendar, pace, finish forecasts, breakdowns by author, language and decade, purchase
+  statistics and a year-over-year comparison. Only the analytics page asks for it.
+
+Both accept an optional `userId`; a non-admin may only pass their own. Two numbers on that page mean
+different things and are easy to confuse:
+
+- **Pace** is divided by the days you actually read, not by every day in the window. "Zero pages a day"
+  for someone who reads on weekends is the wrong answer, and a forecast built on it would be infinite.
+- **The finish forecast**, in contrast, uses calendar days — otherwise it would promise "two days" to
+  someone who opens a book once a week. With no reading sessions at all, no date is returned rather than
+  an invented one.
+- **The year-over-year comparison** puts two equal slices side by side: January 1st through today, and
+  January 1st through the same day a year ago. Comparing an unfinished year against a whole one would
+  report a decline every year until December, describing the calendar rather than the reading.
+
+Purchases count an item as bought when it has a price: a shop link without one is still an intention.
+Money spent is reported per currency — the tracker has no exchange rates, and summing roubles with euros
+would mean inventing them.
+
+## Your own data
+`/api/v1/account/**` is available to every authenticated role. It is deliberately a separate namespace
+from `/api/v1/exports/**`, which is the whole-database admin backup and stays `SUPER_ADMIN`-only: a user
+path under that prefix would have to be ordered above the admin rule, and one reshuffle would expose
+the backup to everyone.
+
+- `GET /api/v1/account/export?format=csv|json` — your library, streamed as an attachment.
+  - **CSV** is the portable one. Its headers are the ones `CsvImportParser` understands, so the file can be
+    loaded straight back through the import page or carried to another tracker. It deliberately carries no
+    Goodreads or StoryGraph marker, so the parser treats it as generic and does not double the ratings by
+    mistaking the ten-point scale for five stars.
+  - **JSON** is the complete one: reading logs, sessions, quotes, shelves, tags, goals and achievements —
+    everything a table cannot hold. It never contains a password hash or anyone else's data.
+- `DELETE /api/v1/account` with `{"password": "..."}` — deletes the account and everything in it.
+  The password is asked again because an open session is also an unlocked laptop someone left behind.
+  The last `SUPER_ADMIN` is refused (`409`), a wrong password answers `400`. Covers are removed from object
+  storage before the rows, since a foreign key cascade cannot reach them and afterwards there would be no
+  key left to find them by.
+
+## Progressive web app
+The frontend ships a manifest and a service worker, so it installs on a phone and survives losing the network.
+
+- Covers are cached `CacheFirst` (their URL carries `?v=updatedAt`, so a stale one cannot resurface),
+  library `GET`s are `NetworkFirst` with a short timeout, and `/auth/` is never cached.
+- Edits made offline — the item card (progress, status, rating, favourite), a reading session, a quote —
+  are queued in IndexedDB and replayed when the network returns. The queue lives in the page rather than in
+  the service worker on purpose: only the `httpClient` interceptor can refresh an expired access token, and
+  a request replayed by Background Sync would hit `401` and die silently. Nothing credential-shaped is
+  stored — only the method, the URL and the body; cookies stay `httpOnly`.
+- The worker is disabled in dev (`devOptions.enabled: false`) so its cache cannot make Playwright runs flaky.
+  The offline queue is page-side, so the e2e scenario covers it without a worker.
+
+Two deployment requirements:
+
+- **Real TLS.** A service worker only registers in a secure context, and browsers refuse an untrusted
+  certificate. The bundled HTTPS setup (port 9443, self-signed) is fine for development but will not
+  register the worker.
+- **Cache headers.** `frontend/nginx/default.conf.template` serves `/assets/` as immutable for a year
+  (the filenames are content-hashed) and `index.html`, `manifest.webmanifest` and `sw.js` as `no-cache`.
+  Without the latter, users stay pinned to an old worker, which is what decides what to load next.
 
 ## Authentication errors
 `POST /api/v1/auth/login` validates only that the credentials are non-blank. The password policy (length,

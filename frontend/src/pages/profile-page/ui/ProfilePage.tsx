@@ -48,6 +48,7 @@ import { StatTile } from '@/shared/ui/StatTile';
 import { BarList } from '@/shared/ui/BarList';
 import { MetricList } from '@/shared/ui/MetricList';
 import { UsageMeter } from '@/shared/ui/UsageMeter';
+import { MyDataCard } from '@/features/account/manage-my-data';
 import { useProfilePageStyles } from './ProfilePage.styles';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -394,6 +395,10 @@ export const ProfilePage: React.FC = () => {
               <Link to="/goals">Все достижения, серия и цель года</Link>
             </div>
           </Card>
+        </Col>
+
+        <Col xs={24}>
+          <MyDataCard />
         </Col>
       </Row>
     </div>
