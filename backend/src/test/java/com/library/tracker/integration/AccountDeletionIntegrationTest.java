@@ -147,8 +147,15 @@ class AccountDeletionIntegrationTest extends PostgresContainerTest {
         assertThat( quoteRepository.findByItemIdOrderByPositionAscCreatedAtAsc( leavingItem.getId() ) ).isEmpty();
         assertThat( tagRepository.findByOwnerIdOrderByNameAsc( leaving.getId() ) ).isEmpty();
         assertThat( shelfRepository.findByOwnerIdOrderByNameAsc( leaving.getId() ) ).isEmpty();
-        assertThat( sessionRepository.findAll() ).isEmpty();
-        assertThat( userFollowRepository.findAll() ).isEmpty();
+
+        // Строго про ушедшего, а не «таблица пуста»: контейнер PostgreSQL один на весь прогон,
+        // и тесты, которые пишут не в откатываемой транзакции, оставляют в этих таблицах свои
+        // строки. Проверка на пустую таблицу проходила бы только при удачном порядке тестов.
+        assertThat( sessionRepository.findAll() )
+                .noneMatch( session -> session.getUser().getId().equals( leaving.getId() ) );
+        assertThat( userFollowRepository.findAll() )
+                .noneMatch( follow -> follow.getFollower().getId().equals( leaving.getId() )
+                                      || follow.getFollowee().getId().equals( leaving.getId() ) );
     }
 
     @Test
