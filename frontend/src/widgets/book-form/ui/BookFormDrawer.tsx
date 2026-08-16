@@ -42,6 +42,7 @@ import { loadTags } from '@/entities/tag';
 import { loadShelves } from '@/entities/shelf';
 import { useRequestError } from '@/shared/lib/errors';
 import { MetadataSearchModal } from '@/features/book/search-metadata';
+import { BookFormValues, BookRequest, bookRequestFields } from '../model/requestFields';
 import { CoverField } from './CoverField';
 import { DuplicateHint } from './DuplicateHint';
 import { ProgressTab } from './ProgressTab';
@@ -124,7 +125,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         startedAt: toDate(editing.startedAt),
         finishedAt: toDate(editing.finishedAt),
         deadline: toDate(editing.deadline),
-        progressCurrent: editing.progress?.current,
+        // Текущей позиции в карточке нет: её ведут заходы и смена статуса на вкладке «Прогресс».
         progressTotal: editing.progress?.total,
         progressUnit: editing.progress?.unit
       });
@@ -163,7 +164,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
    * расходятся, и последнее слово всё равно за пользователем.
    */
   const applyExternal = (book: ExternalBook) => {
-    const current = form.getFieldsValue();
+    // Целиком, а не только видимое: ISBN и год лежат в свёрнутом блоке, и «уже введённое»
+    // из него иначе выглядело бы пустым — находка каталога затирала бы правку руками.
+    const current = form.getFieldsValue(true);
     form.setFieldsValue({
       title: book.title,
       altTitle: book.altTitle ?? current.altTitle,
@@ -200,11 +203,21 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
   const handleSubmit = async () => {
     // Провал валидации — это отказ промиса: без перехвата он всплывает как unhandled rejection.
-    const values = await form.validateFields().catch(() => undefined);
-    if (!values) {
+    const valid = await form
+      .validateFields()
+      .then(() => true)
+      .catch(() => false);
+    if (!valid) {
       return;
     }
-    const payload = {
+    /*
+     * Значения берутся из хранилища формы по именам, а не из результата проверки: та возвращает
+     * только смонтированные поля, и всё, что лежит в свёрнутом блоке «Издание» или на неоткрытой
+     * вкладке «Оценка и отзыв», молча оставалось бы дома. Сервер принимает карточку целиком и
+     * недосланное обнуляет — то есть потеря была не в интерфейсе, а в базе.
+     */
+    const values: BookFormValues = form.getFieldsValue([...bookRequestFields]);
+    const payload: BookRequest = {
       ...values,
       startedAt: fromDate(values.startedAt),
       finishedAt: fromDate(values.finishedAt),

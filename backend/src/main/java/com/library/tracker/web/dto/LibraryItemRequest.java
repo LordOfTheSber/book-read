@@ -91,6 +91,10 @@ public class LibraryItemRequest {
 
     private LocalDate deadline;
 
+    /**
+     * Текущая позиция. {@code null} значит «не трогать»: карточка такого поля не показывает, а
+     * прогресс двигают заходы и смена статуса — обнулять его правкой карточки нельзя.
+     */
     @Min( value = 0, message = "Progress must be at least 0" )
     private Integer progressCurrent;
 

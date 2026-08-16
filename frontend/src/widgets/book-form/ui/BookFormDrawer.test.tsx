@@ -45,6 +45,21 @@ vi.mock('@/entities/tag/api/tagApi', () => ({
   deleteTag: vi.fn()
 }));
 
+vi.mock('@/entities/metadata/api/metadataApi', () => ({
+  searchMetadata: vi.fn().mockResolvedValue([
+    {
+      provider: 'OPEN_LIBRARY',
+      title: 'Тёмный лес',
+      authorNames: ['Лю Цысинь'],
+      isbn: '9785171049676',
+      publishedYear: 2008,
+      language: 'ru',
+      pageCount: 450,
+      publisher: 'Эксмо'
+    }
+  ])
+}));
+
 vi.mock('@/entities/shelf/api/shelfApi', () => ({
   fetchShelves: vi.fn().mockResolvedValue([
     {
@@ -193,6 +208,174 @@ describe('BookFormDrawer', () => {
       shelfIds: ['s-1']
     });
   });
+
+  /**
+   * Издательские поля лежат в свёрнутом блоке, а каталог заполняет их не глядя на то, раскрыт он
+   * или нет. Раньше до сервера доезжало только то, что нарисовано на экране, и половина карточки,
+   * собранной по каталогу, пропадала молча.
+   */
+  it('сохраняет данные из каталога, даже если блок «Издание» не раскрывали', async () => {
+    createBook.mockResolvedValue({ ...existing, id: 'b-5', authors: [] });
+
+    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Найти в каталогах/ }));
+    await userEvent.type(await screen.findByPlaceholderText('Название, автор или ISBN'), 'тёмный лес');
+    await userEvent.click(screen.getByRole('button', { name: 'Найти' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Заполнить' }));
+
+    await waitFor(() => expect(screen.getByLabelText('Название')).toHaveValue('Тёмный лес'));
+    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    await waitFor(() => expect(createBook).toHaveBeenCalled());
+    expect(createBook.mock.calls[0][0]).toMatchObject({
+      title: 'Тёмный лес',
+      authorNames: ['Лю Цысинь'],
+      isbn: '9785171049676',
+      publishedYear: 2008,
+      language: 'ru',
+      pageCount: 450
+    });
+  });
+
+  /**
+   * Вкладки монтируются по мере открытия, а сервер принимает карточку целиком: отсутствующее поле
+   * он затирает. Сохранение с «Карточки» не должно стирать отзыв и оценку, которые пользователь
+   * в этот раз просто не открывал.
+   */
+  it('не теряет отзыв и оценку при сохранении с вкладки «Карточка»', async () => {
+    const reviewed = {
+      ...existing,
+      note: 'дочитать до отпуска',
+      review: 'Лучшая твёрдая фантастика',
+      reviewSpoiler: 'все умерли',
+      rating: 9,
+      ratingPlot: 8
+    } as LibraryItem;
+    updateBook.mockResolvedValue(reviewed);
+
+    renderWithStore(<BookFormDrawer open editing={reviewed} onClose={vi.fn()} />);
+
+    const title = await screen.findByLabelText('Название');
+    await userEvent.clear(title);
+    await userEvent.type(title, 'Переименована');
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toMatchObject({
+      title: 'Переименована',
+      note: 'дочитать до отпуска',
+      review: 'Лучшая твёрдая фантастика',
+      reviewSpoiler: 'все умерли',
+      rating: 9,
+      ratingPlot: 8
+    });
+  });
+
+  /**
+   * Главная проверка карточки: всё, что человек ввёл, должно доехать до сервера. Ровно здесь
+   * и была потеря — половина полей живёт в свёрнутом блоке и на отдельной вкладке, а до запроса
+   * доезжало только нарисованное на экране.
+   */
+  it('отправляет на сервер каждое заполненное поле', async () => {
+    createBook.mockResolvedValue({ ...existing, id: 'b-6', authors: [] });
+    const store = createTestStore({
+      bookTypes: { list: [{ id: 't-1', name: 'Фантастика' }], loading: false, loaded: true },
+      sources: { list: [{ id: 'src-1', name: 'Читай-город' }], loading: false, loaded: true }
+    } as never);
+
+    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />, store);
+
+    const pickOption = async (fieldLabel: string, option: string) => {
+      await userEvent.click(screen.getByLabelText(fieldLabel));
+      await userEvent.click(await screen.findByTitle(option));
+    };
+
+    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
+    await userEvent.type(screen.getByLabelText('Альтернативное название'), 'The Dark Forest');
+    await userEvent.type(screen.getByLabelText('Авторы'), 'Лю Цысинь{enter}');
+    await userEvent.type(screen.getByLabelText('Теги'), 'перечитать{enter}');
+    await userEvent.click(screen.getByLabelText('Избранное'));
+
+    await userEvent.type(screen.getByLabelText('Серия'), 'Воспоминания о прошлом Земли');
+    await userEvent.type(screen.getByLabelText('Номер в серии'), '2');
+    await pickOption('Полки', 'Подарить');
+
+    await pickOption('Вид', 'Манга');
+    await pickOption('Тип', 'Фантастика');
+    await pickOption('Источник', 'Читай-город');
+
+    await pickOption('Статус', 'Читаю');
+    await userEvent.type(screen.getByLabelText('Объём'), '500');
+    await pickOption('Единица', 'Тома');
+
+    await userEvent.type(screen.getByLabelText('Начато'), '01.02.2026{enter}');
+    await userEvent.type(screen.getByLabelText('Завершено'), '03.03.2026{enter}');
+    await userEvent.type(screen.getByLabelText('Дочитать к'), '04.04.2026{enter}');
+
+    await userEvent.click(screen.getByLabelText('В желаемом'));
+    await userEvent.type(screen.getByLabelText('Цена'), '899');
+    await userEvent.type(screen.getByLabelText('Валюта'), 'RUB');
+    await userEvent.type(screen.getByLabelText('Ссылка на покупку'), 'https://example.com/book');
+
+    // Издательский блок свёрнут: до правки его содержимое до сервера не доезжало.
+    await userEvent.click(screen.getByText('Издание и расположение'));
+    await userEvent.type(await screen.findByLabelText('ISBN'), '9785171049676');
+    await userEvent.type(screen.getByLabelText('Год издания'), '2008');
+    await userEvent.type(screen.getByLabelText('Язык'), 'ru');
+    await userEvent.type(screen.getByLabelText('Страниц в издании'), '450');
+    await pickOption('Формат', 'Бумажная');
+    await userEvent.type(screen.getByLabelText('Переводчик'), 'Ольга Глушкова');
+    await userEvent.type(screen.getByLabelText('Шкаф'), 'Гостиная');
+    await userEvent.type(screen.getByLabelText('Полка'), 'Вторая сверху');
+
+    await userEvent.type(screen.getByLabelText('Заметка'), 'дочитать до отпуска');
+    await userEvent.type(screen.getByLabelText('Отзыв'), 'Лучшая твёрдая фантастика');
+    await userEvent.type(screen.getByLabelText('Под спойлер-катом'), 'все умерли');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    await waitFor(() => expect(createBook).toHaveBeenCalled());
+    expect(createBook.mock.calls[0][0]).toEqual({
+      kind: 'MANGA',
+      title: 'Тёмный лес',
+      altTitle: 'The Dark Forest',
+      typeId: 't-1',
+      sourceId: 'src-1',
+      authorNames: ['Лю Цысинь'],
+      tagNames: ['перечитать'],
+      shelfIds: ['s-1'],
+      seriesName: 'Воспоминания о прошлом Земли',
+      orderInSeries: 2,
+      isbn: '9785171049676',
+      publishedYear: 2008,
+      language: 'ru',
+      pageCount: 450,
+      translator: 'Ольга Глушкова',
+      format: 'PAPER',
+      bookcase: 'Гостиная',
+      shelf: 'Вторая сверху',
+      startedAt: '2026-02-01',
+      finishedAt: '2026-03-03',
+      deadline: '2026-04-04',
+      progressTotal: 500,
+      progressUnit: 'VOLUMES',
+      note: 'дочитать до отпуска',
+      review: 'Лучшая твёрдая фантастика',
+      reviewSpoiler: 'все умерли',
+      rating: undefined,
+      ratingPlot: undefined,
+      ratingStyle: undefined,
+      ratingCharacters: undefined,
+      ratingEnding: undefined,
+      favorite: true,
+      wishlist: true,
+      price: 899,
+      currency: 'RUB',
+      purchaseUrl: 'https://example.com/book',
+      status: 'READING'
+    });
+  }, 60000);
 
   it('оставляет панель открытой, если сохранение не удалось', async () => {
     createBook.mockRejectedValue(new Error('Сервер недоступен'));
