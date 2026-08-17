@@ -21,10 +21,13 @@ export interface BookFilterState {
   size: number;
 }
 
+/** Порядок по умолчанию: к нему же возвращается таблица, когда сортировку в ней сняли. */
+export const DEFAULT_BOOK_SORT = 'updatedAt,desc';
+
 const initialState: BookFilterState = {
   page: 0,
   size: 10,
-  sort: 'updatedAt,desc'
+  sort: DEFAULT_BOOK_SORT
 };
 
 const filterSlice = createSlice({

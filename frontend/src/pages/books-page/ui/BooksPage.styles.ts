@@ -6,11 +6,6 @@ export const useBooksPageStyles = () => {
 
   return useMemo(
     () => ({
-      page: {
-        maxWidth: 1440,
-        margin: '0 auto',
-        width: '100%'
-      } as CSSProperties,
       stats: {
         display: 'flex',
         flexWrap: 'wrap',

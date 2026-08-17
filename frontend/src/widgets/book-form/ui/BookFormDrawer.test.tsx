@@ -389,4 +389,32 @@ describe('BookFormDrawer', () => {
     await waitFor(() => expect(createBook).toHaveBeenCalled());
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('закрывает нетронутую карточку сразу, без лишнего вопроса', async () => {
+    const onClose = vi.fn();
+
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={onClose} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('переспрашивает перед закрытием, если введённое ещё не сохранено', async () => {
+    const onClose = vi.fn();
+
+    renderWithStore(<BookFormDrawer open editing={null} onClose={onClose} />);
+
+    await userEvent.type(screen.getByLabelText('Название'), 'Новая книга');
+    await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+
+    // Панель остаётся открытой, пока человек не подтвердит потерю ввода.
+    await userEvent.click(await screen.findByRole('button', { name: 'Вернуться к правке' }));
+    expect(onClose).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Закрыть' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  }, 30000);
 });

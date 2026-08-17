@@ -91,7 +91,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const isMobile = !screens.md;
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
   const [form] = Form.useForm();
   const [saving, setSaving] = React.useState(false);
@@ -101,6 +101,11 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
    * до появления идентификатора попросту нет.
    */
   const [pendingCoverUrl, setPendingCoverUrl] = React.useState<string>();
+  /**
+   * Введено ли что-то с прошлого открытия. Панель закрывается по Esc и клику мимо неё, а карточка
+   * длинная: промах мышью терял и название, и авторов, и отзыв — молча и без возможности вернуть.
+   */
+  const [dirty, setDirty] = React.useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -133,6 +138,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       form.resetFields();
     }
     setPendingCoverUrl(undefined);
+    // Подстановка значений — не правка пользователя: заполненная карточка редактирования
+    // не должна на входе считаться изменённой.
+    setDirty(false);
   }, [open, editing, form]);
 
   const authorOptions = useMemo(
@@ -179,6 +187,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       progressTotal: current.progressTotal ?? book.pageCount
     });
     setPendingCoverUrl(book.coverUrl);
+    // setFieldsValue не считается правкой формы, но терять заполненное из каталога так же обидно.
+    setDirty(true);
     setSearchOpen(false);
     message.success(book.coverUrl ? 'Карточка заполнена, обложка подтянется при сохранении' : 'Карточка заполнена');
   };
@@ -200,6 +210,22 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     progressUnit: watchedUnit
   });
   const unitShort = progressUnitLabel[effectiveUnit];
+
+  /** Закрытие с несохранённой правкой спрашивает подтверждение; чистую форму закрываем молча. */
+  const requestClose = () => {
+    if (!dirty) {
+      onClose();
+      return;
+    }
+    modal.confirm({
+      title: 'Закрыть без сохранения?',
+      content: 'Введённое в карточке будет потеряно.',
+      okText: 'Закрыть',
+      okButtonProps: { danger: true },
+      cancelText: 'Вернуться к правке',
+      onOk: onClose
+    });
+  };
 
   const handleSubmit = async () => {
     // Провал валидации — это отказ промиса: без перехвата он всплывает как unhandled rejection.
@@ -539,7 +565,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     <Drawer
       title={editing ? 'Редактирование записи' : 'Новая запись'}
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       destroyOnHidden
       width={isMobile ? '100%' : 760}
       styles={{ body: { paddingTop: 12 } }}
@@ -551,7 +577,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
       }
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>
-          <Button onClick={onClose}>Отмена</Button>
+          <Button onClick={requestClose}>Отмена</Button>
           <Button type="primary" loading={saving} onClick={handleSubmit}>
             {editing ? 'Сохранить' : 'Добавить'}
           </Button>
@@ -565,6 +591,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         layout="vertical"
         form={form}
         initialValues={{ status: 'PLANNED', favorite: false, kind: 'BOOK' }}
+        // onValuesChange срабатывает только на правку человеком: подстановка через
+        // setFieldsValue его не вызывает, поэтому открытие карточки не считается изменением.
+        onValuesChange={() => setDirty(true)}
       >
         {/* Прогресс и выписки живут своими запросами, поэтому доступны только у сохранённой книги. */}
         {editing ? (

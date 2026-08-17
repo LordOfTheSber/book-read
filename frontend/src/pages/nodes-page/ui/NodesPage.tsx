@@ -203,7 +203,7 @@ export const NodesPage: React.FC = () => {
   );
 
   return (
-    <div style={styles.page}>
+    <div>
       <PageHeader
         title="Узлы"
         subtitle={

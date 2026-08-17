@@ -110,7 +110,7 @@ export const NodeDetailPage: React.FC = () => {
 
   if (error && !currentNode) {
     return (
-      <div style={styles.page}>
+      <div>
         {backLink}
         <Alert type="error" showIcon message="Не удалось загрузить узел" description={error} />
       </div>
@@ -171,10 +171,11 @@ export const NodeDetailPage: React.FC = () => {
   ];
 
   return (
-    <div style={styles.page}>
+    <div>
       {backLink}
 
       <PageHeader
+        documentTitle={node?.nodeKey ? `Узел ${node.nodeKey}` : 'Узел'}
         title={
           <Space size={12} align="center" wrap>
             <span>{node?.nodeKey || 'Узел'}</span>

@@ -30,6 +30,7 @@ import { formatDate, formatDateTime } from '@/shared/lib/date';
 import { formatScore } from '@/shared/lib/format';
 import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
+import { DEFAULT_BOOK_SORT } from '@/features/book/set-book-filters';
 import { useBooksListStyles } from './BooksListWidget.styles';
 
 export type BooksViewMode = 'table' | 'grid';
@@ -49,6 +50,17 @@ interface Props {
 }
 
 const dash = '—';
+
+/**
+ * Стрелка в шапке колонки по строке сортировки из фильтров. Без этого таблица вела свой
+ * счёт: выбор в «Сортировке» не подсвечивал колонку, а сброс стрелки третьим кликом убирал
+ * подсветку, не меняя реального порядка записей.
+ */
+const sortOrderFor = (field: string, sort?: string): 'ascend' | 'descend' | null => {
+  const [sortField, direction] = (sort ?? '').split(',');
+  if (sortField !== field) return null;
+  return direction === 'asc' ? 'ascend' : 'descend';
+};
 
 export const BooksListWidget: React.FC<Props> = ({
   viewMode,
@@ -211,6 +223,7 @@ export const BooksListWidget: React.FC<Props> = ({
         title: 'Произведение',
         dataIndex: 'title',
         sorter: true,
+        sortOrder: sortOrderFor('title', filters.sort),
         width: '34%',
         render: (_: string, item) => (
           <div style={styles.titleWrap}>
@@ -292,6 +305,7 @@ export const BooksListWidget: React.FC<Props> = ({
         dataIndex: 'rating',
         width: 100,
         sorter: true,
+        sortOrder: sortOrderFor('rating', filters.sort),
         render: (rating?: number) => renderRating(rating)
       },
       {
@@ -299,6 +313,7 @@ export const BooksListWidget: React.FC<Props> = ({
         dataIndex: 'updatedAt',
         width: 150,
         sorter: true,
+        sortOrder: sortOrderFor('updatedAt', filters.sort),
         responsive: ['xl'],
         render: (value?: string) => <span style={styles.muted}>{formatDateTime(value)}</span>
       },
@@ -327,7 +342,7 @@ export const BooksListWidget: React.FC<Props> = ({
         : [])
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAdmin, canEdit, role, user?.id, styles]
+    [isAdmin, canEdit, role, user?.id, styles, filters.sort]
   );
 
   const onTableChange = (
@@ -336,9 +351,11 @@ export const BooksListWidget: React.FC<Props> = ({
     sorter: SorterResult<LibraryItem> | SorterResult<LibraryItem>[]
   ) => {
     const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    // Третий клик по шапке снимает сортировку — значит, порядок возвращается к умолчанию,
+    // а не остаётся прежним: иначе снятая стрелка обещала бы то, чего не произошло.
     const sortValue = activeSorter?.order
       ? `${String(activeSorter.field)},${activeSorter.order === 'descend' ? 'desc' : 'asc'}`
-      : filters.sort;
+      : DEFAULT_BOOK_SORT;
     onChangePage((pagination.current || 1) - 1, pagination.pageSize || size, sortValue);
   };
 

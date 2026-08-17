@@ -159,7 +159,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div style={styles.page}>
+    <div>
       <PageHeader title="Профиль" subtitle="Учётная запись, оформление и статистика чтения" />
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>

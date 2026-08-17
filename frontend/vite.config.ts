@@ -27,15 +27,17 @@ export default defineConfig({
        */
       devOptions: { enabled: false },
       manifest: {
-        name: 'Library Tracker',
-        short_name: 'Library',
+        name: 'BookRead',
+        short_name: 'BookRead',
         description: 'Трекер прочитанного: библиотека, прогресс чтения, цели и выписки',
         lang: 'ru',
         start_url: '/',
         scope: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#4096ff',
+        // Основной цвет светлой темы, а не умолчание antd: им браузер красит панель
+        // установленного приложения, и она не должна спорить с интерфейсом.
+        theme_color: '#2563eb',
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },

@@ -6,11 +6,6 @@ export const useNodeDetailPageStyles = () => {
 
   return useMemo(
     () => ({
-      page: {
-        maxWidth: 1440,
-        margin: '0 auto',
-        width: '100%'
-      } as CSSProperties,
       backLink: {
         display: 'inline-flex',
         alignItems: 'center',

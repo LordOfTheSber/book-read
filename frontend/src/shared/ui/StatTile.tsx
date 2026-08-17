@@ -30,12 +30,17 @@ export const StatTile: React.FC<StatTileProps> = ({
   const { token } = theme.useToken();
   const color = accent || token.colorPrimary;
   const interactive = Boolean(onClick);
+  /*
+   * Плитка-фильтр — кнопка, плитка-показатель — просто блок. Раньше показатель тоже рисовался
+   * кнопкой с disabled: экранный диктор объявлял «недоступная кнопка» там, где нажимать нечего,
+   * а с клавиатуры такая плитка выпадала из обхода без всякой причины.
+   */
+  const Container = interactive ? 'button' : 'div';
 
   return (
-    <button
-      type="button"
+    <Container
+      type={interactive ? 'button' : undefined}
       onClick={onClick}
-      disabled={!interactive}
       aria-pressed={interactive ? active : undefined}
       style={{
         appearance: 'none',
@@ -44,7 +49,9 @@ export const StatTile: React.FC<StatTileProps> = ({
         flex: '1 1 150px',
         minWidth: 140,
         display: 'flex',
-        alignItems: 'center',
+        // По верхнему краю, а не по центру: плитка с подписью-уточнением на строку выше
+        // остальных, и при центрировании её заголовок съезжал относительно соседних в ряду.
+        alignItems: 'flex-start',
         gap: 12,
         padding: '14px 16px',
         borderRadius: token.borderRadiusLG,
@@ -94,6 +101,6 @@ export const StatTile: React.FC<StatTileProps> = ({
           </Typography.Text>
         )}
       </span>
-    </button>
+    </Container>
   );
 };

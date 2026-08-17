@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Button, Col, Divider, Drawer, Form, Grid, InputNumber, Row, Select, Space, Switch, Tag, Typography, theme } from 'antd';
+import { Button, Col, Divider, Drawer, Form, Grid, InputNumber, Row, Select, Space, Switch, Typography, theme } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
 import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
@@ -26,31 +26,43 @@ interface FiltersFormValues {
   userId?: string;
 }
 
-/** Чипы статуса вместо Segmented: подписи не обрезаются и переносятся по строкам. */
+/**
+ * Чипы статуса вместо Segmented: подписи не обрезаются и переносятся по строкам.
+ *
+ * Каждый чип — настоящая кнопка-переключатель, а не span с обработчиком клика, каким был
+ * CheckableTag: тот не попадал в обход по Tab и не отвечал на пробел с Enter, поэтому выбрать
+ * статус с клавиатуры было нельзя. Оформление чипа всё равно задавалось здесь целиком.
+ */
 const StatusChips: React.FC<{ value?: string; onChange?: (value?: string) => void }> = ({ value, onChange }) => {
   const { token } = theme.useToken();
   const options = [{ label: 'Любой', value: '' }, ...statusOptions.map((s) => ({ label: s.label, value: s.value }))];
 
   return (
-    <Space size={[8, 8]} wrap>
+    <Space size={[8, 8]} wrap role="group" aria-label="Статус">
       {options.map((option) => {
         const checked = (value ?? '') === option.value;
         return (
-          <Tag.CheckableTag
+          <button
             key={option.value || 'any'}
-            checked={checked}
-            onChange={() => onChange?.(option.value || undefined)}
+            type="button"
+            aria-pressed={checked}
+            onClick={() => onChange?.(option.value || undefined)}
             style={{
+              font: 'inherit',
+              fontSize: 14,
+              lineHeight: 1.5,
+              cursor: 'pointer',
               borderRadius: 999,
               paddingInline: 14,
               paddingBlock: 5,
-              fontSize: 14,
               border: `1px solid ${checked ? 'transparent' : token.colorBorder}`,
-              background: checked ? token.colorPrimary : 'transparent'
+              background: checked ? token.colorPrimary : 'transparent',
+              color: checked ? token.colorTextLightSolid : token.colorText,
+              transition: 'background .16s ease, border-color .16s ease'
             }}
           >
             {option.label}
-          </Tag.CheckableTag>
+          </button>
         );
       })}
     </Space>
@@ -229,12 +241,28 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
                 })
               ]}
             >
-              <InputNumber min={0} max={10} step={0.5} placeholder="от" style={{ width: '100%' }} />
+              {/* Подпись «Оценка» стоит над парой полей, к самим полям она не привязана:
+                  без aria-label диктор объявлял бы их безымянными. */}
+              <InputNumber
+                min={0}
+                max={10}
+                step={0.5}
+                placeholder="от"
+                aria-label="Оценка от"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="maxRating" dependencies={['minRating']}>
-              <InputNumber min={0} max={10} step={0.5} placeholder="до" style={{ width: '100%' }} />
+              <InputNumber
+                min={0}
+                max={10}
+                step={0.5}
+                placeholder="до"
+                aria-label="Оценка до"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Col>
         </Row>

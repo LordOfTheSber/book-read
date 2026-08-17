@@ -189,7 +189,7 @@ export const BooksPage: React.FC = () => {
     : 'Личный дневник прочитанного и просмотренного';
 
   return (
-    <div style={styles.page}>
+    <div>
       <PageHeader
         title="Моя библиотека"
         subtitle={subtitle}

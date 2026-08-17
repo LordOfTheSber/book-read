@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Space, Spin, Typography } from 'antd';
 import type { MenuProps } from 'antd';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom';
 import {
   BgColorsOutlined,
   CheckOutlined,
@@ -11,6 +11,7 @@ import {
   UserOutlined
 } from '@ant-design/icons';
 import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
+import { APP_NAME } from '@/shared/lib/documentTitle';
 import { Logo } from './Logo';
 import { usePageLayoutStyles } from './PageLayout.styles';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -68,14 +69,15 @@ export const PageLayout: React.FC = () => {
     [user?.role]
   );
 
-  // Профиль и чужая страница /u/:username не соответствуют ни одному пункту меню.
+  // Профиль, чужая страница /u/:username и несуществующий адрес не соответствуют ни одному
+  // пункту меню: подсветка «Библиотеки» на них обещала бы раздел, которого на экране нет.
   const selectedKey = useMemo(() => {
-    if (location.pathname.startsWith('/profile') || location.pathname.startsWith('/u/')) return undefined;
+    if (location.pathname === '/') return 'books';
     const match = visibleNav
       .filter((item) => item.path !== '/' && location.pathname.startsWith(item.path))
       .sort((a, b) => b.path.length - a.path.length)[0];
 
-    return match?.key ?? 'books';
+    return match?.key;
   }, [location.pathname, visibleNav]);
 
   const toMenuItem = (item: NavItem) => ({
@@ -153,11 +155,14 @@ export const PageLayout: React.FC = () => {
 
   return (
     <Layout style={styles.layout}>
+      {/* Скроллит страница целиком, а router сам прокрутку не трогает: со дна списка книг
+          переход в «Аналитику» открывал её с середины. Назад-вперёд позицию возвращают. */}
+      <ScrollRestoration />
       <Header style={styles.header}>
         <div style={styles.headerInner}>
           <Link to="/" style={styles.brand}>
             <Logo size={30} />
-            <span style={styles.brandTitle}>BookRead</span>
+            <span style={styles.brandTitle}>{APP_NAME}</span>
           </Link>
 
           {!isMobile && (
@@ -240,7 +245,9 @@ export const PageLayout: React.FC = () => {
       <OfflineBanner />
 
       <Content style={styles.content}>
-        <Outlet />
+        <div style={styles.contentInner}>
+          <Outlet />
+        </div>
       </Content>
     </Layout>
   );
