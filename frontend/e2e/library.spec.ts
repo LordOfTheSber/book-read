@@ -63,7 +63,8 @@ test('карточка сохраняет и издательские поля, 
 
   await page.getByRole('button', { name: 'Добавить запись' }).first().click();
   await page.getByLabel('Название', { exact: true }).fill(title);
-  await page.getByLabel('Отзыв').fill('Лучшая твёрдая фантастика');
+  // По роли, а не по подписи: «Отзыв» подстрокой входит в имя вкладки «Оценка и отзыв».
+  await page.getByRole('textbox', { name: 'Отзыв' }).fill('Лучшая твёрдая фантастика');
 
   await page.getByText('Издание и расположение').click();
   await page.getByLabel('ISBN').fill('9785171049676');
@@ -90,7 +91,7 @@ test('карточка сохраняет и издательские поля, 
 
   // У сохранённой записи отзыв живёт на своей вкладке.
   await page.getByRole('tab', { name: 'Оценка и отзыв' }).click();
-  await expect(page.getByLabel('Отзыв')).toHaveValue('Лучшая твёрдая фантастика');
+  await expect(page.getByRole('textbox', { name: 'Отзыв' })).toHaveValue('Лучшая твёрдая фантастика');
 });
 
 /**
