@@ -18,3 +18,7 @@ logs/
 # Локальное файловое хранилище обложек.
 backend/storage/
 storage/
+
+# Административные бэкапы базы.
+backend/exports/
+exports/

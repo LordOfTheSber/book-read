@@ -15,6 +15,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 @Slf4j
@@ -55,6 +57,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler( IllegalStateException.class )
     public ResponseEntity<ApiError> handleIllegalState( IllegalStateException ex ) {
         return build( HttpStatus.CONFLICT, ex.getMessage(), Collections.emptyList(), ex );
+    }
+
+    /**
+     * Файл больше разрешённого. Без своего обработчика отказ доезжал до общего и выглядел как
+     * поломка сервера, хотя это ровно тот случай, когда клиенту надо назвать предел.
+     */
+    @ExceptionHandler( MaxUploadSizeExceededException.class )
+    public ResponseEntity<ApiError> handleUploadTooLarge( MaxUploadSizeExceededException ex ) {
+        return build( HttpStatus.PAYLOAD_TOO_LARGE, "Файл слишком большой", Collections.emptyList(), ex );
+    }
+
+    @ExceptionHandler( MissingServletRequestPartException.class )
+    public ResponseEntity<ApiError> handleMissingPart( MissingServletRequestPartException ex ) {
+        return build( HttpStatus.BAD_REQUEST, "Файл не выбран", Collections.emptyList(), ex );
     }
 
     @ExceptionHandler( AccessDeniedException.class )

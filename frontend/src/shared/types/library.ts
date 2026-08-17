@@ -337,10 +337,17 @@ export interface User {
   maxSessionLifetimeOverrideMinutes?: number | null;
 }
 
+/**
+ * Разбивка по разделам копии: ключ — имя раздела, значение — число записей. Отдельного поля
+ * на каждую сущность нет намеренно — разделов два десятка, и любой новый ломал бы контракт.
+ */
+export type BackupCounts = Record<string, number>;
+
 export interface ExportInfo {
   fileName: string;
   path: string;
   downloadUrl?: string;
+  schemaVersion: number;
   exportedAt: string;
   usersCount: number;
   itemsCount: number;
@@ -348,6 +355,7 @@ export interface ExportInfo {
   sourcesCount: number;
   sessionsCount: number;
   systemNodesCount: number;
+  counts?: BackupCounts;
 }
 
 export interface ExportFileInfo {
@@ -359,12 +367,17 @@ export interface ExportFileInfo {
 
 export interface ImportResult {
   fileName: string;
+  /** Версия формата поднятой копии: по ней видно, насколько старый файл восстановили. */
+  schemaVersion: number;
+  /** Когда копия была снята, а не когда её восстановили. */
+  exportedAt?: string;
   restoredUsers: number;
   restoredItems: number;
   restoredBookTypes: number;
   restoredSources: number;
   restoredSystemNodes: number;
   restoredSessions: number;
+  counts?: BackupCounts;
 }
 
 export interface SystemNode {

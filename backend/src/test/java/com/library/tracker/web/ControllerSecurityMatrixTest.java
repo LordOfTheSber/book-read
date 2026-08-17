@@ -455,6 +455,8 @@ class ControllerSecurityMatrixTest {
                 // Выгрузка базы целиком — только супер-администратору.
                 Endpoint.get( "/api/v1/exports", SUPER_ADMIN ),
                 Endpoint.post( "/api/v1/exports", null, SUPER_ADMIN ),
+                // Приём копии со стороны — та же ветка и та же роль, что и снятие.
+                Endpoint.post( "/api/v1/exports/upload", null, SUPER_ADMIN ),
                 Endpoint.get( "/api/v1/exports/backup.zip", SUPER_ADMIN ),
                 Endpoint.post( "/api/v1/exports/backup.zip/restore", null, SUPER_ADMIN ),
                 Endpoint.delete( "/api/v1/exports/backup.zip", SUPER_ADMIN )
