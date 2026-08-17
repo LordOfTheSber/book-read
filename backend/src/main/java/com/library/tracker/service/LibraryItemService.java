@@ -368,7 +368,12 @@ public class LibraryItemService {
         item.setStartedAt( request.getStartedAt() );
         item.setFinishedAt( request.getFinishedAt() );
         item.setDeadline( request.getDeadline() );
-        item.setProgressCurrent( request.getProgressCurrent() );
+        // Текущую позицию ведут заходы и смена статуса, а не карточка: пустое поле здесь значит
+        // «не трогать». Иначе сохранение карточки — где такого поля попросту нет — откатывало бы
+        // прогресс в ноль, и человек терял бы отметку «прочитано 320 из 400» правкой года издания.
+        if ( request.getProgressCurrent() != null ) {
+            item.setProgressCurrent( request.getProgressCurrent() );
+        }
         item.setProgressTotal( request.getProgressTotal() );
         item.setProgressUnit( request.getProgressUnit() );
         item.setBookcase( trimToNull( request.getBookcase() ) );

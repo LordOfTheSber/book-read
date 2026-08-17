@@ -52,6 +52,49 @@ test('добавленная книга появляется в списке и 
 });
 
 /**
+ * Карточка доезжает до базы целиком. Издательские поля лежат в свёрнутом блоке, отзыв — ниже
+ * по форме, и до правки на сервер уходило только то, что было нарисовано на экране: запись
+ * сохранялась, а половина введённого пропадала молча. Проверяется на живом стеке, потому что
+ * потеря случалась именно между формой и базой.
+ */
+test('карточка сохраняет и издательские поля, и отзыв', async ({ page }) => {
+  await registerNewUser(page);
+  const title = `Тёмный лес ${Date.now()}`;
+
+  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
+  await page.getByLabel('Название', { exact: true }).fill(title);
+  // По роли, а не по подписи: «Отзыв» подстрокой входит в имя вкладки «Оценка и отзыв».
+  await page.getByRole('textbox', { name: 'Отзыв' }).fill('Лучшая твёрдая фантастика');
+
+  await page.getByText('Издание и расположение').click();
+  await page.getByLabel('ISBN').fill('9785171049676');
+  await page.getByLabel('Год издания').fill('2008');
+  await page.getByLabel('Язык').fill('ru');
+  await page.getByLabel('Переводчик').fill('Ольга Глушкова');
+  await page.getByLabel('Шкаф').fill('Гостиная');
+  await page.getByLabel('Полка', { exact: true }).fill('Вторая сверху');
+
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
+  await expect(page.getByText(title)).toBeVisible();
+
+  // Перезагрузка отсекает состояние на клиенте: дальше проверяется то, что легло в базу.
+  await page.reload();
+  await page.getByLabel('Редактировать').first().click();
+
+  await page.getByText('Издание и расположение').click();
+  await expect(page.getByLabel('ISBN')).toHaveValue('9785171049676');
+  await expect(page.getByLabel('Год издания')).toHaveValue('2008');
+  await expect(page.getByLabel('Язык')).toHaveValue('ru');
+  await expect(page.getByLabel('Переводчик')).toHaveValue('Ольга Глушкова');
+  await expect(page.getByLabel('Шкаф')).toHaveValue('Гостиная');
+  await expect(page.getByLabel('Полка', { exact: true })).toHaveValue('Вторая сверху');
+
+  // У сохранённой записи отзыв живёт на своей вкладке.
+  await page.getByRole('tab', { name: 'Оценка и отзыв' }).click();
+  await expect(page.getByRole('textbox', { name: 'Отзыв' })).toHaveValue('Лучшая твёрдая фантастика');
+});
+
+/**
  * Автор — сущность, а не строка: в карточку он вводится именем, а на странице авторов
  * появляется со счётчиком произведений.
  */

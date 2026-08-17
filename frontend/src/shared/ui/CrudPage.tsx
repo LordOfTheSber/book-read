@@ -86,7 +86,12 @@ export function CrudPage<T extends { id: string }, V = Record<string, unknown>>(
   };
 
   const handleSave = async () => {
-    const values = await form.validateFields();
+    // Modal результат onOk не ждёт, поэтому отказ валидации всплывал бы необработанным:
+    // ошибки под полями пользователь видит, а в консоли оставался unhandled rejection.
+    const values = await form.validateFields().catch(() => undefined);
+    if (!values) {
+      return;
+    }
     setSaving(true);
     try {
       if (editing) {

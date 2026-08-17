@@ -268,6 +268,70 @@ class LibraryItemServiceTest {
                                                    org.mockito.ArgumentMatchers.any() );
     }
 
+    /**
+     * Карточка не показывает текущую позицию — её двигают заходы и смена статуса. Значит, запрос
+     * карточки её и не присылает, а безусловное присваивание превращало правку года издания
+     * в потерю отметки «прочитано 320 из 400».
+     */
+    @Test
+    void updateKeepsReadingProgressWhenRequestHasNone() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        LibraryItem existing = new LibraryItem();
+        existing.setId( UUID.randomUUID() );
+        existing.setTitle( "Задача трёх тел" );
+        existing.setCreatedBy( currentUser );
+        existing.setStatus( ReadingStatus.READING );
+        existing.setProgressCurrent( 320 );
+        existing.setProgressTotal( 400 );
+        when( libraryItemRepository.findWithRelationsById( eq( existing.getId() ) ) )
+                .thenReturn( Optional.of( existing ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setStatus( ReadingStatus.READING );
+        request.setPublishedYear( 2006 );
+        request.setProgressTotal( 400 );
+
+        service.update( existing.getId(), request );
+
+        assertThat( existing.getProgressCurrent() ).isEqualTo( 320 );
+    }
+
+    /** Присланная позиция всё же применяется: импорт и восстановление шлют карточку целиком. */
+    @Test
+    void updateAppliesReadingProgressWhenRequestHasIt() {
+        LibraryItemService service = newService();
+        User currentUser = user();
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( false );
+
+        LibraryItem existing = new LibraryItem();
+        existing.setId( UUID.randomUUID() );
+        existing.setTitle( "Задача трёх тел" );
+        existing.setCreatedBy( currentUser );
+        existing.setStatus( ReadingStatus.READING );
+        existing.setProgressCurrent( 320 );
+        when( libraryItemRepository.findWithRelationsById( eq( existing.getId() ) ) )
+                .thenReturn( Optional.of( existing ) );
+        when( libraryItemRepository.save( org.mockito.ArgumentMatchers.any( LibraryItem.class ) ) )
+                .thenAnswer( invocation -> invocation.getArgument( 0 ) );
+
+        LibraryItemRequest request = new LibraryItemRequest();
+        request.setTitle( "Задача трёх тел" );
+        request.setStatus( ReadingStatus.READING );
+        request.setProgressCurrent( 350 );
+
+        service.update( existing.getId(), request );
+
+        assertThat( existing.getProgressCurrent() ).isEqualTo( 350 );
+    }
+
     private User user() {
         User user = new User();
         user.setId( UUID.randomUUID() );
