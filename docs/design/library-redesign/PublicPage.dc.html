@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #f6f7f9; min-height: 1000px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.45);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 24px 24px 40px;">
+
+  <div style="padding: 24px 24px 40px;">
+
+    <!-- Шапка чужого профиля -->
+    <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 22px 24px; display: flex; align-items: flex-start; gap: 20px; margin-bottom: 16px;">
+      <div style="width: 76px; height: 76px; border-radius: 50%; background: #fff0f6; color: #c41d7f; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; flex-shrink: 0;">А</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.3px;">Аня</div>
+        <div style="margin-top: 4px; color: rgba(0,0,0,0.45);">@anna · с нами с мая 2024</div>
+        <div style="margin-top: 10px; color: rgba(0,0,0,0.65); line-height: 1.55; max-width: 620px;">Фэнтези, славянский фольклор и всё, что можно читать вслух. Пишу длинные отзывы, за которые не стыдно.</div>
+        <div style="margin-top: 12px; display: flex; align-items: center; gap: 16px; font-size: 13px;">
+          <span><span style="font-weight: 600;">42</span> <span style="color: rgba(0,0,0,0.45);">подписчика</span></span>
+          <span><span style="font-weight: 600;">17</span> <span style="color: rgba(0,0,0,0.45);">в подписках</span></span>
+          <span style="color: rgba(0,0,0,0.45);">·</span>
+          <span style="color: rgba(0,0,0,0.65);">4 общие книги с вами</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-shrink: 0;">
+        <div style="height: 38px; padding: 0 18px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; cursor: pointer;">Подписаться</div>
+        <div style="width: 38px; height: 38px; border: 1px solid #d9d9d9; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.65); cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start;">
+
+      <div>
+        <div style="display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #eaecf0; margin-bottom: 16px;">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+            <div style="{{t.style}}">{{t.label}}</div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <sc-for list="{{reviews}}" as="r" hint-placeholder-count="3">
+            <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 20px 22px;">
+              <div style="display: flex; gap: 16px;">
+                <div style="{{r.coverStyle}}">{{r.initials}}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 16px; font-weight: 600;">{{r.title}}</span>
+                    <span style="display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 13px;">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#faad14" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+                      {{r.rating}}
+                    </span>
+                    <sc-if value="{{r.inMyLibrary}}" hint-placeholder-val="{{true}}">
+                      <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; background: #f6ffed; color: #389e0d; font-size: 12px; font-weight: 600;">есть у вас</span>
+                    </sc-if>
+                  </div>
+                  <div style="font-size: 13px; color: rgba(0,0,0,0.45); margin-top: 3px;">{{r.author}} · {{r.date}}</div>
+                  <div style="margin-top: 11px; font-size: 15px; line-height: 1.6; color: rgba(0,0,0,0.80);">{{r.text}}</div>
+                  <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid #eaecf0; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"></path></svg>
+                      {{r.likes}}
+                    </span>
+                    <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid #eaecf0; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer;">{{r.comments}}</span>
+                    <sc-if value="{{r.hasSpoiler}}" hint-placeholder-val="{{true}}">
+                      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: #fff7e6; color: #d46b08; font-size: 13px; cursor: pointer;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l16 16"></path><path d="M2 12s4-7 10-7c1.5 0 2.9.3 4.1.9M22 12s-4 7-10 7c-1.5 0-2.9-.3-4.1-.9"></path></svg>
+                        Спойлеры
+                      </span>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 18px 20px;">
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+            <sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+              <div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45);">{{s.label}}</div>
+                <div style="margin-top: 4px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">{{s.value}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 18px 20px;">
+          <div style="font-weight: 600; margin-bottom: 14px;">Открытые полки</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{shelves}}" as="s" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 11px;">
+                <span style="{{s.iconStyle}}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v5H4zM4 13h16v5H4z"></path></svg>
+                </span>
+                <span style="flex: 1; min-width: 0; font-size: 13px; font-weight: 500;">{{s.name}}</span>
+                <span style="font-size: 13px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{s.count}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 18px 20px;">
+          <div style="font-weight: 600; margin-bottom: 12px;">Сейчас читает</div>
+          <div style="display: flex; gap: 10px;">
+            <sc-for list="{{covers}}" as="c" hint-placeholder-count="4">
+              <div style="{{c.style}}">{{c.initials}}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+          Публичная страница. Сейчас отзывы, полки и активность лежат тремя карточками подряд; здесь отзывы — главное содержимое, остальное сжато в правую колонку. Добавлена одна вещь, которой нет: «есть у вас» и «4 общие книги» — то, ради чего вообще ходят к чужому профилю.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabStyle = (active) => 'padding: 0 14px; height: 42px; display: inline-flex; align-items: center; cursor: pointer; '
+      + (active ? 'color: #2563eb; font-weight: 500; box-shadow: inset 0 -2px 0 #2563eb;' : 'color: rgba(0,0,0,0.65);');
+    const tabs = [
+      { label: 'Отзывы · 38', active: true },
+      { label: 'Полки · 4', active: false },
+      { label: 'Активность', active: false }
+    ].map((t) => ({ ...t, style: tabStyle(t.active) }));
+
+    const cover = (c1, c2, fg) => 'width: 76px; height: 108px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(150deg, ' + c1 + ' 0%, ' + c2 + ' 100%); color: ' + fg + '; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700;';
+    const reviews = [
+      { title: 'Тёмный лес', author: 'Лю Цысинь', date: 'сегодня', rating: '9', initials: 'ТЛ', c1: '#e6f4ff', c2: '#bae0ff', fg: '#0958d9',
+        text: 'Вторая книга страшнее первой ровно потому, что в ней нет пришельцев — есть только логика. Тёмный лес это не метафора космоса, а описание любого разговора, где обе стороны боятся сказать первыми.',
+        likes: '18', comments: '4 комментария', inMyLibrary: true, hasSpoiler: true },
+      { title: 'Ходячий замок', author: 'Хаяо Миядзаки', date: '3 дня назад', rating: '9,5', initials: 'ХЗ', c1: '#fff2e8', c2: '#ffd8bf', fg: '#d4380d',
+        text: 'Смотрела в пятый раз и впервые заметила, что замок разваливается ровно тогда, когда Софи перестаёт считать себя старухой.',
+        likes: '31', comments: '7 комментариев', inMyLibrary: true, hasSpoiler: false },
+      { title: 'Сто лет одиночества', author: 'Габриэль Гарсиа Маркес', date: 'неделю назад', rating: '10', initials: 'СЛ', c1: '#f9f0ff', c2: '#efdbff', fg: '#531dab',
+        text: 'Читала вслух дочери по главе в неделю — оказалось, что вслух эта книга звучит как колыбельная, даже когда происходит ужасное.',
+        likes: '52', comments: '12 комментариев', inMyLibrary: false, hasSpoiler: false }
+    ].map((r) => ({ ...r, coverStyle: cover(r.c1, r.c2, r.fg) }));
+
+    const stats = [
+      { label: 'Дочитано', value: '164' },
+      { label: 'Отзывов', value: '38' },
+      { label: 'Оценка', value: '8,7' },
+      { label: 'Серия', value: '64' }
+    ];
+
+    const icon = (bg, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; background: ' + bg + '; color: ' + fg + ';';
+    const shelves = [
+      { name: 'Фэнтези без драконов', count: '38', bg: '#f9f0ff', fg: '#722ed1' },
+      { name: 'Читаем вслух', count: '21', bg: '#fff0f6', fg: '#c41d7f' },
+      { name: 'Славянское', count: '14', bg: '#f6ffed', fg: '#389e0d' }
+    ].map((s) => ({ ...s, iconStyle: icon(s.bg, s.fg) }));
+
+    const small = (c1, c2, fg) => 'width: 62px; height: 88px; border-radius: 8px; flex-shrink: 0; background: linear-gradient(150deg, ' + c1 + ' 0%, ' + c2 + ' 100%); color: ' + fg + '; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;';
+    const covers = [
+      { initials: 'ВМ', c1: '#e6fffb', c2: '#b5f5ec', fg: '#08979c' },
+      { initials: 'ДТ', c1: '#fff7e6', c2: '#ffe7ba', fg: '#d46b08' },
+      { initials: 'КЖ', c1: '#f6ffed', c2: '#d9f7be', fg: '#389e0d' },
+      { initials: 'НЛ', c1: '#f0f5ff', c2: '#d6e4ff', fg: '#1d39c4' }
+    ].map((c) => ({ ...c, style: small(c.c1, c.c2, c.fg) }));
+
+    return { tabs, reviews, stats, shelves, covers };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #f6f7f9; min-height: 960px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.45);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 24px 24px 40px;">
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px;">
+      <div>
+        <div style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Полки</div>
+        <div style="margin-top: 6px; color: rgba(0,0,0,0.65);">Наборы, собранные руками · 7 полок, 2 общие</div>
+      </div>
+      <div style="height: 40px; padding: 0 16px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Новая полка
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px;">
+      <sc-for list="{{shelves}}" as="s" hint-placeholder-count="6">
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; overflow: hidden;">
+          <div style="{{s.stripStyle}}">
+            <div style="{{s.cover1Style}}">{{s.cover1}}</div>
+            <div style="{{s.cover2Style}}">{{s.cover2}}</div>
+            <div style="{{s.cover3Style}}">{{s.cover3}}</div>
+            <div style="{{s.cover4Style}}">{{s.cover4}}</div>
+          </div>
+          <div style="padding: 16px 18px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{s.name}}</span>
+              <sc-if value="{{s.isPublic}}" hint-placeholder-val="{{true}}">
+                <span style="display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; background: #e6f4ff; color: #1677ff; font-size: 12px; font-weight: 600; flex-shrink: 0;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"></path></svg>
+                  общая
+                </span>
+              </sc-if>
+            </div>
+            <div style="margin-top: 5px; font-size: 13px; color: rgba(0,0,0,0.45); line-height: 1.5;">{{s.hint}}</div>
+            <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 13px; color: #2563eb; cursor: pointer;">{{s.count}}</span>
+              <span style="display: flex; gap: 8px; color: rgba(0,0,0,0.25);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18a3 3 0 0 1 3 3M8 18a3 3 0 0 0-3 3"></path><circle cx="16" cy="13" r="3"></circle><circle cx="8" cy="13" r="3"></circle></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16z"></path></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"></path></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="border: 1px dashed #d9d9d9; border-radius: 16px; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: rgba(0,0,0,0.45); cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <span style="font-size: 13px;">Новая полка</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+      <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45);">Теги</span>
+      <span style="font-size: 13px; color: rgba(0,0,0,0.45);">свободные пометки · размер по числу записей</span>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 22px 24px; display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline;">
+      <sc-for list="{{tags}}" as="t" hint-placeholder-count="16">
+        <span style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></span>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 22px; padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+      <span style="font-weight: 600; color: rgba(0,0,0,0.88);">Вариант А — витрина.</span> Полка — это набор книг, но сейчас она выглядит как строка в списке с иконками действий. Стопка обложек показывает, что внутри, без нажатия; теги внизу облаком, где размер — число записей.
+      <span style="display: block; margin-top: 6px;">Плата: обложки надо подгружать для каждой полки, а у пустой или новой полки карточка выглядит куце — нужна заглушка.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const palette = [
+      ['#e6f4ff', '#bae0ff', '#0958d9'],
+      ['#e6fffb', '#b5f5ec', '#08979c'],
+      ['#fff0f6', '#ffd6e7', '#c41d7f'],
+      ['#f6ffed', '#d9f7be', '#389e0d'],
+      ['#fff7e6', '#ffe7ba', '#d46b08'],
+      ['#f9f0ff', '#efdbff', '#531dab']
+    ];
+    const strip = (tint) => 'height: 128px; padding: 16px 18px 0; display: flex; gap: -10px; align-items: flex-end; background: ' + tint + '; overflow: hidden;';
+    const coverStyle = (i, c) => 'width: 62px; height: 88px; border-radius: 8px; flex-shrink: 0; margin-left: ' + (i === 0 ? '0' : '-22px') + '; box-shadow: 0 4px 12px rgba(16,24,40,0.14); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: linear-gradient(150deg, ' + c[0] + ' 0%, ' + c[1] + ' 100%); color: ' + c[2] + ';';
+
+    // Четыре фиксированных слота вместо вложенного цикла: он в этом формате не гарантирован.
+    const mk = (initials, tint) => {
+      const four = initials.slice(0, 4);
+      while (four.length < 4) four.push(four[four.length - 1]);
+      return {
+        stripStyle: strip(tint),
+        cover1: four[0], cover1Style: coverStyle(0, palette[0]),
+        cover2: four[1], cover2Style: coverStyle(1, palette[2]),
+        cover3: four[2], cover3Style: coverStyle(2, palette[1]),
+        cover4: four[3], cover4Style: coverStyle(3, palette[4])
+      };
+    };
+
+    const shelves = [
+      { name: 'Фантастика', hint: 'то, что перечитываю', count: '64 записи', isPublic: true, ...mk(['ЗТ', 'ТЛ', 'Д', 'ПО', 'СК'], '#eff4ff') },
+      { name: 'Про космос', hint: 'нон-фикшн и не только', count: '21 запись', isPublic: false, ...mk(['КК', 'ГД', 'АС', 'ММ'], '#e6fffb') },
+      { name: 'Перечитать', hint: 'вернуться через год', count: '9 записей', isPublic: false, ...mk(['СЛ', 'МиМ', 'ХЗ'], '#f9f0ff') },
+      { name: 'Читаем с Аней', hint: 'общая полка · 2 участника', count: '12 записей', isPublic: true, ...mk(['ДЭ', 'Т', 'ВП', 'Б'], '#fff0f6') },
+      { name: 'Купить осенью', hint: 'из списка желаемого', count: '7 записей', isPublic: false, ...mk(['ТВ', 'НС', 'ЛГ'], '#fff7e6') },
+      { name: 'Дома на полке', hint: 'бумажные, гостиная', count: '38 записей', isPublic: false, ...mk(['ПО', 'ЗТ', 'СЛ', 'МиМ', 'Д'], '#f6ffed') }
+    ];
+
+    const tagStyle = (size, weight) => 'display: inline-flex; align-items: baseline; gap: 7px; padding: 6px 13px; border-radius: 999px; background: rgba(0,0,0,0.03); font-size: ' + size + 'px; font-weight: ' + weight + '; cursor: pointer;';
+    const countStyle = (size) => 'font-size: ' + Math.max(11, size - 4) + 'px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;';
+    const tags = [
+      { label: 'фантастика', count: '64', size: 22 },
+      { label: 'на лето', count: '12', size: 15 },
+      { label: 'перечитать', count: '31', size: 18 },
+      { label: 'китай', count: '9', size: 14 },
+      { label: 'космос', count: '27', size: 17 },
+      { label: 'нон-фикшн', count: '41', size: 20 },
+      { label: 'подарено', count: '6', size: 13 },
+      { label: 'аудио в дороге', count: '18', size: 16 },
+      { label: 'длинные циклы', count: '22', size: 17 },
+      { label: 'бросил', count: '6', size: 13 },
+      { label: 'обсудить', count: '8', size: 14 },
+      { label: 'детство', count: '11', size: 15 },
+      { label: 'детектив', count: '17', size: 16 },
+      { label: 'манга', count: '28', size: 18 },
+      { label: 'про науку', count: '24', size: 17 },
+      { label: 'на английском', count: '14', size: 15 }
+    ].map((t) => ({ ...t, style: tagStyle(t.size, t.size > 17 ? 600 : 400), countStyle: countStyle(t.size) }));
+
+    return { shelves, tags };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #f6f7f9; min-height: 940px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; background: #eff4ff; color: #2563eb; font-weight: 600;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.45);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 24px 24px 40px;">
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Лента</div>
+      <div style="margin-top: 6px; color: rgba(0,0,0,0.65);">Что читают те, на кого вы подписаны · 8 человек</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start;">
+
+      <div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+            <div style="{{f.style}}">{{f.label}}</div>
+          </sc-for>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Сегодня</div>
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; overflow: hidden; margin-bottom: 20px;">
+          <sc-for list="{{today}}" as="e" hint-placeholder-count="4">
+            <div style="{{e.rowStyle}}">
+              <span style="{{e.avatarStyle}}">{{e.initials}}</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; line-height: 1.5;">
+                  <span style="font-weight: 600;">{{e.actor}}</span>
+                  <span style="{{e.tagStyle}}">{{e.action}}</span>
+                  {{e.subject}}
+                </span>
+                <sc-if value="{{e.hasDetail}}" hint-placeholder-val="{{true}}">
+                  <span style="display: block; margin-top: 5px; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.5;">{{e.detail}}</span>
+                </sc-if>
+              </span>
+              <span style="{{e.coverStyle}}">{{e.cover}}</span>
+              <span style="font-size: 12px; color: rgba(0,0,0,0.45); flex-shrink: 0; width: 44px; text-align: right;">{{e.time}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Вчера</div>
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; overflow: hidden;">
+          <sc-for list="{{yesterday}}" as="e" hint-placeholder-count="4">
+            <div style="{{e.rowStyle}}">
+              <span style="{{e.avatarStyle}}">{{e.initials}}</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; line-height: 1.5;">
+                  <span style="font-weight: 600;">{{e.actor}}</span>
+                  <span style="{{e.tagStyle}}">{{e.action}}</span>
+                  {{e.subject}}
+                </span>
+                <sc-if value="{{e.hasDetail}}" hint-placeholder-val="{{true}}">
+                  <span style="display: block; margin-top: 5px; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.5;">{{e.detail}}</span>
+                </sc-if>
+              </span>
+              <span style="{{e.coverStyle}}">{{e.cover}}</span>
+              <span style="font-size: 12px; color: rgba(0,0,0,0.45); flex-shrink: 0; width: 44px; text-align: right;">{{e.time}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+          <span style="font-weight: 600; color: rgba(0,0,0,0.88);">Вариант А — хроника.</span> Событие занимает одну строку, а не карточку списка: за экран помещается 12–15 событий вместо четырёх. Даты сгруппированы, тип события — цветным чипом, фильтры сверху. Поиск читателей уехал в правую колонку, где ему и место.
+          <span style="display: block; margin-top: 6px;">Плата: отзыв целиком в строку не влезает — только первая фраза, остальное по нажатию. Для ленты, где отзывы главное, это минус.</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 12px;">Найти читателя</div>
+          <div style="height: 38px; border: 1px solid #d9d9d9; border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <span style="color: rgba(0,0,0,0.45); font-size: 13px;">Логин или имя</span>
+          </div>
+          <div style="margin-top: 9px; font-size: 12px; color: rgba(0,0,0,0.45); line-height: 1.5;">Показываются только открытые профили.</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 12px;">Кого почитать</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="{{p.avatarStyle}}">{{p.initials}}</span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{p.name}}</span>
+                  <span style="display: block; font-size: 12px; color: rgba(0,0,0,0.45);">{{p.hint}}</span>
+                </span>
+                <span style="{{p.buttonStyle}}">{{p.button}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Ваш профиль</div>
+          <div style="display: flex; align-items: center; gap: 9px; font-size: 13px; color: #389e0d;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+            Открыт — ваши события видны другим
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (active) => 'height: 32px; padding: 0 13px; border-radius: 999px; font-size: 13px; display: inline-flex; align-items: center; cursor: pointer; '
+      + (active ? 'background: #2563eb; color: #ffffff; font-weight: 500;' : 'background: #ffffff; border: 1px solid #eaecf0;');
+    const filters = [
+      { label: 'Всё', active: true },
+      { label: 'Дочитали', active: false },
+      { label: 'Отзывы', active: false },
+      { label: 'Выписки', active: false },
+      { label: 'Достижения', active: false }
+    ].map((f) => ({ ...f, style: chip(f.active) }));
+
+    const avatar = (bg, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; font-size: 12px; font-weight: 700; background: ' + bg + '; color: ' + fg + ';';
+    const tag = (bg, fg) => 'display: inline-flex; align-items: center; height: 20px; padding: 0 8px; margin: 0 6px; border-radius: 999px; background: ' + bg + '; color: ' + fg + '; font-size: 12px; font-weight: 600; vertical-align: 1px;';
+    const cover = (c1, c2, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 42px; border-radius: 6px; flex-shrink: 0; font-size: 10px; font-weight: 700; background: linear-gradient(150deg, ' + c1 + ' 0%, ' + c2 + ' 100%); color: ' + fg + ';';
+    const rowStyle = (last) => 'display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; ' + (last ? '' : 'border-bottom: 1px solid #f2f3f5;');
+
+    const kinds = {
+      finish: ['#f6ffed', '#389e0d', 'дочитал'],
+      review: ['#e6f4ff', '#1677ff', 'написал отзыв на'],
+      quote: ['#fffbe6', '#d48806', 'выписал из'],
+      start: ['#f9f0ff', '#722ed1', 'начал']
+    };
+
+    const build = (list) => list.map((e, i, arr) => {
+      const k = kinds[e.kind];
+      return {
+        actor: e.actor,
+        subject: e.subject,
+        detail: e.detail || '',
+        hasDetail: Boolean(e.detail),
+        time: e.time,
+        initials: e.initials,
+        cover: e.cover,
+        action: k[2],
+        tagStyle: tag(k[0], k[1]),
+        avatarStyle: avatar(e.aBg, e.aFg),
+        coverStyle: cover(e.c1, e.c2, e.cFg),
+        rowStyle: rowStyle(i === arr.length - 1)
+      };
+    });
+
+    const today = build([
+      { kind: 'finish', actor: 'Аня', initials: 'А', aBg: '#fff0f6', aFg: '#c41d7f', subject: '«Тёмный лес»', time: '14:20', cover: 'ТЛ', c1: '#e6f4ff', c2: '#bae0ff', cFg: '#0958d9' },
+      { kind: 'review', actor: 'Дмитрий', initials: 'Д', aBg: '#e6f4ff', aFg: '#1677ff', subject: '«Пикник на обочине»', detail: 'Оценка 9 — «Зона здесь не про инопланетян, а про то, как быстро человек перестаёт задавать вопросы…»', time: '11:05', cover: 'ПО', c1: '#e6f4ff', c2: '#bae0ff', cFg: '#0958d9' },
+      { kind: 'quote', actor: 'Марина', initials: 'М', aBg: '#f6ffed', aFg: '#389e0d', subject: '«Дюны», стр. 214', detail: '«Страх — убийца разума»', time: '09:40', cover: 'Д', c1: '#e6fffb', c2: '#b5f5ec', cFg: '#08979c' },
+      { kind: 'start', actor: 'Пётр', initials: 'П', aBg: '#fff7e6', aFg: '#d46b08', subject: '«Задачу трёх тел»', time: '08:12', cover: 'ЗТ', c1: '#e6f4ff', c2: '#bae0ff', cFg: '#0958d9' }
+    ]);
+
+    const yesterday = build([
+      { kind: 'finish', actor: 'Марина', initials: 'М', aBg: '#f6ffed', aFg: '#389e0d', subject: '«Ходячий замок»', detail: 'Оценка 9,5', time: '23:10', cover: 'ХЗ', c1: '#fff2e8', c2: '#ffd8bf', cFg: '#d4380d' },
+      { kind: 'review', actor: 'Аня', initials: 'А', aBg: '#fff0f6', aFg: '#c41d7f', subject: '«Disco Elysium»', detail: 'Оценка 10 — «Единственная игра, которую хочется цитировать построчно…»', time: '21:44', cover: 'DE', c1: '#f6ffed', c2: '#d9f7be', cFg: '#389e0d' },
+      { kind: 'quote', actor: 'Дмитрий', initials: 'Д', aBg: '#e6f4ff', aFg: '#1677ff', subject: '«Сто лет одиночества», стр. 12', time: '19:02', cover: 'СЛ', c1: '#f9f0ff', c2: '#efdbff', cFg: '#531dab' },
+      { kind: 'start', actor: 'Пётр', initials: 'П', aBg: '#fff7e6', aFg: '#d46b08', subject: '«Берсерка» с 1-го тома', time: '17:30', cover: 'Б', c1: '#fff0f6', c2: '#ffd6e7', cFg: '#c41d7f' }
+    ]);
+
+    const button = (following) => 'font-size: 12px; padding: 5px 11px; border-radius: 999px; flex-shrink: 0; cursor: pointer; '
+      + (following ? 'background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.45);' : 'background: #eff4ff; color: #2563eb; font-weight: 600;');
+    const people = [
+      { name: 'Ольга', hint: 'читает то же, что и вы', initials: 'О', aBg: '#f9f0ff', aFg: '#722ed1', button: 'Подписаться', following: false },
+      { name: 'Кирилл', hint: '38 отзывов', initials: 'К', aBg: '#e6fffb', aFg: '#08979c', button: 'Подписаться', following: false },
+      { name: 'Аня', hint: 'в подписках', initials: 'А', aBg: '#fff0f6', aFg: '#c41d7f', button: 'Вы подписаны', following: true },
+      { name: 'Сергей', hint: 'фантастика, 120 книг', initials: 'С', aBg: '#fff7e6', aFg: '#d46b08', button: 'Подписаться', following: false }
+    ].map((p) => ({ ...p, avatarStyle: avatar(p.aBg, p.aFg), buttonStyle: button(p.following) }));
+
+    return { filters, today, yesterday, people };
+  }
+}
+</script>
+</body>
+</html>

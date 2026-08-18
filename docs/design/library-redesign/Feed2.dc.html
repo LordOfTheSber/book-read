@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #f6f7f9; min-height: 1080px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; background: #eff4ff; color: #2563eb; font-weight: 600;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.45);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 24px 24px 40px;">
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Лента</div>
+      <div style="margin-top: 6px; color: rgba(0,0,0,0.65);">Отзывы и находки тех, на кого вы подписаны</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start;">
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- Отзыв -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 20px 22px;">
+          <div style="display: flex; align-items: center; gap: 11px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #e6f4ff; color: #1677ff; font-weight: 700;">Д</span>
+            <div style="flex: 1; min-width: 0;">
+              <div><span style="font-weight: 600;">Дмитрий</span> <span style="color: rgba(0,0,0,0.65);">написал отзыв</span></div>
+              <div style="font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 2px;">сегодня в 11:05</div>
+            </div>
+            <span style="display: inline-flex; align-items: center; gap: 5px; font-weight: 700;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#faad14" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+              9
+            </span>
+          </div>
+
+          <div style="margin-top: 16px; display: flex; gap: 16px;">
+            <div style="width: 84px; height: 118px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(150deg, #e6f4ff 0%, #bae0ff 100%); color: #0958d9; display: flex; align-items: center; justify-content: center; font-weight: 700;">ПО</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 17px; font-weight: 600;">Пикник на обочине</div>
+              <div style="font-size: 13px; color: rgba(0,0,0,0.45); margin-top: 3px;">Аркадий и Борис Стругацкие · 1972 · 224 стр.</div>
+              <div style="margin-top: 12px; font-size: 15px; line-height: 1.6; color: rgba(0,0,0,0.80);">Зона здесь не про инопланетян, а про то, как быстро человек перестаёт задавать вопросы, если за них платят. Сталкеры не исследователи — они грузчики чуда, и это самое честное, что написано про науку.</div>
+              <div style="margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; background: rgba(0,0,0,0.04); font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="2.6"></circle></svg>
+                Показать спойлеры
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #f2f3f5; display: flex; align-items: center; gap: 8px;">
+            <sc-for list="{{reactions}}" as="r" hint-placeholder-count="3">
+              <div style="{{r.style}}">
+                <span style="{{r.iconStyle}}">
+                  <sc-if value="{{r.isHeart}}" hint-placeholder-val="{{true}}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{r.isBook}}" hint-placeholder-val="{{true}}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{r.isChat}}" hint-placeholder-val="{{true}}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"></path></svg>
+                  </sc-if>
+                </span>
+                {{r.label}}
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; gap: 11px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #fff0f6; color: #c41d7f; font-size: 11px; font-weight: 700; flex-shrink: 0;">А</span>
+            <div style="flex: 1; min-width: 0; padding: 10px 13px; border-radius: 12px; background: rgba(0,0,0,0.02);">
+              <div style="font-size: 13px;"><span style="font-weight: 600;">Аня</span> <span style="color: rgba(0,0,0,0.45);">· 20 минут назад</span></div>
+              <div style="font-size: 13px; line-height: 1.55; margin-top: 4px;">Про грузчиков чуда — идеально сказано. Перечитываю каждые пару лет и каждый раз другое.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Выписка -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 20px 22px;">
+          <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #f6ffed; color: #389e0d; font-weight: 700;">М</span>
+            <div style="flex: 1; min-width: 0;">
+              <div><span style="font-weight: 600;">Марина</span> <span style="color: rgba(0,0,0,0.65);">сделала выписку</span></div>
+              <div style="font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 2px;">сегодня в 09:40 · «Дюна», стр. 214</div>
+            </div>
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 42px; border-radius: 6px; background: linear-gradient(150deg, #e6fffb 0%, #b5f5ec 100%); color: #08979c; font-size: 10px; font-weight: 700;">Д</span>
+          </div>
+          <div style="padding: 16px 20px; border-radius: 12px; background: rgba(0,0,0,0.02); border-left: 3px solid #2563eb; font-size: 17px; line-height: 1.6; font-style: italic;">
+            «Страх — убийца разума. Страх — это маленькая смерть, влекущая за собой полное уничтожение.»
+          </div>
+          <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+            <div style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid #eaecf0; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"></path></svg>
+              12
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid #eaecf0; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer;">Сохранить себе</div>
+          </div>
+        </div>
+
+        <!-- Дочитано, компактно -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 16px 22px; display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #fff0f6; color: #c41d7f; font-size: 12px; font-weight: 700;">А</span>
+          <span style="flex: 1; min-width: 0; line-height: 1.5;"><span style="font-weight: 600;">Аня</span> <span style="color: rgba(0,0,0,0.65);">дочитала</span> «Тёмный лес» <span style="color: rgba(0,0,0,0.45);">· 512 страниц за 11 дней</span></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 42px; border-radius: 6px; background: linear-gradient(150deg, #e6f4ff 0%, #bae0ff 100%); color: #0958d9; font-size: 10px; font-weight: 700;">ТЛ</span>
+          <span style="font-size: 12px; color: rgba(0,0,0,0.45);">14:20</span>
+        </div>
+
+        <div style="padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+          <span style="font-weight: 600; color: rgba(0,0,0,0.88);">Вариант Б — посты.</span> Отзыв — главное, что человек пишет в трекере, и он получает полноценную карточку: обложка, текст, спойлер-кат, реакции и обсуждение прямо в ленте, без раскрывающейся «гармошки». Мелкие события (дочитал, начал) сжаты в одну строку, чтобы не спорить с отзывами.
+          <span style="display: block; margin-top: 6px;">Плата: на экран помещается 3–4 события. Нужна лента с подгрузкой и, вероятно, разделение «все события» / «только отзывы».</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; padding: 16px 18px;">
+          <div style="height: 38px; border: 1px solid #d9d9d9; border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <span style="color: rgba(0,0,0,0.45); font-size: 13px;">Найти читателя</span>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 12px;">Обсуждают на этой неделе</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <sc-for list="{{trending}}" as="t" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="{{t.coverStyle}}">{{t.initials}}</span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{t.title}}</span>
+                  <span style="display: block; font-size: 12px; color: rgba(0,0,0,0.45);">{{t.hint}}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; cursor: pointer; '
+      + (active ? 'background: #eff4ff; color: #2563eb; font-weight: 600;' : 'border: 1px solid #eaecf0; color: rgba(0,0,0,0.65);');
+    const iconStyle = 'display: inline-flex;';
+    const reactions = [
+      { label: '24', active: true, kind: 'heart' },
+      { label: 'В свою библиотеку', active: false, kind: 'book' },
+      { label: '3 комментария', active: false, kind: 'chat' }
+    ].map((r) => ({
+      label: r.label,
+      style: chip(r.active),
+      iconStyle,
+      isHeart: r.kind === 'heart',
+      isBook: r.kind === 'book',
+      isChat: r.kind === 'chat'
+    }));
+
+    const cover = (c1, c2, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 48px; border-radius: 7px; flex-shrink: 0; font-size: 11px; font-weight: 700; background: linear-gradient(150deg, ' + c1 + ' 0%, ' + c2 + ' 100%); color: ' + fg + ';';
+    const trending = [
+      { title: 'Пикник на обочине', hint: '4 отзыва за неделю', initials: 'ПО', c1: '#e6f4ff', c2: '#bae0ff', fg: '#0958d9' },
+      { title: 'Disco Elysium', hint: '3 отзыва · оценка 9,7', initials: 'DE', c1: '#f6ffed', c2: '#d9f7be', fg: '#389e0d' },
+      { title: 'Дюна', hint: '11 выписок', initials: 'Д', c1: '#e6fffb', c2: '#b5f5ec', fg: '#08979c' },
+      { title: 'Тьма', hint: '2 отзыва', initials: 'Т', c1: '#fff7e6', c2: '#ffe7ba', fg: '#d46b08' }
+    ].map((t) => ({ ...t, coverStyle: cover(t.c1, t.c2, t.fg) }));
+
+    return { reactions, trending };
+  }
+}
+</script>
+</body>
+</html>
