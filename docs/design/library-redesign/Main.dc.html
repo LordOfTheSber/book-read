@@ -17,32 +17,40 @@
 
 <div style="width: 1360px; background: #f6f7f9; min-height: 980px;">
 
-  <!-- Шапка приложения -->
-  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 24px; padding: 0 24px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
     <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
       <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
       </div>
       <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0;">
-      <span style="padding: 0 14px; line-height: 58px; font-weight: 500; color: #2563eb; box-shadow: inset 0 -2px 0 #2563eb;">Библиотека</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88);">Аналитика</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88);">Цели</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88);">Лента</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88);">Выписки</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88);">Импорт</span>
-      <span style="padding: 0 14px; line-height: 58px; color: rgba(0,0,0,0.88); display: inline-flex; align-items: center; gap: 6px;">Справочники
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
-      </span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-      <div style="width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.65);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 7-6.5 6.5a3 3 0 0 1-4.2 0L4 12z"></path><path d="M6 21h14"></path></svg>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; background: #eff4ff; color: #2563eb; font-weight: 600;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px;">
-        <div style="width: 24px; height: 24px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
-        <span style="font-weight: 600;">sber</span>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.45);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
       </div>
     </div>
   </div>
@@ -54,16 +62,6 @@
       <div>
         <div style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Моя библиотека</div>
         <div style="margin-top: 6px; color: rgba(0,0,0,0.65);">248 записей · 6 в процессе · 12 в желаемом</div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #d9d9d9; background: #ffffff; font: inherit; color: rgba(0,0,0,0.88); display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2"></path><path d="M20 7V5a1 1 0 0 0-1-1h-2"></path><path d="M4 17v2a1 1 0 0 0 1 1h2"></path><path d="M20 17v2a1 1 0 0 1-1 1h-2"></path><path d="M8 8v8M11 8v8M14 8v8M17 8v8"></path></svg>
-          Сканировать ISBN
-        </button>
-        <button style="height: 40px; padding: 0 18px; border-radius: 10px; border: none; background: #2563eb; color: #ffffff; font: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,0.06);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-          Добавить запись
-        </button>
       </div>
     </div>
 

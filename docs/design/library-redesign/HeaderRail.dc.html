@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 900px; background: #f6f7f9; display: flex;">
+
+  <!-- Боковая навигация -->
+  <div style="width: 240px; flex-shrink: 0; background: #ffffff; border-right: 1px solid #eaecf0; display: flex; flex-direction: column; padding: 14px 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 6px 14px;">
+      <div style="width: 30px; height: 30px; border-radius: 9px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 10px; margin-bottom: 14px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="flex: 1; color: rgba(0,0,0,0.45); font-size: 13px;">Поиск</span>
+      <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 5px;">⌘K</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <sc-for list="{{primary}}" as="item" hint-placeholder-count="5">
+        <div style="{{item.style}}">
+          <span style="{{item.iconStyle}}">
+            <sc-if value="{{item.isLibrary}}" hint-placeholder-val="{{true}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+            </sc-if>
+            <sc-if value="{{item.isChart}}" hint-placeholder-val="{{true}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-6"></path></svg>
+            </sc-if>
+            <sc-if value="{{item.isTarget}}" hint-placeholder-val="{{true}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3.4"></circle></svg>
+            </sc-if>
+            <sc-if value="{{item.isFeed}}" hint-placeholder-val="{{true}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"></path></svg>
+            </sc-if>
+            <sc-if value="{{item.isQuote}}" hint-placeholder-val="{{true}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H5v5h4l-2 5"></path><path d="M19 7h-4v5h4l-2 5"></path></svg>
+            </sc-if>
+          </span>
+          <span style="flex: 1;">{{item.label}}</span>
+          <sc-if value="{{item.hasCount}}" hint-placeholder-val="{{true}}">
+            <span style="{{item.countStyle}}">{{item.count}}</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin: 16px 6px 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45);">Справочники</div>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <sc-for list="{{catalogues}}" as="item" hint-placeholder-count="5">
+        <div style="height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 9px; color: rgba(0,0,0,0.65); font-size: 13px; cursor: pointer;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.25); flex-shrink: 0;"></span>
+          {{item}}
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 999px; background: #fff7e6; color: #d46b08; font-size: 12px; font-weight: 600;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.3-1.7A3.6 3.6 0 0 0 6 18z"></path><path d="M12 13v6M9.5 16.5L12 19l2.5-2.5"></path></svg>
+        2 правки ждут сети
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: #e6f4ff; color: #1677ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 13px;">sber</div>
+          <div style="font-size: 11px; color: rgba(0,0,0,0.45);">Администратор</div>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Рабочая область -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+    <div style="height: 56px; flex-shrink: 0; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;">
+      <span style="font-size: 16px; font-weight: 600;">Моя библиотека</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="height: 34px; padding: 0 13px; border: 1px solid #d9d9d9; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2"></path><path d="M20 7V5a1 1 0 0 0-1-1h-2"></path><path d="M4 17v2a1 1 0 0 0 1 1h2"></path><path d="M20 17v2a1 1 0 0 1-1 1h-2"></path><path d="M8 8v8M11 8v8M14 8v8M17 8v8"></path></svg>
+          Сканировать ISBN
+        </div>
+        <div style="height: 34px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          Добавить
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; gap: 8px;">
+        <sc-for list="{{chips}}" as="chip" hint-placeholder-count="5">
+          <div style="{{chip.style}}">{{chip.label}}<span style="{{chip.countStyle}}">{{chip.count}}</span></div>
+        </sc-for>
+      </div>
+
+      <div style="height: 56px; background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px;"></div>
+
+      <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 14px; overflow: hidden;">
+        <sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+          <div style="{{row.style}}">
+            <div style="{{row.coverStyle}}"></div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px;">
+              <div style="{{row.titleStyle}}"></div>
+              <div style="{{row.metaStyle}}"></div>
+            </div>
+            <div style="width: 96px; height: 8px; border-radius: 999px; background: rgba(0,0,0,0.06);"></div>
+            <div style="width: 150px; height: 8px; border-radius: 999px; background: rgba(0,0,0,0.06);"></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+        Вариант Б: навигация уходит влево и перестаёт спорить за ширину с поиском и кнопкой действия —
+        разделов может стать хоть пятнадцать. Сочетается с вариантом Б страницы «Библиотека»: там полки
+        и фильтры живут в таком же рельсе, и рельсы объединяются в один. Цена — 240 px ширины;
+        на планшете рельс сжимается до значков, на телефоне превращается в нижнюю панель.
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const item = (active) => 'height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 9px; cursor: pointer; '
+      + (active ? 'background: #eff4ff; color: #2563eb; font-weight: 600;' : 'color: rgba(0,0,0,0.88);');
+    const icon = (active) => 'display: inline-flex; flex-shrink: 0; color: ' + (active ? '#2563eb' : 'rgba(0,0,0,0.45)') + ';';
+    const countStyle = (active) => 'font-size: 12px; font-variant-numeric: tabular-nums; color: ' + (active ? '#2563eb' : 'rgba(0,0,0,0.45)') + ';';
+
+    const primary = [
+      { label: 'Библиотека', active: true, count: '248', kind: 'library' },
+      { label: 'Аналитика', active: false, count: '', kind: 'chart' },
+      { label: 'Цели', active: false, count: '2', kind: 'target' },
+      { label: 'Лента', active: false, count: '', kind: 'feed' },
+      { label: 'Выписки', active: false, count: '64', kind: 'quote' }
+    ].map((n) => ({
+      label: n.label,
+      count: n.count,
+      hasCount: n.count !== '',
+      style: item(n.active),
+      iconStyle: icon(n.active),
+      countStyle: countStyle(n.active),
+      isLibrary: n.kind === 'library',
+      isChart: n.kind === 'chart',
+      isTarget: n.kind === 'target',
+      isFeed: n.kind === 'feed',
+      isQuote: n.kind === 'quote'
+    }));
+
+    const catalogues = ['Полки и теги', 'Авторы', 'Серии', 'Типы', 'Источники'];
+
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; border-radius: 999px; font-size: 13px; cursor: pointer; '
+      + (active ? 'background: #2563eb; color: #ffffff; font-weight: 500;' : 'background: #ffffff; border: 1px solid #eaecf0;');
+    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.45)') + ';';
+    const chips = [
+      { label: 'Всё', count: '248', active: false },
+      { label: 'Читаю', count: '6', active: true },
+      { label: 'В планах', count: '41', active: false },
+      { label: 'Завершено', count: '186', active: false },
+      { label: 'Избранное', count: '32', active: false }
+    ].map((c) => ({ ...c, style: chip(c.active), countStyle: chipCount(c.active) }));
+
+    const widths = [62, 48, 70, 40, 56, 66];
+    const rows = widths.map((w, i) => ({
+      style: 'display: flex; align-items: center; gap: 14px; padding: 12px 16px; ' + (i === widths.length - 1 ? '' : 'border-bottom: 1px solid #f2f3f5;'),
+      coverStyle: 'width: 34px; height: 48px; border-radius: 7px; background: rgba(0,0,0,0.05); flex-shrink: 0;',
+      titleStyle: 'height: 10px; border-radius: 999px; background: rgba(0,0,0,0.10); width: ' + w + '%;',
+      metaStyle: 'height: 8px; border-radius: 999px; background: rgba(0,0,0,0.05); width: ' + Math.round(w * 0.55) + '%;'
+    }));
+
+    return { primary, catalogues, chips, rows };
+  }
+}
+</script>
+</body>
+</html>
