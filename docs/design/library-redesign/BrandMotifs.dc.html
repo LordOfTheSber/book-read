@@ -1,0 +1,272 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #C8552F; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 1060px; background: #FBF8F3; padding: 32px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 26px;">
+    <div class="lit" style="font-size: 30px; font-weight: 700; letter-spacing: -0.5px;">Пять приёмов, по которым узнают продукт</div>
+    <div style="margin-top: 8px; color: rgba(23,32,46,0.62); font-size: 15px; line-height: 1.6; max-width: 760px;">Изюминка — не декорация, а деталь, которая одновременно украшает и работает. Каждый приём ниже что-то делает: показывает прогресс, отличает вид, экономит слова.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px;">
+
+    <!-- 1. Живой знак -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;">
+        <span class="lit" style="font-size: 20px; font-weight: 700;">1 · Живой знак</span>
+        <span style="height: 22px; padding: 0 10px; border-radius: 999px; background: #F7EAE4; color: #C8552F; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;">в шапке</span>
+      </div>
+      <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6; margin-bottom: 20px;">Закладка в логотипе растёт вместе с целью года. К декабрю она доходит до низа корешка — и это единственное место, где продукт хвалит вас без слов.</div>
+
+      <div style="display: flex; align-items: flex-end; gap: 26px;">
+        <sc-for list="{{logoStates}}" as="l" hint-placeholder-count="5">
+          <div style="text-align: center;">
+            <svg width="54" height="54" viewBox="0 0 64 64">
+              <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+              <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+              <path d="{{l.path}}" fill="#C8552F"></path>
+            </svg>
+            <div style="margin-top: 9px; font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{l.label}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: 20px; padding: 13px 15px; border-radius: 12px; background: #F3EEE6; font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55;">
+        Осторожно: знак меняется только в приложении. В иконке, на публичной странице и в письмах закладка всегда полная — иначе бренд перестаёт быть узнаваемым.
+      </div>
+    </div>
+
+    <!-- 2. Закладка = прогресс -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;">
+        <span class="lit" style="font-size: 20px; font-weight: 700;">2 · Ленточка вместо полосы</span>
+        <span style="height: 22px; padding: 0 10px; border-radius: 999px; background: #F7EAE4; color: #C8552F; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;">списки</span>
+      </div>
+      <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6; margin-bottom: 20px;">У книги, которую читают, из обложки свисает закладка — её длина и есть прогресс. Полоса под карточкой остаётся для точности, но узнаётся запись по ленточке.</div>
+
+      <div style="display: flex; gap: 18px;">
+        <sc-for list="{{ribbons}}" as="r" hint-placeholder-count="4">
+          <div style="text-align: center;">
+            <div style="{{r.coverStyle}}">
+              <span style="{{r.spineStyle}}"></span>
+              <span class="lit" style="{{r.textStyle}}">{{r.initials}}</span>
+              <span style="{{r.ribbonStyle}}"></span>
+            </div>
+            <div style="margin-top: 9px; font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{r.label}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px;">
+
+    <!-- 3. Корешковая полоса -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div class="lit" style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">3 · Корешковая полоса</div>
+      <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6; margin-bottom: 18px;">Девять цветов видов, выстроенные в ряд, — фирменный паттерн. Заодно это диаграмма: ширина полосы = доля вида в коллекции.</div>
+
+      <div style="display: flex; height: 46px; border-radius: 9px; overflow: hidden;">
+        <sc-for list="{{stripe}}" as="s" hint-placeholder-count="6">
+          <div style="{{s.style}}"></div>
+        </sc-for>
+      </div>
+      <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px 16px;">
+        <sc-for list="{{stripeLegend}}" as="l" hint-placeholder-count="6">
+          <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: rgba(23,32,46,0.62);">
+            <span style="{{l.dotStyle}}"></span>
+            {{l.label}}
+          </span>
+        </sc-for>
+      </div>
+      <div style="margin-top: 16px; font-size: 13px; color: rgba(23,32,46,0.42); line-height: 1.55;">Живёт в шапке публичной страницы, в пустых состояниях и на открытке «Год в обзоре».</div>
+    </div>
+
+    <!-- 4. Загнутый уголок -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div class="lit" style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">4 · Загнутый уголок</div>
+      <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6; margin-bottom: 18px;">Всё, что человек написал сам — выписки и заметки, — получает загнутый уголок страницы. Чужое и системное остаётся с обычным углом.</div>
+
+      <div style="position: relative; padding: 18px 20px; background: #F3EEE6; border-radius: 12px 12px 12px 12px; overflow: hidden;">
+        <span style="position: absolute; right: 0; top: 0; width: 0; height: 0; border-style: solid; border-width: 0 26px 26px 0; border-color: transparent #FBF8F3 transparent transparent;"></span>
+        <span style="position: absolute; right: 0; top: 0; width: 0; height: 0; border-style: solid; border-width: 26px 26px 0 0; border-color: rgba(23,32,46,0.10) transparent transparent transparent;"></span>
+        <div class="lit" style="font-size: 15px; line-height: 1.6; font-style: italic; color: #17202E;">«Не отвечайте! Не отвечайте!! Не отвечайте!!!»</div>
+        <div style="margin-top: 12px; font-size: 12px; color: rgba(23,32,46,0.42);">Задача трёх тел · стр. 118</div>
+      </div>
+
+      <div style="margin-top: 12px; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 12px;">
+        <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55;">Системная карточка — без уголка. Разница видна боковым зрением: своё против чужого.</div>
+      </div>
+    </div>
+
+    <!-- 5. Голос -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div class="lit" style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">5 · Считает за вас</div>
+      <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6; margin-bottom: 18px;">Продукт не показывает проценты — он переводит их в то, что человек может решить: успею или нет, хватит ли вечера.</div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <sc-for list="{{phrases}}" as="p" hint-placeholder-count="4">
+          <div style="padding: 12px 14px; border-radius: 11px; background: #F3EEE6;">
+            <div style="font-size: 14px; line-height: 1.5;">{{p.good}}</div>
+            <div style="margin-top: 5px; font-size: 12px; color: rgba(23,32,46,0.42); text-decoration: line-through;">{{p.bad}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- Открытка -->
+  <div style="display: grid; grid-template-columns: 520px minmax(0, 1fr); gap: 18px;">
+    <div style="background: #1B2A4A; border-radius: 18px; padding: 30px 32px; position: relative; overflow: hidden;">
+      <div style="position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(200,85,47,0.14);"></div>
+      <div style="position: relative;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 22px;">
+          <svg width="26" height="26" viewBox="0 0 64 64">
+            <rect x="10" y="8" width="44" height="48" rx="9" fill="#FBF8F3"></rect>
+            <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+          </svg>
+          <span class="lit" style="font-size: 15px; font-weight: 700; color: #FBF8F3;">BookRead</span>
+          <span style="margin-left: auto; font-size: 12px; color: rgba(251,248,243,0.5);">bookread.ru/u/sber</span>
+        </div>
+
+        <div class="lit" style="font-size: 30px; font-weight: 700; color: #FBF8F3; line-height: 1.2; letter-spacing: -0.5px;">Год в обзоре<br>2026</div>
+
+        <div style="margin-top: 22px; display: flex; gap: 30px;">
+          <sc-for list="{{yearStats}}" as="y" hint-placeholder-count="3">
+            <div>
+              <div class="lit" style="font-size: 30px; font-weight: 700; color: #FBF8F3; line-height: 1; font-variant-numeric: tabular-nums;">{{y.value}}</div>
+              <div style="margin-top: 6px; font-size: 12px; color: rgba(251,248,243,0.5);">{{y.label}}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 4px; height: 40px; border-radius: 7px; overflow: hidden;">
+          <sc-for list="{{cardStripe}}" as="s" hint-placeholder-count="9">
+            <div style="{{s.style}}"></div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 13px; color: rgba(251,248,243,0.7); line-height: 1.6;">Лучшее за год — <span style="color: #FBF8F3; font-weight: 600;">Disco Elysium</span> и <span style="color: #FBF8F3; font-weight: 600;">Пикник на обочине</span>. Самая длинная серия — 118 дней подряд.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+        <div class="lit" style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Открытка «Год в обзоре»</div>
+        <div style="font-size: 14px; color: rgba(23,32,46,0.62); line-height: 1.6;">Единственная страница, которую человек показывает другим по своей воле, — значит, именно она должна выглядеть как бренд. Одна картинка, которую можно сохранить и отправить: знак, три числа, корешковая полоса из того, что читалось, и адрес публичной страницы.</div>
+        <div style="margin-top: 14px; display: flex; gap: 10px;">
+          <span style="height: 38px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FBF8F3; font-weight: 500; display: inline-flex; align-items: center; font-size: 13px;">Сохранить картинкой</span>
+          <span style="height: 38px; padding: 0 16px; border-radius: 10px; border: 1px solid #E7E0D4; display: inline-flex; align-items: center; font-size: 13px;">Скопировать ссылку</span>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.42); margin-bottom: 14px;">Чего не делаем</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{avoid}}" as="a" hint-placeholder-count="4">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #F7E9E6; color: #9E2B2B; flex-shrink: 0; margin-top: 1px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+              </span>
+              <span style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55;">{{a}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Закладка в знаке: чем дальше цель, тем ниже опускается хвост.
+    const ribbonPath = (pct) => {
+      const bottom = 8 + Math.round(44 * (pct / 100));
+      // Та же геометрия, что у полного знака: прямоугольник с треугольной прорезью снизу.
+      return 'M34 8h11v' + (bottom - 8) + 'l-5.5 -6.5L34 ' + bottom + 'z';
+    };
+    const logoStates = [
+      { label: '0%', path: 'M34 8h11v6l-5.5-3L34 14z' },
+      { label: '25%', path: ribbonPath(25) },
+      { label: '50%', path: ribbonPath(50) },
+      { label: '75%', path: ribbonPath(75) },
+      { label: '100%', path: 'M34 8h11v40l-5.5-6.5L34 48z' }
+    ];
+
+    const coverBox = (tint) => 'position: relative; width: 78px; height: 110px; border-radius: 8px; background: ' + tint + '; border: 1px solid #E7E0D4; display: flex; align-items: center; justify-content: center; overflow: hidden;';
+    const spine = (color) => 'position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: ' + color + '; display: block;';
+    const text = (color) => 'font-size: 20px; font-weight: 700; color: ' + color + ';';
+    const ribbon = (pct) => 'position: absolute; right: 13px; top: 0; width: 11px; height: ' + Math.round(110 * (pct / 100)) + 'px; background: #C8552F; display: block; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);';
+
+    const ribbons = [
+      { initials: 'ЗТ', tint: '#F2F0EC', color: '#1B2A4A', pct: 20, label: '20%' },
+      { initials: 'Д', tint: '#EDF3F2', color: '#2E7D74', pct: 45, label: '45%' },
+      { initials: 'Б', tint: '#F5EDF1', color: '#A6446B', pct: 78, label: '78%' },
+      { initials: 'ПО', tint: '#EEF3F0', color: '#3C7A5A', pct: 100, label: 'дочитано' }
+    ].map((r) => ({
+      ...r,
+      coverStyle: coverBox(r.tint),
+      spineStyle: spine(r.color),
+      textStyle: text(r.color),
+      ribbonStyle: ribbon(r.pct)
+    }));
+
+    const kinds = [
+      ['Книги', '#1B2A4A', 42], ['Манга', '#A6446B', 16], ['Аудио', '#2E7D74', 14],
+      ['Сериалы', '#B8862B', 12], ['Фильмы', '#B4552A', 9], ['Игры', '#3C7A5A', 7]
+    ];
+    const stripe = kinds.map(([, color, share]) => ({
+      style: 'flex: ' + share + '; min-width: 0; background: ' + color + ';'
+    }));
+    const stripeLegend = kinds.map(([label, color, share]) => ({
+      label: label + ' · ' + share + '%',
+      dotStyle: 'display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: ' + color + ';'
+    }));
+
+    const cardStripe = ['#1B2A4A', '#2E7D74', '#A6446B', '#6B4EA6', '#B4552A', '#B8862B', '#8A6D1F', '#3C5BA6', '#3C7A5A']
+      .map((c, i) => ({ style: 'flex: ' + (i === 0 ? 3 : 1) + '; min-width: 0; border-radius: 4px; background: ' + c + '; opacity: 0.9;' }));
+
+    const phrases = [
+      { good: 'Осталось 188 страниц — это неделя в вашем темпе', bad: 'Прогресс: 53%' },
+      { good: 'Чтобы успеть к 30 сентября, читайте по 12 страниц в день', bad: 'Дедлайн: 30.09.2026' },
+      { good: 'Вы на 4 книги впереди графика', bad: 'Выполнение цели: 75%' },
+      { good: 'Сегодня ещё не отмечено — одна страница сохранит серию', bad: 'Серия: 118 дней' }
+    ];
+
+    const yearStats = [
+      { value: '36', label: 'книг дочитано' },
+      { value: '11 240', label: 'страниц' },
+      { value: '118', label: 'дней подряд' }
+    ];
+
+    const avoid = [
+      'Градиенты в знаке и на кнопках — прошлый логотип собран из двух и в 16 px читается пятном',
+      'Второй тёплый акцент: закладка одна, всё остальное — чернила, бумага и статусные цвета',
+      'Иллюстрации-заглушки со стопками книг: заглушка обложки уже несёт стиль',
+      'Эмодзи в интерфейсе — виды произведений различаются цветом корешка и значком, а не смайлом'
+    ];
+
+    return { logoStates, ribbons, stripe, stripeLegend, cardStripe, phrases, yearStats, avoid };
+  }
+}
+</script>
+</body>
+</html>
