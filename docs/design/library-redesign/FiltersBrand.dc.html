@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #C8552F; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 860px; min-height: 1000px; background: #FBF8F3; padding: 28px; box-sizing: border-box; display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 24px;">
+
+  <!-- Панель фильтров для узкого экрана -->
+  <div>
+    <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+      <span style="font-size: 12px; font-weight: 700; color: #C8552F; text-transform: uppercase; letter-spacing: 0.6px;">Фильтры</span>
+      <span style="color: rgba(23,32,46,0.62);">панель для узкого экрана</span>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; box-shadow: 0 12px 40px rgba(27,42,74,0.10); overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; justify-content: space-between;">
+        <span class="lit" style="font-size: 16px; font-weight: 600;">Фильтры</span>
+        <span style="font-size: 13px; color: #C8552F; cursor: pointer;">Сбросить всё</span>
+      </div>
+
+      <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 18px;">
+
+        <div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42); margin-bottom: 10px;">Статус</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <sc-for list="{{statuses}}" as="st" hint-placeholder-count="6">
+              <div style="{{st.style}}">{{st.label}}<span style="{{st.countStyle}}">{{st.count}}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42); margin-bottom: 10px;">Вид</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <sc-for list="{{kinds}}" as="kind" hint-placeholder-count="9">
+              <div style="{{kind.style}}">{{kind.label}}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42);">Оценка</span>
+            <span style="font-size: 13px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">от 7 до 10</span>
+          </div>
+          <div style="position: relative; height: 20px;">
+            <div style="position: absolute; top: 8px; left: 0; right: 0; height: 4px; border-radius: 999px; background: #F0EAE0;"></div>
+            <div style="position: absolute; top: 8px; left: 245px; right: 0; height: 4px; border-radius: 999px; background: #C8552F;"></div>
+            <div style="position: absolute; top: 3px; left: 239px; width: 14px; height: 14px; border-radius: 50%; background: #FFFFFF; border: 2px solid #C8552F;"></div>
+            <div style="position: absolute; top: 3px; right: 0; width: 14px; height: 14px; border-radius: 50%; background: #FFFFFF; border: 2px solid #C8552F;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42); margin-bottom: 10px;">Связи</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{relations}}" as="rel" hint-placeholder-count="5">
+              <div style="height: 38px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px;">
+                <span style="color: rgba(23,32,46,0.42); font-size: 13px;">{{rel.label}}</span>
+                <span style="display: inline-flex; align-items: center; gap: 8px;">
+                  <span style="{{rel.valueStyle}}">{{rel.value}}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.42)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42); margin-bottom: 10px;">Прочее</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <div style="height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid #D9CFC0; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#B8862B" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+              Только избранное
+            </div>
+            <div style="height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid #D9CFC0; display: inline-flex; align-items: center; cursor: pointer;">Список желаемого</div>
+            <div style="height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid #D9CFC0; display: inline-flex; align-items: center; cursor: pointer;">Есть выписки</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="padding: 14px 20px; border-top: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); display: flex; flex-direction: column; gap: 10px;">
+        <div style="height: 42px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+          Показать 24 записи
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: #C8552F; cursor: pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"></path><path d="M8 4v6h7V4"></path></svg>
+          Сохранить как умную полку
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Что изменилось -->
+  <div>
+    <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+      <span style="font-size: 12px; font-weight: 700; color: rgba(23,32,46,0.42); text-transform: uppercase; letter-spacing: 0.6px;">Что изменилось</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <sc-for list="{{changes}}" as="item" hint-placeholder-count="6">
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 12px; padding: 14px 16px;">
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 5px;">{{item.title}}</div>
+          <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55;">{{item.text}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":860,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (active) => 'height: 34px; padding: 0 13px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; '
+      + (active ? 'background: #1B2A4A; color: #FFFFFF; font-weight: 500;' : 'border: 1px solid #D9CFC0; color: #17202E;');
+    const count = (active) => 'font-variant-numeric: tabular-nums; ' + (active ? 'color: rgba(251,248,243,0.6);' : 'color: rgba(23,32,46,0.42);');
+
+    const statuses = [
+      { label: 'Любой', count: '248', active: false },
+      { label: 'Читаю', count: '6', active: true },
+      { label: 'В планах', count: '41', active: false },
+      { label: 'Завершено', count: '186', active: false },
+      { label: 'Отложено', count: '9', active: false },
+      { label: 'Заброшено', count: '6', active: false }
+    ].map((s) => ({ ...s, style: chip(s.active), countStyle: count(s.active) }));
+
+    const kinds = [
+      { label: 'Книга', active: true },
+      { label: 'Комикс', active: false },
+      { label: 'Манга', active: true },
+      { label: 'Аудиокнига', active: false },
+      { label: 'Фильм', active: false },
+      { label: 'Сериал', active: false },
+      { label: 'Аниме', active: false },
+      { label: 'Подкаст', active: false },
+      { label: 'Игра', active: false }
+    ].map((k) => ({ ...k, style: chip(k.active) }));
+
+    const valueStyle = (empty) => empty ? 'color: rgba(23,32,46,0.42); font-size: 13px;' : 'font-weight: 500; font-size: 13px;';
+    const relations = [
+      { label: 'Автор', value: 'Все', empty: true },
+      { label: 'Серия', value: 'Все', empty: true },
+      { label: 'Тег', value: 'фантастика', empty: false },
+      { label: 'Полка', value: 'Все', empty: true },
+      { label: 'Тип', value: 'Все', empty: true }
+    ].map((r) => ({ ...r, valueStyle: valueStyle(r.empty) }));
+
+    const changes = [
+      { title: 'Счёт до применения', text: 'Кнопка называет число записей, которые останутся. Сейчас узнать это можно только закрыв панель, и пустая выдача становится сюрпризом.' },
+      { title: 'Статус и вид — чипами', text: 'Девять видов и пять статусов выбираются в один тап и видны все сразу. Выпадающий список ради девяти значений — лишний шаг.' },
+      { title: 'Один диапазон вместо двух полей', text: 'Оценка «от» и «до» была парой числовых полей с валидатором на случай, когда «от» больше «до». Ползунок делает такое состояние невозможным.' },
+      { title: 'Связи собраны в группу', text: 'Автор, серия, тег, полка и тип — пять однотипных списков. Свёрнутые в компактные строки, они занимают экран в два раза меньше.' },
+      { title: 'Умная полка — из панели', text: 'Сохранить удачный набор фильтров можно там же, где его собрали, а не отдельной кнопкой в панели над списком.' },
+      { title: 'На широком экране панели нет', text: 'Те же фильтры живут в левом рельсе страницы (вариант Б): они видны постоянно и не требуют открывать и закрывать окно ради одного переключения.' }
+    ];
+
+    return { statuses, kinds, relations, changes };
+  }
+}
+</script>
+</body>
+</html>

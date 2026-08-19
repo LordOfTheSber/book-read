@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #C8552F; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #FBF8F3; min-height: 980px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-label="BookRead"><rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect><rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect><path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path></svg>
+      <span class="lit" style="font-size: 17px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.42)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.42)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.42);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.42); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.42)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 24px 24px 40px;">
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px;">
+      <div>
+        <div class="lit" style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Администрирование</div>
+        <div style="margin-top: 6px; color: rgba(23,32,46,0.62);">Пользователи, сессии, резервные копии и узлы — в одном разделе</div>
+      </div>
+      <div style="height: 40px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Пригласить
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E7E0D4; margin-bottom: 18px;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <div style="{{t.style}}">{{t.label}}</div>
+      </sc-for>
+    </div>
+
+    <!-- Сводка состояния -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px;">
+      <sc-for list="{{health}}" as="h" hint-placeholder-count="4">
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+          <span style="{{h.dotStyle}}"></span>
+          <span style="min-width: 0;">
+            <span style="display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42);">{{h.label}}</span>
+            <span class="lit" style="display: block; font-size: 18px; font-weight: 700; margin-top: 3px;">{{h.value}}</span>
+            <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.42); margin-top: 2px;">{{h.hint}}</span>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Пользователи -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden; margin-bottom: 18px;">
+      <div style="display: flex; align-items: center; gap: 16px; height: 44px; padding: 0 16px; background: rgba(23,32,46,0.03); border-bottom: 1px solid #E7E0D4; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42);">
+        <div style="flex: 1;">Пользователь</div>
+        <div style="width: 140px;">Роль</div>
+        <div style="width: 120px;">Статус</div>
+        <div style="width: 190px;">Сессия</div>
+        <div style="width: 130px;">Библиотека</div>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <sc-for list="{{users}}" as="u" hint-placeholder-count="6">
+        <div style="{{u.rowStyle}}">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px;">
+            <span style="{{u.avatarStyle}}">{{u.initials}}</span>
+            <span style="min-width: 0;">
+              <span style="display: block; font-weight: 500;">{{u.name}}</span>
+              <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.42);">{{u.created}}</span>
+            </span>
+          </div>
+          <div style="width: 140px;"><span style="{{u.roleStyle}}">{{u.role}}</span></div>
+          <div style="width: 120px;"><span style="{{u.stateStyle}}">{{u.state}}</span></div>
+          <div style="width: 190px; font-size: 13px; color: rgba(23,32,46,0.62);">{{u.session}}</div>
+          <div style="width: 130px; font-size: 13px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{u.books}}</div>
+          <div style="width: 60px; display: flex; justify-content: flex-end; color: rgba(23,32,46,0.28);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Узлы и копии рядом -->
+    <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px;">
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 22px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-weight: 600;">Узлы</span>
+          <span style="font-size: 13px; color: rgba(23,32,46,0.42);">пульс раз в минуту</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{nodes}}" as="n" hint-placeholder-count="3">
+            <div style="padding: 14px 16px; border-radius: 12px; background: rgba(23,32,46,0.03);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="{{n.dotStyle}}"></span>
+                <span style="font-weight: 600;">{{n.name}}</span>
+                <span style="font-size: 12px; color: rgba(23,32,46,0.42);">{{n.ip}}</span>
+                <span style="flex: 1;"></span>
+                <span style="font-size: 12px; color: rgba(23,32,46,0.42);">{{n.uptime}}</span>
+              </div>
+              <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;"><span style="font-size: 12px; color: rgba(23,32,46,0.42);">CPU</span><span style="font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">{{n.cpu}}</span></div>
+                  <div style="height: 5px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;"><div style="{{n.cpuBar}}"></div></div>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;"><span style="font-size: 12px; color: rgba(23,32,46,0.42);">Память</span><span style="font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">{{n.mem}}</span></div>
+                  <div style="height: 5px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;"><div style="{{n.memBar}}"></div></div>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;"><span style="font-size: 12px; color: rgba(23,32,46,0.42);">Диск</span><span style="font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">{{n.disk}}</span></div>
+                  <div style="height: 5px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;"><div style="{{n.diskBar}}"></div></div>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;"><span style="font-size: 12px; color: rgba(23,32,46,0.42);">Heap</span><span style="font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">{{n.heap}}</span></div>
+                  <div style="height: 5px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;"><div style="{{n.heapBar}}"></div></div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 22px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-weight: 600;">Резервные копии</span>
+          <span style="height: 32px; padding: 0 13px; border-radius: 9px; border: 1px solid #D9CFC0; font-size: 13px; display: inline-flex; align-items: center; cursor: pointer;">Создать</span>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{backups}}" as="b" hint-placeholder-count="4">
+            <div style="{{b.rowStyle}}">
+              <span style="{{b.iconStyle}}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v14H5z"></path><path d="M9 5v5h6V5"></path></svg>
+              </span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{b.file}}</span>
+                <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.42); margin-top: 2px;">{{b.meta}}</span>
+              </span>
+              <span style="display: flex; gap: 8px; color: rgba(23,32,46,0.28); flex-shrink: 0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path><path d="M4 20h16"></path></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"></path></svg>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 14px; padding: 12px; border-radius: 10px; background: #FCF4F2; font-size: 12px; color: #8A2323; line-height: 1.55;">
+          Восстановление из копии заменяет данные всех пользователей. Действие необратимо.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 22px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.6;">
+      <span style="font-weight: 600; color: #17202E;">Администрирование одной страницей.</span> Сейчас это два пункта меню («Пользователи» с тремя вкладками и «Узлы») — на них приходится два из одиннадцати мест в шапке, хотя видят их единицы. Здесь всё собрано под один пункт «Администрирование» в меню «Ещё», а сверху — четыре показателя состояния, чтобы понять, всё ли в порядке, не открывая вкладок.
+      <span style="display: block; margin-top: 6px;">Плата: страница становится длинной для того, кто пришёл поменять роль одному человеку. Вариантов здесь намеренно один: это служебный раздел, спорить о его композиции дороже, чем о читательских экранах.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabStyle = (active) => 'padding: 0 14px; height: 42px; display: inline-flex; align-items: center; cursor: pointer; '
+      + (active ? 'color: #C8552F; font-weight: 500; box-shadow: inset 0 -2px 0 #C8552F;' : 'color: rgba(23,32,46,0.62);');
+    const tabs = [
+      { label: 'Обзор', active: true },
+      { label: 'Пользователи · 14', active: false },
+      { label: 'Сессии', active: false },
+      { label: 'Копии · 6', active: false }
+    ].map((t) => ({ ...t, style: tabStyle(t.active) }));
+
+    const dot = (color) => 'display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: ' + color + '; box-shadow: 0 0 0 4px ' + color + '22;';
+    const health = [
+      { label: 'Узлы', value: '2 из 3', hint: 'node-3 молчит 14 минут', color: '#B8862B' },
+      { label: 'Пользователи', value: '14', hint: '9 активны за неделю', color: '#3C7A5A' },
+      { label: 'Последняя копия', value: '3 часа назад', hint: 'ежедневно в 04:00', color: '#3C7A5A' },
+      { label: 'Место на диске', value: '68%', hint: '124 ГБ свободно', color: '#3C7A5A' }
+    ].map((h) => ({ ...h, dotStyle: dot(h.color) }));
+
+    const rowStyle = (last) => 'display: flex; align-items: center; gap: 16px; padding: 12px 16px; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const avatar = (bg, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; font-size: 12px; font-weight: 700; background: ' + bg + '; color: ' + fg + ';';
+    const tag = (bg, fg) => 'display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; background: ' + bg + '; color: ' + fg + '; font-size: 12px; font-weight: 600;';
+
+    const users = [
+      { name: 'sber', created: 'с 14.02.2024', role: 'Администратор', rBg: '#F0EBF5', rFg: '#7E62B8', state: 'Активен', sBg: '#EAF0EA', sFg: '#3C7A5A', session: 'сейчас · 2 устройства', books: '248 записей', initials: 'С', aBg: '#EDEFF4', aFg: '#2E4472' },
+      { name: 'anna', created: 'с 03.05.2024', role: 'Читатель', rBg: 'rgba(23,32,46,0.05)', rFg: 'rgba(23,32,46,0.62)', state: 'Активен', sBg: '#EAF0EA', sFg: '#3C7A5A', session: '2 часа назад', books: '164 записи', initials: 'А', aBg: '#F5E8EE', aFg: '#A6446B' },
+      { name: 'dmitry', created: 'с 19.09.2024', role: 'Редактор', rBg: '#EDEFF4', rFg: '#2E4472', state: 'Активен', sBg: '#EAF0EA', sFg: '#3C7A5A', session: 'вчера', books: '92 записи', initials: 'Д', aBg: '#E6F0EF', aFg: '#2E7D74' },
+      { name: 'marina', created: 'с 21.01.2025', role: 'Читатель', rBg: 'rgba(23,32,46,0.05)', rFg: 'rgba(23,32,46,0.62)', state: 'Активен', sBg: '#EAF0EA', sFg: '#3C7A5A', session: '4 дня назад', books: '51 запись', initials: 'М', aBg: '#EAF0EA', aFg: '#2F6147' },
+      { name: 'petr', created: 'с 08.03.2025', role: 'Читатель', rBg: 'rgba(23,32,46,0.05)', rFg: 'rgba(23,32,46,0.62)', state: 'Заблокирован', sBg: '#F9EDEA', sFg: '#9E2B2B', session: 'месяц назад', books: '12 записей', initials: 'П', aBg: '#FBF1DF', aFg: '#96651C' },
+      { name: 'olga', created: 'с 11.06.2026', role: 'Читатель', rBg: 'rgba(23,32,46,0.05)', rFg: 'rgba(23,32,46,0.62)', state: 'Приглашён', sBg: '#FBF1DF', sFg: '#96651C', session: 'ни разу не входил', books: '—', initials: 'О', aBg: '#F0EBF5', aFg: '#7E62B8' }
+    ].map((u, i, arr) => ({
+      ...u,
+      rowStyle: rowStyle(i === arr.length - 1),
+      avatarStyle: avatar(u.aBg, u.aFg),
+      roleStyle: tag(u.rBg, u.rFg),
+      stateStyle: tag(u.sBg, u.sFg)
+    }));
+
+    const bar = (pct) => 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: ' + (pct > 85 ? '#9E2B2B' : pct > 65 ? '#B8862B' : '#3C7A5A') + ';';
+    const nodes = [
+      { name: 'node-1 · основной', ip: '10.0.0.11', uptime: '42 дня', cpu: '18%', mem: '54%', disk: '68%', heap: '41%', color: '#3C7A5A', c: 18, m: 54, d: 68, h: 41 },
+      { name: 'node-2 · реплика', ip: '10.0.0.12', uptime: '42 дня', cpu: '9%', mem: '47%', disk: '66%', heap: '38%', color: '#3C7A5A', c: 9, m: 47, d: 66, h: 38 },
+      { name: 'node-3 · архив', ip: '10.0.0.13', uptime: 'нет сигнала 14 мин', cpu: '—', mem: '—', disk: '91%', heap: '—', color: '#B8862B', c: 0, m: 0, d: 91, h: 0 }
+    ].map((n) => ({
+      ...n,
+      dotStyle: dot(n.color),
+      cpuBar: bar(n.c), memBar: bar(n.m), diskBar: bar(n.d), heapBar: bar(n.h)
+    }));
+
+    const bRow = (last) => 'display: flex; align-items: center; gap: 12px; padding: 11px 0; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const bIcon = 'display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; background: rgba(23,32,46,0.05); color: rgba(23,32,46,0.42);';
+    const backups = [
+      { file: 'backup-2026-08-18-04-00.zip', meta: '3 часа назад · 84 МБ · автоматически' },
+      { file: 'backup-2026-08-17-04-00.zip', meta: 'вчера · 83 МБ · автоматически' },
+      { file: 'backup-2026-08-16-21-14.zip', meta: '2 дня назад · 83 МБ · вручную, sber' },
+      { file: 'backup-2026-08-16-04-00.zip', meta: '2 дня назад · 82 МБ · автоматически' }
+    ].map((b, i, arr) => ({ ...b, rowStyle: bRow(i === arr.length - 1), iconStyle: bIcon }));
+
+    return { tabs, health, users, nodes, backups };
+  }
+}
+</script>
+</body>
+</html>

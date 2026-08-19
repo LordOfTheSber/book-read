@@ -1,0 +1,218 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #C8552F; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 1080px; background: #FBF8F3; padding: 28px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 20px;">
+    <div class="lit" style="font-size: 22px; font-weight: 600; letter-spacing: -0.3px;">Масштаб · что меняется на остальных страницах</div>
+    <div style="margin-top: 6px; color: rgba(23,32,46,0.62); font-size: 13px; line-height: 1.55;">Библиотека на 4 812 записей тянет за собой справочник на 3 240 авторов, 512 тегов и 12 400 выписок. Ниже — что ломается и чем заменяется.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px;">
+
+    <!-- Справочник -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+        <span style="font-weight: 600;">Авторы · 3 240</span>
+        <span style="font-size: 12px; padding: 3px 10px; border-radius: 999px; background: #F9EDEA; color: #8A2323; font-weight: 600;">список не работает</span>
+      </div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55; margin-bottom: 14px;">Прокрутка на три тысячи строк бессмысленна: автора ищут по имени, а не листают.</div>
+
+      <div style="height: 40px; border: 1px solid #C8552F; border-radius: 10px; display: flex; align-items: center; gap: 10px; padding: 0 12px; box-shadow: 0 0 0 3px rgba(27,42,74,0.10); margin-bottom: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.42)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1;">стру</span>
+        <span style="font-size: 12px; color: rgba(23,32,46,0.42);">4 совпадения</span>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px;">
+        <sc-for list="{{alphabet}}" as="a" hint-placeholder-count="16">
+          <span style="{{a.style}}">{{a.label}}</span>
+        </sc-for>
+      </div>
+
+      <div style="border: 1px solid #E7E0D4; border-radius: 11px; overflow: hidden;">
+        <sc-for list="{{authors}}" as="a" hint-placeholder-count="4">
+          <div style="{{a.rowStyle}}">
+            <span style="flex: 1; min-width: 0; font-size: 13px; font-weight: 500;">{{a.name}}</span>
+            <span style="font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{a.count}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: rgba(23,32,46,0.42); line-height: 1.5;">По умолчанию — 30 самых частых. Кнопки «показать всех 3 240» нет: она вешает браузер и никому не нужна.</div>
+    </div>
+
+    <!-- Теги -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+        <span style="font-weight: 600;">Теги · 512</span>
+        <span style="font-size: 12px; padding: 3px 10px; border-radius: 999px; background: #F9EDEA; color: #8A2323; font-weight: 600;">облако не работает</span>
+      </div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55; margin-bottom: 14px;">Облако из 512 слов — это стена. Работает срез: частые, редкие, неиспользуемые.</div>
+
+      <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+        <sc-for list="{{tagTabs}}" as="t" hint-placeholder-count="4">
+          <div style="{{t.style}}">{{t.label}}</div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <sc-for list="{{tags}}" as="t" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="flex: 1; min-width: 0; font-size: 13px;">{{t.label}}</span>
+            <span style="width: 130px; height: 6px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden; flex-shrink: 0;">
+              <span style="{{t.barStyle}}"></span>
+            </span>
+            <span style="width: 34px; text-align: right; font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{t.count}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: 14px; padding: 11px 13px; border-radius: 10px; background: #FBF1DF; font-size: 12px; color: #7A5416; line-height: 1.55;">
+        184 тега стоят у одной записи. Предложить объединение или удаление разом — иначе справочник растёт быстрее библиотеки.
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px;">
+
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">Выписки · 12 400</div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55; margin-bottom: 14px;">Стена цитат перестаёт быть стеной. Первым экраном — поиск и последние 20, дальше «показать ещё».</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; color: rgba(23,32,46,0.62);">Найдено 212 по запросу «страх»</div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; color: rgba(23,32,46,0.62);">Сгруппировать по книге · 64 книги</div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; color: rgba(23,32,46,0.62);">Показать ещё 20</div>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">Лента</div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55; margin-bottom: 14px;">Страниц у ленты быть не должно: события приходят постоянно, номера страниц уезжают. Курсор вместо offset.</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 10px 12px; border-radius: 10px; background: #F7EAE4; font-size: 13px; color: #A8421F;">↑ 6 новых событий</div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; color: rgba(23,32,46,0.62);">Показать ещё 20</div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; color: rgba(23,32,46,0.42);">Дальше — только за последние 90 дней</div>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">Аналитика</div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.55; margin-bottom: 14px;">Разрез по 3 240 авторам — не график. Топ-10 плюс строка «остальные 3 230», и клик по ней раскрывает список с поиском.</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <sc-for list="{{topAuthors}}" as="a" hint-placeholder-count="4">
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 13px;">{{a.label}}</span>
+              <span style="font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{a.count}}</span>
+            </div>
+            <div style="height: 6px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;">
+              <div style="{{a.barStyle}}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- Правила -->
+  <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-weight: 600;">Правила масштаба</span>
+      <span style="font-size: 13px; color: rgba(23,32,46,0.42);">от чего зависит поведение экрана</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 16px; padding: 11px 20px; background: rgba(23,32,46,0.03); border-bottom: 1px solid #E7E0D4; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42);">
+      <div style="width: 150px;">Сколько записей</div>
+      <div style="width: 250px;">Как показывать</div>
+      <div style="flex: 1;">Что обязательно</div>
+      <div style="width: 230px;">Чего не делать</div>
+    </div>
+    <sc-for list="{{rules}}" as="r" hint-placeholder-count="4">
+      <div style="{{r.rowStyle}}">
+        <div style="width: 150px;"><span style="{{r.badgeStyle}}">{{r.range}}</span></div>
+        <div style="width: 250px; font-size: 13px;">{{r.how}}</div>
+        <div style="flex: 1; min-width: 0; font-size: 13px; color: rgba(23,32,46,0.62);">{{r.must}}</div>
+        <div style="width: 230px; font-size: 13px; color: #8A2323;">{{r.never}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.62); line-height: 1.6;">
+    Проверка для любого нового экрана: нарисовать его с 5 записями, с 500 и с 5 000. Если при 5 000 остаётся тот же макет — экран к масштабу готов; если приходится дорисовывать поиск и счётчики задним числом — макет был неполным. Сейчас в проекте выдача уже постраничная и фильтры серверные, так что дело не в переписывании, а в счётчиках, индексе, виртуализации и честных пустых состояниях.
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const letters = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'К', 'Л', 'М', 'Н', 'О', 'П', 'С'];
+    const alphabet = letters.map((label, i) => ({
+      label,
+      style: 'display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; '
+        + (i === 15 ? 'background: #1B2A4A; color: #FFFFFF;' : 'background: rgba(23,32,46,0.04); color: rgba(23,32,46,0.62);')
+    }));
+
+    const rowStyle = (last) => 'display: flex; align-items: center; gap: 12px; padding: 10px 13px; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const authors = [
+      { name: 'Аркадий и Борис Стругацкие', count: '11' },
+      { name: 'Аркадий Стругацкий', count: '3' },
+      { name: 'Борис Стругацкий', count: '2' },
+      { name: 'Струговщиков А.', count: '1' }
+    ].map((a, i, arr) => ({ ...a, rowStyle: rowStyle(i === arr.length - 1) }));
+
+    const tab = (active) => 'height: 30px; padding: 0 12px; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; cursor: pointer; '
+      + (active ? 'background: #F7EAE4; color: #C8552F; font-weight: 600;' : 'background: rgba(23,32,46,0.04); color: rgba(23,32,46,0.62);');
+    const tagTabs = [
+      { label: 'Частые', active: true },
+      { label: 'Редкие', active: false },
+      { label: 'Пустые · 12', active: false },
+      { label: 'Похожие · 31', active: false }
+    ].map((t) => ({ ...t, style: tab(t.active) }));
+
+    const bar = (pct, color) => 'display: block; width: ' + pct + '%; height: 100%; border-radius: 999px; background: ' + color + ';';
+    const tags = [
+      { label: 'фантастика', count: '812', pct: 100 },
+      { label: 'нон-фикшн', count: '514', pct: 63 },
+      { label: 'перечитать', count: '388', pct: 48 },
+      { label: 'манга', count: '291', pct: 36 },
+      { label: 'про науку', count: '204', pct: 25 }
+    ].map((t) => ({ ...t, barStyle: bar(t.pct, '#1B2A4A') }));
+
+    const topAuthors = [
+      { label: 'Лю Цысинь', count: '6', pct: 100 },
+      { label: 'Стругацкие', count: '11', pct: 92 },
+      { label: 'Пелевин', count: '9', pct: 74 },
+      { label: 'Остальные 3 230 авторов', count: '4 786', pct: 22 }
+    ].map((a, i) => ({ ...a, barStyle: bar(a.pct, i === 3 ? 'rgba(23,32,46,0.22)' : '#1B2A4A') }));
+
+    const badge = (kind) => 'display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 700; '
+      + (kind === 'ok' ? 'background: #EAF0EA; color: #2F6147;' : kind === 'mid' ? 'background: #EDEFF4; color: #2E4472;' : kind === 'warn' ? 'background: #FBF1DF; color: #96651C;' : 'background: #F9EDEA; color: #8A2323;');
+    const rRow = (last) => 'display: flex; align-items: flex-start; gap: 16px; padding: 13px 20px; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const rules = [
+      { range: 'до 50', how: 'Всё сразу, без пагинации', must: 'Пустое состояние с подсказкой, что делать первым', never: 'Поиск ради поиска', kind: 'ok' },
+      { range: '50 – 500', how: 'Страницы по 50, фильтры сбоку', must: 'Счётчик «показано N из M», сохранение позиции при возврате', never: 'Бесконечная лента без счётчика', kind: 'mid' },
+      { range: '500 – 5 000', how: 'Виртуализация, индекс сбоку, серверная сортировка', must: 'Счётчик выдачи и библиотеки, ленивые обложки, скелетоны', never: 'Считать и сортировать в браузере', kind: 'warn' },
+      { range: 'больше 5 000', how: 'Только поиск и срезы; полный список недоступен', must: 'Массовые операции в фоне с прогрессом, ограничение периода', never: '«Показать всё», экспорт по кнопке без фона', kind: 'bad' }
+    ].map((r, i, arr) => ({ ...r, badgeStyle: badge(r.kind), rowStyle: rRow(i === arr.length - 1) }));
+
+    return { alphabet, authors, tagTabs, tags, topAuthors, rules };
+  }
+}
+</script>
+</body>
+</html>
