@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
   <style>
     body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
-    a { color: #C8552F; text-decoration: none; } a:hover { color: #A8421F; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
     svg { display: block; }
     .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
   </style>
@@ -20,7 +20,7 @@
 
   <div style="margin-bottom: 16px;">
     <div class="lit" style="font-size: 18px; font-weight: 600;">Шапка на телефоне</div>
-    <div style="margin-top: 5px; color: rgba(23,32,46,0.62); font-size: 13px; line-height: 1.55;">Сейчас всё меню спрятано под значком-гамбургером справа: до ленты или аналитики — два касания и панель во весь экран.</div>
+    <div style="margin-top: 5px; color: rgba(23,32,46,0.78); font-size: 13px; line-height: 1.55;">Сейчас всё меню спрятано под значком-гамбургером справа: до ленты или аналитики — два касания и панель во весь экран.</div>
   </div>
 
   <div style="display: flex; gap: 32px;">
@@ -28,14 +28,14 @@
     <!-- Экран 1 -->
     <div>
       <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;">
-        <span style="font-size: 12px; font-weight: 700; color: #C8552F; text-transform: uppercase; letter-spacing: 0.6px;">Основное</span>
-        <span style="font-size: 13px; color: rgba(23,32,46,0.62);">разделы внизу, под большим пальцем</span>
+        <span style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px;">Основное</span>
+        <span style="font-size: 13px; color: rgba(23,32,46,0.78);">разделы внизу, под большим пальцем</span>
       </div>
 
       <div style="width: 390px; height: 800px; background: #FFFFFF; border: 1px solid #DED7CB; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(27,42,74,0.10);">
         <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid #E7E0D4;">
-          <span class="lit" style="flex: 1; font-size: 19px; font-weight: 600; letter-spacing: -0.3px;">Библиотека</span>
-          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(23,32,46,0.62);">
+          <span class="lit" style="flex: 1; font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Библиотека</span>
+          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(23,32,46,0.78);">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
           </div>
           <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
@@ -55,13 +55,13 @@
               <div style="{{card.coverStyle}}">{{card.initials}}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{card.title}}</div>
-                <div style="font-size: 12px; color: rgba(23,32,46,0.42); margin-top: 2px;">{{card.author}}</div>
+                <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{card.author}}</div>
                 <sc-if value="{{card.hasProgress}}" hint-placeholder-val="{{true}}">
                   <div>
                     <div style="margin-top: 10px; height: 6px; border-radius: 999px; background: #F0EAE0; overflow: hidden;">
                       <div style="{{card.barStyle}}"></div>
                     </div>
-                    <div style="margin-top: 5px; font-size: 12px; color: rgba(23,32,46,0.42); font-variant-numeric: tabular-nums;">{{card.progress}}</div>
+                    <div style="margin-top: 5px; font-size: 12px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{card.progress}}</div>
                   </div>
                 </sc-if>
               </div>
@@ -105,13 +105,13 @@
     <!-- Экран 2 -->
     <div>
       <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;">
-        <span style="font-size: 12px; font-weight: 700; color: #C8552F; text-transform: uppercase; letter-spacing: 0.6px;">Ещё</span>
-        <span style="font-size: 13px; color: rgba(23,32,46,0.62);">редкое, с подписями групп</span>
+        <span style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px;">Ещё</span>
+        <span style="font-size: 13px; color: rgba(23,32,46,0.78);">редкое, с подписями групп</span>
       </div>
 
       <div style="width: 390px; height: 800px; background: #FFFFFF; border: 1px solid #DED7CB; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(27,42,74,0.10);">
         <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #E7E0D4;">
-          <span class="lit" style="font-size: 19px; font-weight: 600; letter-spacing: -0.3px;">Ещё</span>
+          <span class="lit" style="font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Ещё</span>
         </div>
 
         <div style="flex: 1; padding: 8px 8px 0; overflow: hidden;">
@@ -124,7 +124,7 @@
                 <span style="display: flex; align-items: center; gap: 12px; width: 100%;">
                   <span style="{{row.dotStyle}}"></span>
                   <span style="flex: 1;">{{row.label}}</span>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.28)" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
                 </span>
               </sc-if>
             </div>
@@ -132,7 +132,7 @@
         </div>
 
         <div style="padding: 12px 16px 20px; border-top: 1px solid #E7E0D4;">
-          <div style="font-size: 12px; color: rgba(23,32,46,0.42); margin-bottom: 9px;">Тема</div>
+          <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-bottom: 9px;">Тема</div>
           <div style="display: flex; gap: 8px;">
             <sc-for list="{{themes}}" as="t" hint-placeholder-count="3">
               <div style="{{t.style}}">
@@ -152,9 +152,9 @@
 <script data-dc-script data-props='{"$preview":{"width":900,"height":980}}'>
 class Component extends DCLogic {
   renderVals() {
-    const chip = (active) => 'display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; flex-shrink: 0; '
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 999px; font-size: 13px; flex-shrink: 0; '
       + (active ? 'background: #1B2A4A; color: #FFFFFF; font-weight: 500;' : 'border: 1px solid #E7E0D4;');
-    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(251,248,243,0.6)' : 'rgba(23,32,46,0.42)') + ';';
+    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(251,248,243,0.6)' : 'rgba(23,32,46,0.62)') + ';';
     const chips = [
       { label: 'Всё', count: '248', active: false },
       { label: 'Читаю', count: '6', active: true },
@@ -166,15 +166,15 @@ class Component extends DCLogic {
     const bar = (pct) => 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: #C8552F;';
     const cards = [
       { title: 'Задача трёх тел', author: 'Лю Цысинь', initials: 'ЗТ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A', pct: 53, progress: '212 / 400 стр.' },
-      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', c1: '#E6F0EF', c2: '#CFE4E1', fg: '#2E7D74', pct: 31, progress: '384 / 1240 мин.' },
+      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', c1: '#E6F0EF', c2: '#CFE4E1', fg: '#2C776E', pct: 31, progress: '384 / 1240 мин.' },
       { title: 'Берсерк', author: 'Кэнтаро Миура', initials: 'Б', c1: '#F5E8EE', c2: '#EBD3DE', fg: '#A6446B', pct: 78, progress: '32 / 41 т.' },
-      { title: 'Тень и кость', author: 'Ли Бардуго', initials: 'ТК', c1: '#FBF1DF', c2: '#F2E2C4', fg: '#96651C', pct: 62, progress: '5 / 8 эп.' },
+      { title: 'Тень и кость', author: 'Ли Бардуго', initials: 'ТК', c1: '#FBF1DF', c2: '#F2E2C4', fg: '#94641C', pct: 62, progress: '5 / 8 эп.' },
       { title: 'Тайные виды на гору Фудзи', author: 'Виктор Пелевин', initials: 'ТВ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A', pct: 0, progress: '' }
     ].map((c) => ({ ...c, coverStyle: cover(c.c1, c.c2, c.fg), barStyle: bar(c.pct), hasProgress: c.pct > 0 }));
 
     const tabWrap = 'flex: 1; height: 72px; display: flex; align-items: center; justify-content: center;';
-    const tabIcon = (active) => 'display: inline-flex; color: ' + (active ? '#1B2A4A' : 'rgba(23,32,46,0.42)') + ';';
-    const tabLabel = (active) => 'font-size: 11px; ' + (active ? 'color: #C8552F; font-weight: 600;' : 'color: rgba(23,32,46,0.42);');
+    const tabIcon = (active) => 'display: inline-flex; color: ' + (active ? '#1B2A4A' : 'rgba(23,32,46,0.62)') + ';';
+    const tabLabel = (active) => 'font-size: 11px; ' + (active ? 'color: #B04B29; font-weight: 600;' : 'color: rgba(23,32,46,0.62);');
     const tabs = [
       { label: 'Библиотека', active: true, kind: 'library' },
       { label: 'Лента', active: false, kind: 'feed' },
@@ -194,7 +194,7 @@ class Component extends DCLogic {
       isMore: t.kind === 'more'
     }));
 
-    const heading = 'padding: 14px 12px 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.42);';
+    const heading = 'padding: 14px 12px 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62);';
     const row = 'min-height: 48px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px;';
     const dot = (color) => 'width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: ' + color + ';';
     const moreRows = [
@@ -202,12 +202,12 @@ class Component extends DCLogic {
       { label: 'Цели', color: '#1B2A4A' },
       { label: 'Выписки', color: '#1B2A4A' },
       { label: 'Действия', heading: true },
-      { label: 'Импорт', color: '#3C7A5A' },
-      { label: 'Экспорт и резервные копии', color: '#3C7A5A' },
+      { label: 'Импорт', color: '#3A7657' },
+      { label: 'Экспорт и резервные копии', color: '#3A7657' },
       { label: 'Справочники', heading: true },
-      { label: 'Полки и теги', color: 'rgba(23,32,46,0.28)' },
-      { label: 'Авторы и серии', color: 'rgba(23,32,46,0.28)' },
-      { label: 'Типы и источники', color: 'rgba(23,32,46,0.28)' },
+      { label: 'Полки и теги', color: 'rgba(23,32,46,0.50)' },
+      { label: 'Авторы и серии', color: 'rgba(23,32,46,0.50)' },
+      { label: 'Типы и источники', color: 'rgba(23,32,46,0.50)' },
       { label: 'Администрирование', heading: true },
       { label: 'Пользователи', color: '#7E62B8' },
       { label: 'Узлы', color: '#7E62B8' }
@@ -220,7 +220,7 @@ class Component extends DCLogic {
     }));
 
     const themeChip = (active) => 'flex: 1; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; '
-      + (active ? 'border: 1px solid #C8552F; color: #C8552F; font-weight: 500;' : 'border: 1px solid #E7E0D4; color: rgba(23,32,46,0.62);');
+      + (active ? 'border: 1px solid #C8552F; color: #B04B29; font-weight: 500;' : 'border: 1px solid #E7E0D4; color: rgba(23,32,46,0.78);');
     const swatch = (c) => 'width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(23,32,46,0.11); background: ' + c + ';';
     const themes = [
       { label: 'Светлая', color: '#FBF8F3', active: true },

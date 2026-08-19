@@ -33,7 +33,7 @@
       <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 18px;">
 
         <div>
-          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Статус</div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Статус</div>
           <div style="display: flex; flex-wrap: wrap; gap: 7px;">
             <sc-for list="{{statuses}}" as="st" hint-placeholder-count="6">
               <div style="{{st.style}}">{{st.label}}<span style="{{st.countStyle}}">{{st.count}}</span></div>
@@ -42,7 +42,7 @@
         </div>
 
         <div>
-          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Вид</div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Вид</div>
           <div style="display: flex; flex-wrap: wrap; gap: 7px;">
             <sc-for list="{{kinds}}" as="kind" hint-placeholder-count="9">
               <div style="{{kind.style}}">{{kind.label}}</div>
@@ -52,7 +52,7 @@
 
         <div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45);">Оценка</span>
+            <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55);">Оценка</span>
             <span style="font-size: 13px; color: rgba(0,0,0,0.65); font-variant-numeric: tabular-nums;">от 7 до 10</span>
           </div>
           <div style="position: relative; height: 20px;">
@@ -64,14 +64,14 @@
         </div>
 
         <div>
-          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Связи</div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Связи</div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <sc-for list="{{relations}}" as="rel" hint-placeholder-count="5">
               <div style="height: 38px; border: 1px solid #d9d9d9; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px;">
-                <span style="color: rgba(0,0,0,0.45); font-size: 13px;">{{rel.label}}</span>
+                <span style="color: rgba(0,0,0,0.55); font-size: 13px;">{{rel.label}}</span>
                 <span style="display: inline-flex; align-items: center; gap: 8px;">
                   <span style="{{rel.valueStyle}}">{{rel.value}}</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </div>
             </sc-for>
@@ -79,7 +79,7 @@
         </div>
 
         <div>
-          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Прочее</div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Прочее</div>
           <div style="display: flex; flex-wrap: wrap; gap: 7px;">
             <div style="height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid #d9d9d9; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="#faad14" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
@@ -93,7 +93,7 @@
       </div>
 
       <div style="padding: 14px 20px; border-top: 1px solid #eaecf0; background: rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 10px;">
-        <div style="height: 42px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+        <div style="height: 44px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
           Показать 24 записи
         </div>
         <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: #2563eb; cursor: pointer;">
@@ -107,7 +107,7 @@
   <!-- Что изменилось -->
   <div>
     <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
-      <span style="font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.6px;">Что изменилось</span>
+      <span style="font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.55); text-transform: uppercase; letter-spacing: 0.6px;">Что изменилось</span>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -128,7 +128,7 @@ class Component extends DCLogic {
   renderVals() {
     const chip = (active) => 'height: 34px; padding: 0 13px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; '
       + (active ? 'background: #2563eb; color: #ffffff; font-weight: 500;' : 'border: 1px solid #d9d9d9; color: rgba(0,0,0,0.88);');
-    const count = (active) => 'font-variant-numeric: tabular-nums; ' + (active ? 'color: rgba(255,255,255,0.75);' : 'color: rgba(0,0,0,0.45);');
+    const count = (active) => 'font-variant-numeric: tabular-nums; ' + (active ? 'color: rgba(255,255,255,0.75);' : 'color: rgba(0,0,0,0.55);');
 
     const statuses = [
       { label: 'Любой', count: '248', active: false },
@@ -151,7 +151,7 @@ class Component extends DCLogic {
       { label: 'Игра', active: false }
     ].map((k) => ({ ...k, style: chip(k.active) }));
 
-    const valueStyle = (empty) => empty ? 'color: rgba(0,0,0,0.45); font-size: 13px;' : 'font-weight: 500; font-size: 13px;';
+    const valueStyle = (empty) => empty ? 'color: rgba(0,0,0,0.55); font-size: 13px;' : 'font-weight: 500; font-size: 13px;';
     const relations = [
       { label: 'Автор', value: 'Все', empty: true },
       { label: 'Серия', value: 'Все', empty: true },

@@ -18,7 +18,7 @@
 <div style="width: 1360px; min-height: 1080px; background: #f6f7f9; padding: 28px; box-sizing: border-box;">
 
   <div style="margin-bottom: 20px;">
-    <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.3px;">Масштаб · что меняется на остальных страницах</div>
+    <div style="font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">Масштаб · что меняется на остальных страницах</div>
     <div style="margin-top: 6px; color: rgba(0,0,0,0.65); font-size: 13px; line-height: 1.55;">Библиотека на 4 812 записей тянет за собой справочник на 3 240 авторов, 512 тегов и 12 400 выписок. Ниже — что ломается и чем заменяется.</div>
   </div>
 
@@ -33,9 +33,9 @@
       <div style="font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.55; margin-bottom: 14px;">Прокрутка на три тысячи строк бессмысленна: автора ищут по имени, а не листают.</div>
 
       <div style="height: 40px; border: 1px solid #2563eb; border-radius: 10px; display: flex; align-items: center; gap: 10px; padding: 0 12px; box-shadow: 0 0 0 3px rgba(37,99,235,0.10); margin-bottom: 12px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
         <span style="flex: 1;">стру</span>
-        <span style="font-size: 12px; color: rgba(0,0,0,0.45);">4 совпадения</span>
+        <span style="font-size: 12px; color: rgba(0,0,0,0.55);">4 совпадения</span>
       </div>
 
       <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px;">
@@ -44,15 +44,15 @@
         </sc-for>
       </div>
 
-      <div style="border: 1px solid #eaecf0; border-radius: 11px; overflow: hidden;">
+      <div style="border: 1px solid #eaecf0; border-radius: 12px; overflow: hidden;">
         <sc-for list="{{authors}}" as="a" hint-placeholder-count="4">
           <div style="{{a.rowStyle}}">
             <span style="flex: 1; min-width: 0; font-size: 13px; font-weight: 500;">{{a.name}}</span>
-            <span style="font-size: 12px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{a.count}}</span>
+            <span style="font-size: 12px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">{{a.count}}</span>
           </div>
         </sc-for>
       </div>
-      <div style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.45); line-height: 1.5;">По умолчанию — 30 самых частых. Кнопки «показать всех 3 240» нет: она вешает браузер и никому не нужна.</div>
+      <div style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.55); line-height: 1.5;">По умолчанию — 30 самых частых. Кнопки «показать всех 3 240» нет: она вешает браузер и никому не нужна.</div>
     </div>
 
     <!-- Теги -->
@@ -76,7 +76,7 @@
             <span style="width: 130px; height: 6px; border-radius: 999px; background: rgba(0,0,0,0.06); overflow: hidden; flex-shrink: 0;">
               <span style="{{t.barStyle}}"></span>
             </span>
-            <span style="width: 34px; text-align: right; font-size: 12px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{t.count}}</span>
+            <span style="width: 34px; text-align: right; font-size: 12px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">{{t.count}}</span>
           </div>
         </sc-for>
       </div>
@@ -105,7 +105,7 @@
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <div style="padding: 10px 12px; border-radius: 10px; background: #eff4ff; font-size: 13px; color: #1d4ed8;">↑ 6 новых событий</div>
         <div style="padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.02); font-size: 13px; color: rgba(0,0,0,0.65);">Показать ещё 20</div>
-        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.02); font-size: 13px; color: rgba(0,0,0,0.45);">Дальше — только за последние 90 дней</div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.02); font-size: 13px; color: rgba(0,0,0,0.55);">Дальше — только за последние 90 дней</div>
       </div>
     </div>
 
@@ -117,7 +117,7 @@
           <div>
             <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px;">
               <span style="font-size: 13px;">{{a.label}}</span>
-              <span style="font-size: 12px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{a.count}}</span>
+              <span style="font-size: 12px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">{{a.count}}</span>
             </div>
             <div style="height: 6px; border-radius: 999px; background: rgba(0,0,0,0.06); overflow: hidden;">
               <div style="{{a.barStyle}}"></div>
@@ -132,9 +132,9 @@
   <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; overflow: hidden;">
     <div style="padding: 16px 20px; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; justify-content: space-between;">
       <span style="font-weight: 600;">Правила масштаба</span>
-      <span style="font-size: 13px; color: rgba(0,0,0,0.45);">от чего зависит поведение экрана</span>
+      <span style="font-size: 13px; color: rgba(0,0,0,0.55);">от чего зависит поведение экрана</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 16px; padding: 11px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid #eaecf0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45);">
+    <div style="display: flex; align-items: center; gap: 16px; padding: 11px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid #eaecf0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55);">
       <div style="width: 150px;">Сколько записей</div>
       <div style="width: 250px;">Как показывать</div>
       <div style="flex: 1;">Что обязательно</div>
@@ -162,7 +162,7 @@ class Component extends DCLogic {
     const letters = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'К', 'Л', 'М', 'Н', 'О', 'П', 'С'];
     const alphabet = letters.map((label, i) => ({
       label,
-      style: 'display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; '
+      style: 'display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; '
         + (i === 15 ? 'background: #2563eb; color: #ffffff;' : 'background: rgba(0,0,0,0.03); color: rgba(0,0,0,0.65);')
     }));
 
@@ -174,7 +174,7 @@ class Component extends DCLogic {
       { name: 'Струговщиков А.', count: '1' }
     ].map((a, i, arr) => ({ ...a, rowStyle: rowStyle(i === arr.length - 1) }));
 
-    const tab = (active) => 'height: 30px; padding: 0 12px; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; cursor: pointer; '
+    const tab = (active) => 'height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; cursor: pointer; '
       + (active ? 'background: #eff4ff; color: #2563eb; font-weight: 600;' : 'background: rgba(0,0,0,0.03); color: rgba(0,0,0,0.65);');
     const tagTabs = [
       { label: 'Частые', active: true },
@@ -200,7 +200,7 @@ class Component extends DCLogic {
     ].map((a, i) => ({ ...a, barStyle: bar(a.pct, i === 3 ? 'rgba(0,0,0,0.20)' : '#2563eb') }));
 
     const badge = (kind) => 'display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 700; '
-      + (kind === 'ok' ? 'background: #f6ffed; color: #389e0d;' : kind === 'mid' ? 'background: #e6f4ff; color: #1677ff;' : kind === 'warn' ? 'background: #fff7e6; color: #d46b08;' : 'background: #fff2f0; color: #cf1322;');
+      + (kind === 'ok' ? 'background: #f6ffed; color: #2F850B;' : kind === 'mid' ? 'background: #e6f4ff; color: #1368DE;' : kind === 'warn' ? 'background: #fff7e6; color: #B05907;' : 'background: #fff2f0; color: #cf1322;');
     const rRow = (last) => 'display: flex; align-items: flex-start; gap: 16px; padding: 13px 20px; ' + (last ? '' : 'border-bottom: 1px solid #f2f3f5;');
     const rules = [
       { range: 'до 50', how: 'Всё сразу, без пагинации', must: 'Пустое состояние с подсказкой, что делать первым', never: 'Поиск ради поиска', kind: 'ok' },

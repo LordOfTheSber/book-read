@@ -29,7 +29,7 @@
       <div style="font-size: 12px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Библиотека</div>
       <div style="width: 390px; height: 780px; background: #ffffff; border: 1px solid #e0e2e6; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(16,24,40,0.10);">
         <div style="height: 54px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid #eaecf0;">
-          <span style="flex: 1; font-size: 19px; font-weight: 600; letter-spacing: -0.3px;">Библиотека</span>
+          <span style="flex: 1; font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Библиотека</span>
           <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.65);">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
           </div>
@@ -51,14 +51,14 @@
               <div style="{{r.coverStyle}}">{{r.initials}}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{r.title}}</div>
-                <div style="font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 2px;">{{r.author}}</div>
+                <div style="font-size: 12px; color: rgba(0,0,0,0.55); margin-top: 2px;">{{r.author}}</div>
                 <sc-if value="{{r.hasProgress}}" hint-placeholder-val="{{true}}">
                   <div>
                     <div style="margin-top: 9px; height: 5px; border-radius: 999px; background: rgba(0,0,0,0.06); overflow: hidden;">
                       <div style="{{r.barStyle}}"></div>
                     </div>
                     <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
-                      <span style="font-size: 11px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{r.progress}}</span>
+                      <span style="font-size: 11px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">{{r.progress}}</span>
                       <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: #eff4ff; color: #2563eb; font-size: 12px; font-weight: 600;">{{r.step}}</span>
                     </div>
                   </div>
@@ -74,7 +74,7 @@
           <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
             <div style="flex: 1; height: 68px; display: flex; align-items: center; justify-content: center;">
               <sc-if value="{{t.isAction}}" hint-placeholder-val="{{true}}">
-                <span style="width: 46px; height: 46px; border-radius: 15px; background: #2563eb; color: #ffffff; display: inline-flex; align-items: center; justify-content: center;">
+                <span style="width: 46px; height: 48px; border-radius: 16px; background: #2563eb; color: #ffffff; display: inline-flex; align-items: center; justify-content: center;">
                   <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
                 </span>
               </sc-if>
@@ -100,7 +100,7 @@
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"></path></svg>
           </div>
           <span style="flex: 1; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Задача трёх тел</span>
-          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.45);">
+          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.55);">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>
           </div>
         </div>
@@ -109,11 +109,11 @@
           <div style="width: 84px; height: 118px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(150deg, #e6f4ff 0%, #bae0ff 100%); color: #0958d9; display: flex; align-items: center; justify-content: center; font-weight: 700;">ЗТ</div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 16px; font-weight: 600; line-height: 1.3;">Задача трёх тел</div>
-            <div style="color: rgba(0,0,0,0.45); font-size: 13px; margin-top: 3px;">Лю Цысинь</div>
+            <div style="color: rgba(0,0,0,0.55); font-size: 13px; margin-top: 3px;">Лю Цысинь</div>
             <div style="margin-top: 12px; height: 6px; border-radius: 999px; background: rgba(0,0,0,0.06); overflow: hidden;">
               <div style="width: 53%; height: 100%; border-radius: 999px; background: #2563eb;"></div>
             </div>
-            <div style="margin-top: 6px; font-size: 12px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">212 / 400 стр. · 12 стр./день</div>
+            <div style="margin-top: 6px; font-size: 12px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">212 / 400 стр. · 12 стр./день</div>
           </div>
         </div>
 
@@ -124,20 +124,20 @@
         </div>
 
         <div style="flex: 1; padding: 14px 16px; overflow: hidden;">
-          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Быстро отметить</div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Быстро отметить</div>
           <div style="display: flex; gap: 8px;">
             <div style="flex: 1; height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 500;">+10</div>
             <div style="flex: 1; height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 500;">+25</div>
             <div style="flex: 1.4; height: 44px; border-radius: 12px; background: #eff4ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: 600;">Заход</div>
           </div>
 
-          <div style="margin-top: 18px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.45); margin-bottom: 10px;">Последние заходы</div>
+          <div style="margin-top: 18px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55); margin-bottom: 10px;">Последние заходы</div>
           <div style="display: flex; flex-direction: column;">
             <sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
               <div style="{{s.rowStyle}}">
                 <span style="width: 84px; flex-shrink: 0; font-size: 13px; color: rgba(0,0,0,0.65);">{{s.date}}</span>
                 <span style="flex: 1; min-width: 0; font-size: 13px; font-variant-numeric: tabular-nums;">{{s.range}}</span>
-                <span style="font-size: 13px; color: rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;">{{s.pages}}</span>
+                <span style="font-size: 13px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">{{s.pages}}</span>
               </div>
             </sc-for>
           </div>
@@ -157,25 +157,25 @@
         <div style="background: #ffffff; border-radius: 24px 24px 0 0; padding: 10px 16px 20px;">
           <div style="width: 40px; height: 4px; border-radius: 999px; background: rgba(0,0,0,0.15); margin: 0 auto 16px;"></div>
           <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Заход</div>
-          <div style="font-size: 13px; color: rgba(0,0,0,0.45); margin-bottom: 18px;">Задача трёх тел · сейчас 188 стр.</div>
+          <div style="font-size: 13px; color: rgba(0,0,0,0.55); margin-bottom: 18px;">Задача трёх тел · сейчас 188 стр.</div>
 
           <div style="font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 8px;">Дочитал до страницы</div>
           <div style="height: 52px; border: 1px solid #2563eb; border-radius: 14px; display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 600; box-shadow: 0 0 0 3px rgba(37,99,235,0.10);">212</div>
 
           <div style="margin-top: 12px; display: flex; gap: 8px;">
             <sc-for list="{{quick}}" as="q" hint-placeholder-count="4">
-              <div style="flex: 1; height: 40px; border: 1px solid #d9d9d9; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 13px;">{{q}}</div>
+              <div style="flex: 1; height: 40px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 13px;">{{q}}</div>
             </sc-for>
           </div>
 
           <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
             <div>
               <div style="font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 7px;">Время, мин</div>
-              <div style="height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; padding: 0 13px; color: rgba(0,0,0,0.45);">45</div>
+              <div style="height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; padding: 0 13px; color: rgba(0,0,0,0.55);">45</div>
             </div>
             <div>
               <div style="font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 7px;">Дата</div>
-              <div style="height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; padding: 0 13px; color: rgba(0,0,0,0.45);">сегодня</div>
+              <div style="height: 44px; border: 1px solid #d9d9d9; border-radius: 12px; display: flex; align-items: center; padding: 0 13px; color: rgba(0,0,0,0.55);">сегодня</div>
             </div>
           </div>
 
@@ -183,7 +183,7 @@
             За заход <span style="font-weight: 600; color: rgba(0,0,0,0.88);">24 страницы</span> · до цели дня остаётся 0
           </div>
 
-          <div style="margin-top: 16px; height: 50px; border-radius: 13px; background: #2563eb; color: #ffffff; font-weight: 500; display: flex; align-items: center; justify-content: center;">Записать</div>
+          <div style="margin-top: 16px; height: 48px; border-radius: 12px; background: #2563eb; color: #ffffff; font-weight: 500; display: flex; align-items: center; justify-content: center;">Записать</div>
           <div style="margin-top: 10px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.65); font-size: 13px;">Отмена</div>
         </div>
       </div>
@@ -197,9 +197,9 @@
 <script data-dc-script data-props='{"$preview":{"width":1320,"height":940}}'>
 class Component extends DCLogic {
   renderVals() {
-    const chip = (active) => 'display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; flex-shrink: 0; '
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 999px; font-size: 13px; flex-shrink: 0; '
       + (active ? 'background: #2563eb; color: #ffffff; font-weight: 500;' : 'border: 1px solid #eaecf0;');
-    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.45)') + ';';
+    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.55)') + ';';
     const chips = [
       { label: 'Читаю', count: '6', active: true },
       { label: 'Всё', count: '248', active: false },
@@ -213,9 +213,9 @@ class Component extends DCLogic {
 
     const rows = [
       { title: 'Задача трёх тел', author: 'Лю Цысинь', initials: 'ЗТ', c1: '#e6f4ff', c2: '#bae0ff', fg: '#0958d9', pct: 53, progress: '212 / 400 стр.', step: '+10' },
-      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', c1: '#e6fffb', c2: '#b5f5ec', fg: '#08979c', pct: 31, progress: '384 / 1240 мин.', step: '+15' },
+      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', c1: '#e6fffb', c2: '#b5f5ec', fg: '#077F83', pct: 31, progress: '384 / 1240 мин.', step: '+15' },
       { title: 'Берсерк', author: 'Кэнтаро Миура', initials: 'Б', c1: '#fff0f6', c2: '#ffd6e7', fg: '#c41d7f', pct: 78, progress: '32 / 41 т.', step: '+1' },
-      { title: 'Тень и кость', author: 'Ли Бардуго', initials: 'ТК', c1: '#fff7e6', c2: '#ffe7ba', fg: '#d46b08', pct: 62, progress: '5 / 8 эп.', step: '+1' },
+      { title: 'Тень и кость', author: 'Ли Бардуго', initials: 'ТК', c1: '#fff7e6', c2: '#ffe7ba', fg: '#B05907', pct: 62, progress: '5 / 8 эп.', step: '+1' },
       { title: 'Тайные виды на гору Фудзи', author: 'Виктор Пелевин', initials: 'ТВ', c1: '#e6f4ff', c2: '#bae0ff', fg: '#0958d9', pct: 0, progress: '', step: '', status: 'В планах', sBg: '#f9f0ff', sFg: '#722ed1' }
     ].map((r) => ({
       ...r,
@@ -227,7 +227,7 @@ class Component extends DCLogic {
     }));
 
     const dot = (active) => 'display: inline-block; width: 20px; height: 20px; border-radius: 6px; background: ' + (active ? '#2563eb' : 'rgba(0,0,0,0.12)') + ';';
-    const label = (active) => 'font-size: 11px; ' + (active ? 'color: #2563eb; font-weight: 600;' : 'color: rgba(0,0,0,0.45);');
+    const label = (active) => 'font-size: 11px; ' + (active ? 'color: #2563eb; font-weight: 600;' : 'color: rgba(0,0,0,0.55);');
     const tabs = [
       { label: 'Книги', active: true, action: false },
       { label: 'Лента', active: false, action: false },
@@ -242,7 +242,7 @@ class Component extends DCLogic {
       labelStyle: label(t.active)
     }));
 
-    const cardTab = (active) => 'height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; display: inline-flex; align-items: center; flex-shrink: 0; '
+    const cardTab = (active) => 'height: 44px; padding: 0 16px; border-radius: 999px; font-size: 13px; display: inline-flex; align-items: center; flex-shrink: 0; '
       + (active ? 'background: #eff4ff; color: #2563eb; font-weight: 600;' : 'background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.65);');
     const cardTabs = [
       { label: 'Прогресс', active: true },
