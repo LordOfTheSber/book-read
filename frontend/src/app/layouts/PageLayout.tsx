@@ -50,7 +50,11 @@ const Shell: React.FC = () => {
 
       <Content
         style={{
-          padding: isMobile ? `16px 12px ${MOBILE_TAB_BAR_HEIGHT + 24}px` : '28px 24px 48px'
+          // Под нижней панелью прячется её высота плюс вырез телефона: без вычета
+          // последняя строка списка оказывалась под панелью и не нажималась.
+          padding: isMobile
+            ? `16px 12px calc(${MOBILE_TAB_BAR_HEIGHT + 24}px + env(safe-area-inset-bottom))`
+            : '28px 24px 48px'
         }}
       >
         {/* Та же полоса, что и у шапки: без неё на широком мониторе логотип стоял по краю

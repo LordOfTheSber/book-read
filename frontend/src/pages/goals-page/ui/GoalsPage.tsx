@@ -135,9 +135,11 @@ export const GoalsPage: React.FC = () => {
     return (
       <Col xs={24} md={8} key={title}>
         <Card size="small" title={title}>
+          {/* Отставание от графика — не ошибка: сургучный цвет тревоги оставлен удалению
+              и сбоям, а про отставание словами сказано выше. */}
           <Progress
             percent={metric.percent}
-            status={metric.onTrack ? 'active' : 'exception'}
+            status={metric.percent >= 100 ? 'success' : 'normal'}
             format={() => `${metric.done} / ${metric.target}`}
           />
           <MetricList

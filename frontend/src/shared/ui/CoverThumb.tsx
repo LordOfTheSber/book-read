@@ -81,7 +81,9 @@ export const CoverThumb: React.FC<Props> = ({
           // ни корешок слева, ни инициалы по центру.
           right: '16%',
           top: 0,
-          width: Math.max(5, Math.round(height * 0.1)),
+          // Ширина растёт с обложкой, но не бесконечно: на карточке в 200 px лента
+          // в двадцать пикселей превращалась из детали в полосу поперёк обложки.
+          width: Math.min(14, Math.max(5, Math.round(height * 0.1))),
           height: `${Math.max(RIBBON_MIN_PERCENT, Math.min(100, progressPercent))}%`,
           background: brand.bookmark,
           clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%)'
@@ -91,8 +93,16 @@ export const CoverThumb: React.FC<Props> = ({
 
   if (src) {
     return (
-      <span style={{ position: 'relative', display: 'inline-block', flexShrink: 0, ...radii, overflow: 'hidden' }}>
-        <img src={src} alt={`Обложка: ${title}`} loading="lazy" style={box} />
+      // Размер держит обёртка, а картинка заполняет её: ленточке нужен предок с
+      // размерами, а `width: 100%` на самой картинке внутри обёртки без ширины
+      // схлопывал обложку карточки до собственного размера файла.
+      <span style={{ ...box, position: 'relative', display: 'block', overflow: 'hidden' }}>
+        <img
+          src={src}
+          alt={`Обложка: ${title}`}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
         {ribbon}
       </span>
     );
@@ -129,7 +139,7 @@ export const CoverThumb: React.FC<Props> = ({
       <span
         className="brand-display"
         style={{
-          fontSize: Math.max(11, Math.round(height * 0.2)),
+          fontSize: Math.min(30, Math.max(11, Math.round(height * 0.2))),
           fontWeight: 700,
           letterSpacing: 0.5,
           color: isDark ? mix(palette.color, '#FFFFFF', 0.65) : palette.color

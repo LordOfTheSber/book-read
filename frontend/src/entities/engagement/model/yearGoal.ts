@@ -35,7 +35,13 @@ export const useYearGoalProgress = (enabled: boolean): number | undefined => {
   const [progress, setProgress] = useState<number | undefined>(undefined);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      // Выход из учётной записи обнуляет и кеш: иначе следующий вошедший в той же вкладке
+      // увидел бы на знаке чужую цель.
+      resetYearGoal();
+      setProgress(undefined);
+      return;
+    }
 
     let cancelled = false;
     loadYearGoal()

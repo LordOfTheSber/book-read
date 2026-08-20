@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppHeader } from './AppHeader';
@@ -92,6 +92,31 @@ describe('AppHeader', () => {
     await userEvent.click(screen.getByText('Поиск по книгам, авторам, выпискам'));
 
     expect(onOpenSearch).toHaveBeenCalled();
+  });
+
+  /**
+   * Меню собраны своим содержимым, а не списком Ant Design: без ручного закрытия они
+   * оставались висеть поверх новой страницы после перехода по ссылке внутри них.
+   */
+  it('меню «Ещё» закрывается, когда из него перешли в раздел', async () => {
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /Ещё/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Выписки' }));
+
+    await waitFor(() => expect(screen.queryByText('Каждую неделю')).not.toBeVisible());
+  });
+
+  it('меню профиля закрывается по переходу, но остаётся открытым при выборе темы', async () => {
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Меню профиля' }));
+    await userEvent.click(await screen.findByRole('button', { name: /Ночь/ }));
+    expect(screen.getByText('Тема')).toBeVisible();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Профиль' }));
+
+    await waitFor(() => expect(screen.getByText('Тема')).not.toBeVisible());
   });
 
   it('тема переехала в меню профиля и не занимает место в шапке', async () => {

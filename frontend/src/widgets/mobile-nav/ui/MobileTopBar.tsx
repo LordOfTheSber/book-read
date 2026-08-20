@@ -58,7 +58,7 @@ export const MobileTopBar: React.FC<Props> = ({ onOpenSearch }) => {
         {sectionTitle(location.pathname) ?? APP_NAME}
       </span>
 
-      <OfflineQueueChip />
+      <OfflineQueueChip compact />
 
       <button
         type="button"

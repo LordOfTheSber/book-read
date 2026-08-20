@@ -40,7 +40,7 @@ describe('GlobalSearchModal', () => {
   it('ищет разом по записям, авторам и выпискам', async () => {
     renderModal();
 
-    await userEvent.type(screen.getByLabelText('Поиск по библиотеке'), 'цысинь');
+    await userEvent.type(screen.getByLabelText('Поиск по книгам, авторам и выпискам'), 'цысинь');
 
     expect(await screen.findByText('Записи')).toBeInTheDocument();
     expect(await screen.findByText('Авторы')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('GlobalSearchModal', () => {
   it('молчит, пока введено меньше двух букв', async () => {
     renderModal();
 
-    await userEvent.type(screen.getByLabelText('Поиск по библиотеке'), 'ц');
+    await userEvent.type(screen.getByLabelText('Поиск по книгам, авторам и выпискам'), 'ц');
 
     await waitFor(() => expect(mock.history.get).toHaveLength(0));
     expect(screen.getByText(/от двух букв/)).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('GlobalSearchModal', () => {
     const onPickBook = vi.fn();
     renderModal(onPickBook);
 
-    await userEvent.type(screen.getByLabelText('Поиск по библиотеке'), 'цысинь');
+    await userEvent.type(screen.getByLabelText('Поиск по книгам, авторам и выпискам'), 'цысинь');
     await userEvent.click(await screen.findByText('Задача трёх тел'));
 
     expect(onPickBook).toHaveBeenCalledWith(expect.objectContaining({ id: 'b1' }));

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Empty, Input, Modal, Spin, Typography, theme } from 'antd';
+import { Empty, Grid, Input, Modal, Spin, Typography, theme } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { coverUrl, fetchBooks, searchQuotes } from '@/entities/book';
@@ -48,6 +48,7 @@ const bookMeta = (item: LibraryItem) => {
  */
 export const GlobalSearchModal: React.FC<Props> = ({ open, onClose, onPickBook }) => {
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [query, setQuery] = useState('');
@@ -252,7 +253,7 @@ export const GlobalSearchModal: React.FC<Props> = ({ open, onClose, onPickBook }
           prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
           suffix={<span style={{ fontSize: 11, color: token.colorTextTertiary }}>Esc</span>}
           placeholder="Поиск по книгам, авторам, выпискам"
-          aria-label="Поиск по библиотеке"
+          aria-label="Поиск по книгам, авторам и выпискам"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -295,7 +296,7 @@ export const GlobalSearchModal: React.FC<Props> = ({ open, onClose, onPickBook }
             color: token.colorTextTertiary
           }}
         >
-          ↑↓ — выбрать · Enter — открыть · Esc — закрыть
+          {screens.md ? '↑↓ — выбрать · Enter — открыть · Esc — закрыть' : 'Нажмите на находку, чтобы открыть'}
         </div>
       </div>
     </Modal>

@@ -10,7 +10,15 @@ import { useOfflineQueue } from '../model/useOfflineQueue';
  * Раньше это была полоса во всю ширину: она сдвигала страницу вниз при каждом обрыве связи,
  * хотя говорит ровно одно число. Чип виден так же, а места не занимает.
  */
-export const OfflineQueueChip: React.FC = () => {
+interface Props {
+  /**
+   * Узкий вариант: только значок и число. На телефоне полная подпись съедала строку
+   * с именем раздела, а сказать она может ровно то же самое — через подсказку.
+   */
+  compact?: boolean;
+}
+
+export const OfflineQueueChip: React.FC<Props> = ({ compact }) => {
   const { online, queued, retry } = useOfflineQueue();
   const { token } = theme.useToken();
 
@@ -45,7 +53,7 @@ export const OfflineQueueChip: React.FC = () => {
           alignItems: 'center',
           gap: 7,
           height: 28,
-          padding: '0 10px',
+          padding: compact ? '0 8px' : '0 10px',
           borderRadius: 999,
           fontSize: 12,
           fontWeight: 600,
@@ -56,7 +64,7 @@ export const OfflineQueueChip: React.FC = () => {
         }}
       >
         {online ? <CloudSyncOutlined /> : <DisconnectOutlined />}
-        {label}
+        {compact ? queued > 0 && queued : label}
       </button>
     </Tooltip>
   );

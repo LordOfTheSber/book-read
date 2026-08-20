@@ -7,6 +7,11 @@ interface Props {
   children: React.ReactNode;
   /** Размер загнутого уголка; на плотных списках он меньше, чем на карточке цитаты. */
   size?: number;
+  /**
+   * Цвет вырезанного угла — фон, на котором лежит карточка. По умолчанию это фон страницы;
+   * внутри панели или окна он другой, и вырез цвета страницы выглядел бы наклейкой.
+   */
+  foldColor?: string;
   style?: React.CSSProperties;
 }
 
@@ -17,7 +22,7 @@ interface Props {
  * боковым зрением и не требует ни подписи, ни значка. Приём фирменного стиля, который работает
  * как признак авторства.
  */
-export const DogEar: React.FC<Props> = ({ children, size = 26, style }) => {
+export const DogEar: React.FC<Props> = ({ children, size = 26, foldColor, style }) => {
   const { token } = theme.useToken();
 
   return (
@@ -42,7 +47,7 @@ export const DogEar: React.FC<Props> = ({ children, size = 26, style }) => {
           height: 0,
           borderStyle: 'solid',
           borderWidth: `0 ${size}px ${size}px 0`,
-          borderColor: `transparent ${token.colorBgLayout} transparent transparent`
+          borderColor: `transparent ${foldColor ?? token.colorBgLayout} transparent transparent`
         }}
       />
       <span

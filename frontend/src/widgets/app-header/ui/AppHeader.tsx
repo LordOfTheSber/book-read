@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Avatar, Button, Dropdown, Typography } from 'antd';
 import { DownOutlined, PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -39,6 +39,12 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
   const groupColors = useNavGroupColors();
   // Живой знак: закладка в логотипе растёт вместе с целью года.
   const goalProgress = useYearGoalProgress(Boolean(user));
+  /**
+   * Открытость меню держим сами: содержимое у них своё, а не список Ant Design, и без этого
+   * меню оставалось висеть на экране после перехода по ссылке внутри него.
+   */
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const isAdmin = isAdminLike(user?.role);
   const groups = useMemo(() => visibleGroups(isAdmin), [isAdmin]);
@@ -67,6 +73,7 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
               to={item.path}
               role="menuitem"
               className="app-shell-reset app-shell-hover"
+              onClick={() => setMoreOpen(false)}
               style={{
                 ...styles.menuRow,
                 ...(item.key === currentKey ? { fontWeight: 600 } : null)
@@ -94,13 +101,19 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
       </div>
 
       <div style={styles.menuSection}>
-        <Link to="/profile" className="app-shell-reset app-shell-hover" style={styles.menuRow}>
+        <Link
+          to="/profile"
+          className="app-shell-reset app-shell-hover"
+          onClick={() => setProfileOpen(false)}
+          style={styles.menuRow}
+        >
           Профиль
         </Link>
         {user && (
           <Link
             to={`/u/${user.username}`}
             className="app-shell-reset app-shell-hover"
+            onClick={() => setProfileOpen(false)}
             style={styles.menuRow}
           >
             Моя страница
@@ -171,12 +184,19 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
               {item.label}
             </Link>
           ))}
-          <Dropdown popupRender={() => moreMenu} trigger={['click']} placement="bottomLeft">
+          <Dropdown
+            popupRender={() => moreMenu}
+            trigger={['click']}
+            placement="bottomLeft"
+            open={moreOpen}
+            onOpenChange={setMoreOpen}
+          >
             <button
               type="button"
               className="app-shell-reset app-shell-hover"
               style={styles.tab(inMoreMenu)}
               aria-haspopup="menu"
+              aria-expanded={moreOpen}
             >
               Ещё
               <DownOutlined style={{ fontSize: 10 }} />
@@ -205,12 +225,19 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
             </Button>
           )}
           {user ? (
-            <Dropdown popupRender={() => profileMenu} trigger={['click']} placement="bottomRight">
+            <Dropdown
+              popupRender={() => profileMenu}
+              trigger={['click']}
+              placement="bottomRight"
+              open={profileOpen}
+              onOpenChange={setProfileOpen}
+            >
               <button
                 type="button"
                 className="app-shell-reset app-shell-hover"
                 style={styles.userButton}
                 aria-label="Меню профиля"
+                aria-expanded={profileOpen}
               >
                 <Avatar size={26} src={avatarSrc} icon={<UserOutlined />} />
                 <DownOutlined style={{ fontSize: 10 }} />
