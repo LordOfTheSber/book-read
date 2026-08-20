@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Empty, Input, List, Skeleton, Space, Typography, theme } from 'antd';
+import { useSearchParams } from 'react-router-dom';
 import { BookOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Quote } from '@/shared/types/library';
@@ -18,10 +19,21 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 export const QuotesPage: React.FC = () => {
   const { token } = theme.useToken();
   const showRequestError = useRequestError();
-  const [query, setQuery] = useState('');
+  /**
+   * Запрос приходит и из адреса: поиск по ⌘K находит выписку на любой странице и приводит
+   * сюда — со своим текстом, а не на пустое поле.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebouncedValue(query, 300);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    // Адрес держит последний запрос: страницу с найденным можно переслать или обновить.
+    setSearchParams(value ? { q: value } : {}, { replace: true });
+  };
 
   React.useEffect(() => {
     if (!debouncedQuery.trim()) {
@@ -73,7 +85,7 @@ export const QuotesPage: React.FC = () => {
         size="large"
         placeholder="Например, «не отвечайте»"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => handleQueryChange(event.target.value)}
       />
 
       {loading ? (

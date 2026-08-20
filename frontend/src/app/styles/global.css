@@ -16,3 +16,28 @@ body {
 .ant-card {
   margin-bottom: 16px;
 }
+
+/* Оболочка приложения. Вкладки, поиск и строки меню собраны из <button> и <a>, а не из
+   компонентов Ant Design: геометрия у них своя, из макетов. Сброс кнопки и наведение живут
+   здесь, потому что инлайновым стилем :hover не задать. */
+.app-shell-reset {
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* Работает только там, где фон не задан инлайном: у выбранной вкладки свой цвет,
+   и наведение его не перекрывает. */
+.app-shell-hover:hover {
+  background: rgba(125, 125, 125, 0.12);
+}
+
+/* У поля поиска фон задан инлайном из токена темы, поэтому наведение перебивает его явно. */
+.app-shell-search:hover {
+  background: rgba(125, 125, 125, 0.1) !important;
+}

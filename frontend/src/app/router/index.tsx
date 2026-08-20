@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Spin } from 'antd';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
-import { PageLayout } from '@/shared/ui/PageLayout';
+import { PageLayout } from '@/app/layouts/PageLayout';
 import { BooksPage } from '@/pages/books-page';
 import { TypesPage } from '@/pages/types-page';
 import { SourcesPage } from '@/pages/sources-page';

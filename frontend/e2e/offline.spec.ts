@@ -50,14 +50,14 @@ test('правка без сети ложится в очередь и доез�
   await page.getByLabel('Альтернативное название').fill('Dune');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
-  // Правка не потеряна и не молчит: баннер показывает, сколько ждёт отправки.
-  await expect(page.getByText(/Не отправлено: 1 изменение|Изменения сохраняются локально/)).toBeVisible();
+  // Правка не потеряна и не молчит: чип в шапке показывает, сколько ждёт отправки.
+  await expect(page.getByText(/1 правка не ушла|1 правка ждёт сети/)).toBeVisible();
 
   await page.unroute('**/api/v1/items/*');
   // Возврат сети приложение узнаёт от браузера — эмулируем то же событие.
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
 
-  await expect(page.getByText(/Не отправлено|Нет сети/)).toBeHidden();
+  await expect(page.getByText(/правка не ушла|правка ждёт сети|Нет сети/)).toBeHidden();
 
   // Правка действительно доехала до сервера, а не осталась в состоянии страницы.
   await page.reload();
@@ -81,7 +81,7 @@ test('очередь не хранит ничего, похожего на уч�
   await page.getByLabel('Редактировать').first().click();
   await page.getByLabel('Альтернативное название').fill('Hyperion');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page.getByText(/Не отправлено|Изменения сохраняются локально/)).toBeVisible();
+  await expect(page.getByText(/1 правка не ушла|1 правка ждёт сети/)).toBeVisible();
 
   const stored = await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {

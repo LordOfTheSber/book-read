@@ -1,19 +1,24 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, App } from 'antd';
-import { CloudSyncOutlined, DisconnectOutlined } from '@ant-design/icons';
+import { useCallback, useEffect, useState } from 'react';
+import { App } from 'antd';
 import { countQueued, isQueueAvailable } from '@/shared/api/offlineQueue';
 import { replayQueue } from '@/shared/api/offlineSync';
 import { setQueueListener } from '@/shared/api/httpClient';
-import { pluralize } from '@/shared/lib/plural';
+
+export interface OfflineQueueState {
+  online: boolean;
+  queued: number;
+  /** Ручной повтор: сеть уже есть, а правка застряла на ошибке сервера. */
+  retry: () => Promise<void>;
+}
 
 /**
  * Состояние связи и очереди отложенных правок.
  *
- * Показывается не только офлайн: правки могут остаться в очереди и после возврата сети — если
- * сервер отвечал ошибкой. Молчащий интерфейс в этот момент хуже всего: человек уверен, что
- * прогресс сохранён, а он лежит в браузере.
+ * Молчать здесь нельзя не только офлайн: правки остаются в очереди и после возврата сети —
+ * если сервер отвечал ошибкой. Человек в этот момент уверен, что прогресс сохранён,
+ * а он лежит в браузере.
  */
-export const OfflineBanner: React.FC = () => {
+export const useOfflineQueue = (): OfflineQueueState => {
   const { message } = App.useApp();
   const [online, setOnline] = useState(() => navigator.onLine);
   const [queued, setQueued] = useState(0);
@@ -64,25 +69,5 @@ export const OfflineBanner: React.FC = () => {
     };
   }, [flush, refresh]);
 
-  if (online && queued === 0) {
-    return null;
-  }
-
-  const pending = queued > 0 ? pluralize(queued, ['изменение', 'изменения', 'изменений']) : null;
-
-  return (
-    <Alert
-      banner
-      type={online ? 'info' : 'warning'}
-      icon={online ? <CloudSyncOutlined /> : <DisconnectOutlined />}
-      showIcon
-      message={
-        online
-          ? `Не отправлено: ${pending}. Повторим автоматически.`
-          : pending
-            ? `Нет сети. Изменения сохраняются локально: ${pending}.`
-            : 'Нет сети. Показаны последние загруженные данные.'
-      }
-    />
-  );
+  return { online, queued, retry: flush };
 };

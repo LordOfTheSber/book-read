@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Grid } from 'antd';
-import { BookOutlined, CheckCircleOutlined, ClockCircleOutlined, PlusOutlined, ReadOutlined, StarOutlined } from '@ant-design/icons';
+import { Grid } from 'antd';
+import { BookOutlined, CheckCircleOutlined, ClockCircleOutlined, ReadOutlined, StarOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
@@ -18,13 +18,13 @@ import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
 import { pluralize } from '@/shared/lib/plural';
 import { statusMeta } from '@/shared/constants/status';
 import { getMediaKindLabel } from '@/shared/constants/mediaKind';
-import { LibraryItem, MediaKind, ReadingStatus } from '@/shared/types/library';
+import { MediaKind, ReadingStatus } from '@/shared/types/library';
 import { BooksListWidget, type BooksViewMode } from '@/widgets/books-list';
 import { BooksToolbarWidget, type ActiveFilterChip } from '@/widgets/books-toolbar';
 import { FiltersPanelWidget } from '@/widgets/filters-panel';
-import { BookFormDrawer } from '@/widgets/book-form';
 import { BulkActionsBar } from '@/widgets/bulk-actions';
 import { SmartShelvesWidget } from '@/widgets/smart-shelves';
+import { useRecordForm } from '@/app/providers/RecordFormProvider';
 import { useBooksPageStyles } from './BooksPage.styles';
 
 const VIEW_MODE_KEY = 'books-view-mode';
@@ -37,7 +37,6 @@ const readViewMode = (): BooksViewMode => {
 export const BooksPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
-  const items = useAppSelector((state) => state.books.items);
   const total = useAppSelector((state) => state.books.total);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const authors = useAppSelector((state) => state.authors.list);
@@ -55,24 +54,13 @@ export const BooksPage: React.FC = () => {
   const styles = useBooksPageStyles();
   const isAdmin = isAdminLike(role);
   const canEdit = canEditBooks(role);
+  // Добавление и редактирование живут в оболочке: действие «Добавить» одно на всё приложение.
+  const { openCreate, openEdit } = useRecordForm();
 
   const [viewMode, setViewMode] = useState<BooksViewMode>(readViewMode);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingSnapshot, setEditingSnapshot] = useState<LibraryItem | null>(null);
   /** Выделение для массовых операций: живёт на странице, потому что панель действий над списком. */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  /**
-   * Открытая карточка берётся из стора по идентификатору, а не хранится снимком: заход на вкладке
-   * «Прогресс» перечитывает список, и снимок оставлял на экране позицию до этого захода —
-   * следующее «+10» отсчитывалось от старого числа. Снимок остаётся запасным вариантом на случай,
-   * когда запись выпала из текущей страницы выдачи.
-   */
-  const editing = useMemo(
-    () => items.find((item) => item.id === editingSnapshot?.id) ?? editingSnapshot,
-    [items, editingSnapshot]
-  );
 
   // Загрузка данных живёт на странице: виджеты только отображают состояние.
   useEffect(() => {
@@ -170,16 +158,6 @@ export const BooksPage: React.FC = () => {
 
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 
-  const openCreate = () => {
-    setEditingSnapshot(null);
-    setFormOpen(true);
-  };
-
-  const openEdit = (item: LibraryItem) => {
-    setEditingSnapshot(item);
-    setFormOpen(true);
-  };
-
   const statusCount = (status: ReadingStatus) => analytics?.statusBreakdown?.[status] ?? 0;
 
   const subtitle = analytics
@@ -190,17 +168,9 @@ export const BooksPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader
-        title="Моя библиотека"
-        subtitle={subtitle}
-        actions={
-          canEdit && (
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
-              Добавить запись
-            </Button>
-          )
-        }
-      />
+      {/* Кнопки действия здесь больше нет: «Добавить» стоит в шапке и доступно с любой
+          страницы — на библиотеке она была вторым таким же экземпляром. */}
+      <PageHeader title="Моя библиотека" subtitle={subtitle} />
 
       <div style={styles.stats}>
         <StatTile
@@ -283,7 +253,6 @@ export const BooksPage: React.FC = () => {
       />
 
       <FiltersPanelWidget open={filtersOpen} onClose={() => setFiltersOpen(false)} />
-      <BookFormDrawer open={formOpen} editing={editing} onClose={() => setFormOpen(false)} />
     </div>
   );
 };
