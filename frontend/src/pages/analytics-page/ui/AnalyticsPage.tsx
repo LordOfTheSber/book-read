@@ -266,7 +266,7 @@ export const AnalyticsPage: React.FC = () => {
       : 'Статистика по вашей коллекции';
 
   return (
-    <div style={styles.page}>
+    <div>
       <PageHeader
         title="Аналитика"
         subtitle={scopeLabel}

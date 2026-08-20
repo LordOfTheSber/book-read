@@ -3,6 +3,7 @@ import { Button, Card, Dropdown, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import { BgColorsOutlined, CheckOutlined } from '@ant-design/icons';
 import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
+import { APP_NAME, useDocumentTitle } from '@/shared/lib/documentTitle';
 import { Logo } from './Logo';
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
 export const AuthLayout: React.FC<Props> = ({ title, subtitle, children, footer }) => {
   const { token } = theme.useToken();
   const { mode, setMode } = useThemeMode();
+
+  useDocumentTitle(title);
 
   const themeMenu: MenuProps = {
     selectable: false,
@@ -68,7 +71,7 @@ export const AuthLayout: React.FC<Props> = ({ title, subtitle, children, footer 
         <Space size={10} align="center" style={{ marginBottom: 20, justifyContent: 'center', width: '100%' }}>
           <Logo size={32} />
           <Typography.Text style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.2 }}>
-            BookRead
+            {APP_NAME}
           </Typography.Text>
         </Space>
 

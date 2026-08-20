@@ -1,21 +1,29 @@
 import React from 'react';
 import { Grid, Space, Typography, theme } from 'antd';
+import { useDocumentTitle } from '@/shared/lib/documentTitle';
 
 interface PageHeaderProps {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   /** Кнопки основного действия справа (на мобильном переносятся вниз). */
   actions?: React.ReactNode;
+  /** Заголовок вкладки, когда видимый заголовок не строка (узел, публичный профиль). */
+  documentTitle?: string;
 }
 
 /**
  * Заголовок страницы вместо обёртки в Card: страница начинается с контента,
  * а не с рамки внутри рамки.
+ *
+ * Отсюда же берётся заголовок вкладки: он всегда совпадает с тем, что человек видит
+ * на странице, и не расходится с ним при добавлении новых разделов.
  */
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions, documentTitle }) => {
   const { token } = theme.useToken();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+
+  useDocumentTitle(documentTitle ?? (typeof title === 'string' ? title : undefined));
 
   return (
     <div

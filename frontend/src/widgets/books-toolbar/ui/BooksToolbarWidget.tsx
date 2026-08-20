@@ -91,12 +91,21 @@ export const BooksToolbarWidget: React.FC<Props> = ({
           style={{ flex: '1 1 260px', minWidth: 200 }}
         />
 
-        <div style={{ display: 'flex', gap: 12, flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
+        {/* Перенос по строкам обязателен: сортировка, фильтры и умные полки в один ряд не
+            помещаются на телефоне, и без него страница целиком уезжала вбок на 130 пикселей. */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            flexWrap: 'wrap',
+            flex: isMobile ? '1 1 100%' : '0 0 auto'
+          }}
+        >
           <Select
             value={sort}
             onChange={onSortChange}
             size="large"
-            style={{ flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 200 }}
+            style={{ flex: isMobile ? '1 1 150px' : undefined, width: isMobile ? undefined : 200 }}
             options={sortOptions.map((option) => ({ label: option.label, value: option.value }))}
             placeholder="Сортировка"
           />

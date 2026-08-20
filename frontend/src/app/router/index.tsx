@@ -22,6 +22,8 @@ import { ProfilePage } from '@/pages/profile-page';
 import { UserProfilePage } from '@/pages/user-profile-page';
 import { FeedPage } from '@/pages/feed-page';
 import { GoalsPage } from '@/pages/goals-page';
+import { NotFoundPage } from '@/pages/not-found-page';
+import { ErrorPage } from '@/pages/error-page';
 import { isAdminLike } from '@/shared/lib/roles';
 
 const RequireAuth: React.FC = () => {
@@ -53,6 +55,8 @@ const RequireAdmin: React.FC = () => {
 
 const router = createBrowserRouter([
   {
+    // Одна на всё дерево: упавшая страница иначе выбрасывает пользователя на стек вызовов.
+    errorElement: <ErrorPage />,
     element: <RequireAuth />,
     children: [
       {
@@ -85,18 +89,23 @@ const router = createBrowserRouter([
               { index: true, element: <NodesPage /> },
               { path: ':nodeId', element: <NodeDetailPage /> }
             ]
-          }
+          },
+          // Внутри layout, а не отдельным экраном: с неизвестного адреса должно быть видно
+          // меню, иначе единственный выход — кнопка «назад» в браузере.
+          { path: '*', element: <NotFoundPage /> }
         ]
       }
     ]
   },
   {
     path: '/login',
-    element: <LoginPage />
+    element: <LoginPage />,
+    errorElement: <ErrorPage />
   },
   {
     path: '/register',
-    element: <RegisterPage />
+    element: <RegisterPage />,
+    errorElement: <ErrorPage />
   }
 ]);
 

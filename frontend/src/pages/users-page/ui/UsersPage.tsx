@@ -11,14 +11,12 @@ import { SessionSettings } from '@/shared/types/library';
 import { UsersTab } from './UsersTab';
 import { SessionSettingsTab } from './SessionSettingsTab';
 import { BackupsTab } from './BackupsTab';
-import { useUsersPageStyles } from './UsersPage.styles';
 
 export const UsersPage: React.FC = () => {
   const currentUser = useAppSelector((state) => state.auth.user);
   const usersCount = useAppSelector((state) => state.users.list.length);
   const isSuper = isSuperAdmin(currentUser?.role);
   const isAdmin = isAdminLike(currentUser?.role);
-  const styles = useUsersPageStyles();
   const showRequestError = useRequestError();
 
   // Глобальные настройки сессий нужны обеим вкладкам: на «Сессиях» их правят,
@@ -88,7 +86,7 @@ export const UsersPage: React.FC = () => {
   ];
 
   return (
-    <div style={styles.page}>
+    <div>
       <PageHeader
         title="Пользователи"
         subtitle={

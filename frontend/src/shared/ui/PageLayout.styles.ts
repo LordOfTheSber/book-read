@@ -100,6 +100,13 @@ export const usePageLayoutStyles = (isMobile: boolean) => {
       } as CSSProperties,
       content: {
         padding: isMobile ? '16px 12px 32px' : '28px 24px 48px'
+      } as CSSProperties,
+      // Та же полоса, что и у шапки: без неё на широком мониторе логотип стоял по краю
+      // центрированной шапки, а заголовок страницы — по краю экрана, и они не совпадали.
+      contentInner: {
+        maxWidth: 1440,
+        margin: '0 auto',
+        width: '100%'
       } as CSSProperties
     }),
     [isMobile, token]

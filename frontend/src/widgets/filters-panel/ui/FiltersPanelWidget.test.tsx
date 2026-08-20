@@ -31,6 +31,22 @@ describe('FiltersPanelWidget', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  /** Чипы статуса — кнопки, а не подписи: до этого выбрать статус с клавиатуры было нельзя. */
+  it('позволяет выбрать статус с клавиатуры', async () => {
+    const store = storeAs('USER');
+
+    renderWithStore(<FiltersPanelWidget open onClose={vi.fn()} />, store);
+
+    const chip = screen.getByRole('button', { name: 'Читаю' });
+    chip.focus();
+    expect(chip).toHaveFocus();
+
+    await userEvent.keyboard('{Enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Применить' }));
+
+    await waitFor(() => expect(store.getState().bookFilters.status).toBe('READING'));
+  });
+
   it('не отправляет пустой статус: «Любой» означает отсутствие фильтра', async () => {
     const store = storeAs('USER');
     store.dispatch({ type: 'bookFilters/setFilters', payload: { status: 'READING' } });
