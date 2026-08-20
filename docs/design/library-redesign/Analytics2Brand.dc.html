@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #FBF8F3; min-height: 940px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-label="BookRead"><rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect><rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect><path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path></svg>
+      <span class="lit" style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; background: #F7EAE4; color: #B04B29; font-weight: 600;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.62);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.62); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px;">
+      <div>
+        <div class="lit" style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Аналитика</div>
+        <div style="margin-top: 6px; color: rgba(23,32,46,0.78);">Один вопрос — один график</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="height: 36px; padding: 0 13px; border: 1px solid #D9CFC0; background: #FFFFFF; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+          2026 год
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+        <div style="height: 36px; padding: 0 13px; border: 1px solid #D9CFC0; background: #FFFFFF; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path><path d="M4 20h16"></path></svg>
+          Выгрузить CSV
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start;">
+
+      <!-- Конструктор вопроса -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62); margin-bottom: 12px;">Что показать</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <sc-for list="{{measures}}" as="m" hint-placeholder-count="5">
+              <div style="{{m.style}}">
+                <span style="flex: 1;">{{m.label}}</span>
+                <sc-if value="{{m.active}}" hint-placeholder-val="{{true}}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C8552F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62); margin-bottom: 12px;">В разрезе</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <sc-for list="{{dimensions}}" as="d" hint-placeholder-count="6">
+              <div style="{{d.style}}">
+                <span style="flex: 1;">{{d.label}}</span>
+                <sc-if value="{{d.active}}" hint-placeholder-val="{{true}}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C8552F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 16px 18px;">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62); margin-bottom: 12px;">Сохранённые вопросы</div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <sc-for list="{{saved}}" as="s" hint-placeholder-count="3">
+              <div style="padding: 8px 10px; border-radius: 10px; background: rgba(23,32,46,0.03); font-size: 13px; line-height: 1.4; cursor: pointer;">{{s}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ответ -->
+      <div>
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 22px 26px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px;">
+            <div>
+              <div class="lit" style="font-size: 18px; font-weight: 600; letter-spacing: -0.2px;">Дочитано по месяцам</div>
+              <div style="margin-top: 5px; font-size: 13px; color: rgba(23,32,46,0.78);">36 книг за 2026 год · в среднем 3 книги в месяц</div>
+            </div>
+            <div style="display: flex; gap: 2px; padding: 3px; background: rgba(23,32,46,0.05); border-radius: 10px; flex-shrink: 0;">
+              <sc-for list="{{charts}}" as="c" hint-placeholder-count="3">
+                <div style="{{c.style}}">{{c.label}}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: flex-end; gap: 16px; height: 220px; padding-left: 4px; border-bottom: 1px solid #E7E0D4;">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">{{b.value}}</span>
+                <div style="{{b.style}}"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 16px; padding-left: 4px; margin-top: 8px;">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+              <span style="flex: 1; min-width: 0; text-align: center; font-size: 11px; color: rgba(23,32,46,0.62);">{{b.label}}</span>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid #F0EAE0; display: flex; gap: 34px;">
+            <sc-for list="{{summary}}" as="s" hint-placeholder-count="4">
+              <div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62);">{{s.label}}</div>
+                <div class="lit" style="margin-top: 5px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">{{s.value}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <span style="font-weight: 600;">Что попало в этот срез</span>
+            <span style="font-size: 13px; color: #B04B29; cursor: pointer;">Открыть все 36 в библиотеке</span>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <sc-for list="{{covers}}" as="c" hint-placeholder-count="10">
+              <div style="{{c.style}}">{{c.initials}}</div>
+            </sc-for>
+            <div style="width: 62px; height: 88px; border-radius: 10px; border: 1px dashed #D9CFC0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: rgba(23,32,46,0.62); flex-shrink: 0;">+26</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+          <span style="font-weight: 600; color: #17202E;">Вариант Б — конструктор.</span> Вместо страницы из восьми готовых карточек — один вопрос за раз: слева выбираешь меру и разрез, справа получаешь ответ и книги, которые в него попали. Удачный вопрос сохраняется, как умная полка в библиотеке.
+          <span style="display: block; margin-top: 6px;">Плата: заметно больше работы — нужен обобщённый запрос на сервере вместо готовых сводок. Зато исчезает вопрос «а где посмотреть X»: X собирается сам.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = (active) => 'height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 10px; font-size: 13px; cursor: pointer; '
+      + (active ? 'background: #F7EAE4; color: #B04B29; font-weight: 600;' : 'color: #17202E;');
+
+    const measures = [
+      { label: 'Дочитано книг', active: true },
+      { label: 'Страниц', active: false },
+      { label: 'Минут аудио', active: false },
+      { label: 'Оценки', active: false },
+      { label: 'Выписки', active: false }
+    ].map((m) => ({ ...m, style: row(m.active) }));
+
+    const dimensions = [
+      { label: 'По месяцам', active: true },
+      { label: 'По авторам', active: false },
+      { label: 'По типам', active: false },
+      { label: 'По видам', active: false },
+      { label: 'По языкам', active: false },
+      { label: 'По десятилетиям', active: false }
+    ].map((d) => ({ ...d, style: row(d.active) }));
+
+    const saved = [
+      'Что я бросаю чаще всего',
+      'Аудиокниги против бумаги по месяцам',
+      'Средняя оценка по авторам'
+    ];
+
+    const seg = (active) => 'height: 32px; padding: 0 12px; border-radius: 8px; display: inline-flex; align-items: center; font-size: 13px; cursor: pointer; '
+      + (active ? 'background: #FFFFFF; font-weight: 500; box-shadow: 0 1px 2px rgba(27,42,74,0.06);' : 'color: rgba(23,32,46,0.78);');
+    const charts = [
+      { label: 'Столбики', active: true },
+      { label: 'Линия', active: false },
+      { label: 'Таблица', active: false }
+    ].map((c) => ({ ...c, style: seg(c.active) }));
+
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const values = [3, 2, 4, 5, 6, 3, 4, 3, 2, 2, 1, 1];
+    const max = Math.max(...values);
+    const bars = months.map((m, i) => ({
+      label: m,
+      value: String(values[i]),
+      style: 'width: 100%; height: ' + Math.round((values[i] / max) * 170) + 'px; border-radius: 8px 7px 3px 3px; background: ' + (values[i] === max ? '#1B2A4A' : '#E0B49F') + ';'
+    }));
+
+    const summary = [
+      { label: 'Всего', value: '36' },
+      { label: 'Лучший месяц', value: 'май · 6' },
+      { label: 'В среднем', value: '3,0' },
+      { label: 'К прошлому году', value: '+22%' }
+    ];
+
+    const palette = [
+      ['#EDEFF4', '#DDE1EA', '#1B2A4A', 'ЗТ'],
+      ['#E6F0EF', '#CFE4E1', '#2E7D74', 'Д'],
+      ['#F5E8EE', '#EBD3DE', '#A6446B', 'Б'],
+      ['#EAF0EA', '#D8E6D4', '#2F6147', 'DE'],
+      ['#FBF1DF', '#F2E2C4', '#96651C', 'ТК'],
+      ['#F0EBF5', '#E1D7EC', '#6B4EA6', 'СЛ'],
+      ['#EDEFF4', '#DDE1EA', '#1B2A4A', 'ПО'],
+      ['#F7EBE3', '#EDD6C6', '#B4552A', 'ХЗ'],
+      ['#FAF6E4', '#F1E9C6', '#8A6D1F', 'ВП'],
+      ['#EBEFF7', '#D8DFEE', '#3C5BA6', 'РТ']
+    ];
+    const covers = palette.map(([c1, c2, fg, initials]) => ({
+      initials,
+      style: 'width: 62px; height: 88px; border-radius: 10px; flex-shrink: 0; background: ' + c1 + '; color: ' + fg + '; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;'
+    }));
+
+    return { measures, dimensions, saved, charts, bars, summary, covers };
+  }
+}
+</script>
+</body>
+</html>

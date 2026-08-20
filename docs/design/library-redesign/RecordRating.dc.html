@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: rgba(0,0,0,0.88); -webkit-font-smoothing: antialiased; }
+    a { color: #2563eb; text-decoration: none; } a:hover { color: #1d4ed8; }
+    svg { display: block; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #f6f7f9; min-height: 1180px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #ffffff; border-bottom: 1px solid #eaecf0; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="width: 30px; height: 32px; border-radius: 10px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+      </div>
+      <span style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; background: #eff4ff; color: #2563eb; font-weight: 600;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #eaecf0; background: rgba(0,0,0,0.02); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(0,0,0,0.55);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.55); border: 1px solid #eaecf0; background: #ffffff; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #eaecf0; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #e6f4ff; color: #1368DE; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 20px 24px 40px;">
+
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(0,0,0,0.55); margin-bottom: 14px;">
+      <span style="color: #2563eb; cursor: pointer;">Библиотека</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span>Пикник на обочине</span>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px;">
+      <div>
+        <div style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Пикник на обочине</div>
+        <div style="margin-top: 6px; color: rgba(0,0,0,0.65);">Аркадий и Борис Стругацкие · завершено 17.08.2026</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 13px; color: rgba(0,0,0,0.55);">Черновик отзыва сохраняется автоматически</span>
+        <div style="height: 36px; padding: 0 18px; border-radius: 10px; background: #2563eb; color: #ffffff; font-weight: 500; display: inline-flex; align-items: center; cursor: pointer;">Опубликовать</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #eaecf0; margin-bottom: 18px;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+        <div style="{{t.style}}">{{t.label}}</div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 20px; align-items: start;">
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+
+        <!-- Общая оценка -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 22px 24px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;">
+            <div>
+              <div style="font-weight: 600;">Общая оценка</div>
+              <div style="font-size: 13px; color: rgba(0,0,0,0.65); margin-top: 4px;">Ставится отдельно: из критериев она не складывается — вес у каждого свой</div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;">8,5</div>
+              <div style="font-size: 12px; color: rgba(0,0,0,0.55); margin-top: 4px;">из 10</div>
+            </div>
+          </div>
+          <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
+            <sc-for list="{{bigStars}}" as="s" hint-placeholder-count="10">
+              <span style="{{s.style}}">
+                <sc-if value="{{s.full}}" hint-placeholder-val="{{true}}">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+                </sc-if>
+                <sc-if value="{{s.half}}" hint-placeholder-val="{{true}}">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="half85"><stop offset="50%" stop-color="#faad14"></stop><stop offset="50%" stop-color="rgba(0,0,0,0.10)"></stop></linearGradient></defs><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="url(#half85)"></path></svg>
+                </sc-if>
+                <sc-if value="{{s.empty}}" hint-placeholder-val="{{true}}">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(0,0,0,0.10)" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+                </sc-if>
+              </span>
+            </sc-for>
+            <span style="margin-left: 8px; font-size: 13px; color: rgba(0,0,0,0.55);">полшага доступны — 7,5 тоже оценка</span>
+          </div>
+        </div>
+
+        <!-- Четыре шкалы -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 22px 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: 600;">По критериям</span>
+            <span style="font-size: 13px; color: rgba(0,0,0,0.55);">необязательны · заполнено 3 из 4</span>
+          </div>
+          <div style="font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 18px;">Четыре шкалы для тех, кто разбирает книгу по частям. В список и в публичный отзыв попадают вместе с общей.</div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <sc-for list="{{criteria}}" as="c" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 18px;">
+                <span style="width: 104px; flex-shrink: 0; font-weight: 500;">{{c.label}}</span>
+                <span style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+                  <span style="{{c.s1}}"></span>
+                  <span style="{{c.s2}}"></span>
+                  <span style="{{c.s3}}"></span>
+                  <span style="{{c.s4}}"></span>
+                  <span style="{{c.s5}}"></span>
+                  <span style="{{c.s6}}"></span>
+                  <span style="{{c.s7}}"></span>
+                  <span style="{{c.s8}}"></span>
+                  <span style="{{c.s9}}"></span>
+                  <span style="{{c.s10}}"></span>
+                </span>
+                <span style="{{c.valueStyle}}">{{c.value}}</span>
+                <span style="flex: 1; min-width: 0; font-size: 12px; color: rgba(0,0,0,0.55); text-align: right;">{{c.hint}}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: rgba(0,0,0,0.02); font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.55;">
+            Среднее по заполненным критериям — <span style="font-weight: 600; color: rgba(0,0,0,0.88);">8,7</span>. Общая оценка 8,5 стоит ниже: так и должно быть, если финал перевесил.
+          </div>
+        </div>
+
+        <!-- Тексты -->
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 22px 24px;">
+          <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10V8a5 5 0 0 1 10 0v2"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect></svg>
+            <span style="font-weight: 600;">Заметка</span>
+            <span style="font-size: 13px; color: rgba(0,0,0,0.55);">видна только вам</span>
+          </div>
+          <div style="min-height: 64px; border: 1px solid #d9d9d9; border-radius: 12px; padding: 11px 13px; line-height: 1.6; color: rgba(0,0,0,0.80);">Перечитать перед «Улиткой на склоне». Бумажное издание у Дмитрия.</div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0 8px;">
+            <span style="font-weight: 600;">Отзыв</span>
+            <span style="font-size: 12px; color: rgba(0,0,0,0.55); font-variant-numeric: tabular-nums;">248 символов</span>
+          </div>
+          <div style="min-height: 120px; border: 1px solid #d9d9d9; border-radius: 12px; padding: 11px 13px; line-height: 1.6; color: rgba(0,0,0,0.80);">Зона здесь не про инопланетян, а про то, как быстро человек перестаёт задавать вопросы, если за них платят. Сталкеры не исследователи — они грузчики чуда, и это самое честное, что написано про науку.</div>
+
+          <div style="display: flex; align-items: center; gap: 9px; margin: 20px 0 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#faad14" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l16 16"></path><path d="M2 12s4-7 10-7c1.5 0 2.9.3 4.1.9M22 12s-4 7-10 7c-1.5 0-2.9-.3-4.1-.9"></path></svg>
+            <span style="font-weight: 600;">Под спойлер-катом</span>
+            <span style="font-size: 13px; color: rgba(0,0,0,0.55);">спрятано, пока читатель сам не раскроет</span>
+          </div>
+          <div style="min-height: 64px; border: 1px solid #d9d9d9; border-radius: 12px; padding: 11px 13px; line-height: 1.6; color: rgba(0,0,0,0.80);">Финал с Золотым шаром — единственное место, где Рэдрик говорит вслух то, что думает, и именно поэтому просьба звучит так беспомощно.</div>
+        </div>
+      </div>
+
+      <!-- Предпросмотр -->
+      <div style="position: sticky; top: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(0,0,0,0.55);">Так это увидят другие</span>
+          <span style="font-size: 13px; color: rgba(0,0,0,0.55);">обновляется на ходу</span>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaecf0; border-radius: 16px; padding: 20px 22px;">
+          <div style="display: flex; align-items: center; gap: 11px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #e6f4ff; color: #1368DE; font-weight: 700;">С</span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 600;">Сбер Читатель</span>
+              <span style="display: block; font-size: 12px; color: rgba(0,0,0,0.55);">сегодня</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px; font-weight: 700;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#faad14" stroke="none"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+              8,5
+            </span>
+          </div>
+
+          <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+            <sc-for list="{{previewCriteria}}" as="p" hint-placeholder-count="4">
+              <div style="{{p.boxStyle}}">
+                <span style="font-size: 12px; color: rgba(0,0,0,0.55);">{{p.label}}</span>
+                <span style="{{p.valueStyle}}">{{p.value}}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 16px; font-size: 14px; line-height: 1.6; color: rgba(0,0,0,0.80);">Зона здесь не про инопланетян, а про то, как быстро человек перестаёт задавать вопросы, если за них платят. Сталкеры не исследователи — они грузчики чуда, и это самое честное, что написано про науку.</div>
+
+          <div style="margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,0.02); display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d46b08" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l16 16"></path><path d="M2 12s4-7 10-7c1.5 0 2.9.3 4.1.9M22 12s-4 7-10 7c-1.5 0-2.9-.3-4.1-.9"></path></svg>
+            <span style="flex: 1; font-size: 13px; color: #B05907;">Показать спойлеры</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+
+          <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #f2f3f5; display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(0,0,0,0.55);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"></path></svg>
+            реакции и обсуждение появятся после публикации
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #ffffff; border: 1px dashed #d9d9d9; font-size: 13px; color: rgba(0,0,0,0.65); line-height: 1.6;">
+          Оценка целиком: общая шкала, четыре критерия (сюжет, язык, персонажи, финал), приватная заметка, публичный отзыв и спойлер-кат — и справа то, во что это складывается. Сейчас всё это лежит на одной вкладке подряд, а предпросмотр — в самом низу, куда доскроллит не каждый.
+          <span style="display: block; margin-top: 6px;">Добавлено к нынешнему: среднее по критериям рядом с общей оценкой (видно расхождение) и счётчик заполненных шкал.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabStyle = (active) => 'padding: 0 14px; height: 44px; display: inline-flex; align-items: center; cursor: pointer; '
+      + (active ? 'color: #2563eb; font-weight: 500; box-shadow: inset 0 -2px 0 #2563eb;' : 'color: rgba(0,0,0,0.65);');
+    const tabs = [
+      { label: 'Карточка', active: false },
+      { label: 'Прогресс', active: false },
+      { label: 'Оценка и отзыв', active: true },
+      { label: 'Выписки · 12', active: false },
+      { label: 'Выдачи', active: false }
+    ].map((t) => ({ ...t, style: tabStyle(t.active) }));
+
+    const starWrap = 'display: inline-flex; color: #986A0C; cursor: pointer;';
+    const bigStars = [];
+    for (let i = 1; i <= 10; i += 1) {
+      bigStars.push({ style: starWrap, full: i <= 8, half: i === 9, empty: i > 9 });
+    }
+
+    const small = (kind) => {
+      const base = 'display: inline-block; width: 13px; height: 13px; border-radius: 4px; ';
+      return base + (kind === 'full' ? 'background: #faad14;' : kind === 'half' ? 'background: linear-gradient(90deg, #faad14 50%, rgba(0,0,0,0.08) 50%);' : 'background: rgba(0,0,0,0.08);');
+    };
+    const scale = (value) => {
+      const stars = [];
+      for (let i = 1; i <= 10; i += 1) {
+        stars.push(small(i <= Math.floor(value) ? 'full' : (i - value === 0.5 ? 'half' : 'empty')));
+      }
+      return stars;
+    };
+    const valueStyle = (set) => 'width: 58px; flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; ' + (set ? '' : 'color: rgba(0,0,0,0.42); font-weight: 400;');
+
+    const criteria = [
+      { label: 'Сюжет', value: '9', num: 9, hint: 'выше общей', set: true },
+      { label: 'Язык', value: '9,5', num: 9.5, hint: 'лучшее в книге', set: true },
+      { label: 'Персонажи', value: '8', num: 8, hint: '', set: true },
+      { label: 'Финал', value: 'не оценён', num: 0, hint: 'нажмите, чтобы поставить', set: false }
+    ].map((c) => {
+      const stars = scale(c.num);
+      const out = { ...c, valueStyle: valueStyle(c.set) };
+      // Десять отдельных полей вместо вложенного цикла: он в этом формате не гарантирован.
+      stars.forEach((style, i) => { out['s' + (i + 1)] = style; });
+      return out;
+    });
+
+    const boxStyle = (set) => 'display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 10px; background: ' + (set ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.01)') + ';';
+    const pValue = (set) => 'font-weight: 700; font-variant-numeric: tabular-nums; ' + (set ? '' : 'color: rgba(0,0,0,0.42);');
+    const previewCriteria = [
+      { label: 'Сюжет', value: '9', set: true },
+      { label: 'Язык', value: '9,5', set: true },
+      { label: 'Персонажи', value: '8', set: true },
+      { label: 'Финал', value: '—', set: false }
+    ].map((p) => ({ ...p, boxStyle: boxStyle(p.set), valueStyle: pValue(p.set) }));
+
+    return { tabs, bigStars, criteria, previewCriteria };
+  }
+}
+</script>
+</body>
+</html>
