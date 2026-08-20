@@ -23,6 +23,7 @@ import dayjs from 'dayjs';
 import { LibraryItem, ReadingLog, ReadingSession } from '@/shared/types/library';
 import { addSession, deleteSession, fetchLogs, fetchSessions } from '@/entities/book';
 import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
+import { remainingPhrase } from '@/shared/lib/phrases';
 import { ratingCriteria } from '@/shared/constants/ratingCriteria';
 import { formatDate } from '@/shared/lib/date';
 import { formatScore } from '@/shared/lib/format';
@@ -167,7 +168,11 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
           />
           <Space size={12} wrap>
             {progress?.remaining ? (
-              <Typography.Text type="secondary">{`осталось ${progress.remaining} ${unit}`}</Typography.Text>
+              // Не «осталось 188 стр.», а сколько это в вечерах: цифру человек всё равно
+              // переводит в срок, и продукт может сделать это за него.
+              <Typography.Text type="secondary">
+                {remainingPhrase(progress, unitKey) ?? `осталось ${progress.remaining} ${unit}`}
+              </Typography.Text>
             ) : (
               <Typography.Text type="success">
                 <CheckCircleOutlined /> Шкала пройдена

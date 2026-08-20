@@ -18,7 +18,14 @@ export default defineConfig({
       srcDir: 'src/app/pwa',
       filename: 'sw.ts',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // Шрифт заголовков кешируется вместе с оболочкой: без него офлайн страница
+      // перерисовывалась бы запасной гарнитурой при каждом запуске.
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'fonts/literata-latin.woff2',
+        'fonts/literata-cyrillic.woff2'
+      ],
       /*
        * В деве service worker выключен намеренно. Playwright гоняет сценарии против `npm run dev`,
        * и зарегистрированный worker с собственным кешем превращается в источник межтестовой
@@ -34,10 +41,10 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        background_color: '#ffffff',
-        // Основной цвет светлой темы, а не умолчание antd: им браузер красит панель
-        // установленного приложения, и она не должна спорить с интерфейсом.
-        theme_color: '#2563eb',
+        background_color: '#FBF8F3',
+        // Чернила фирменного стиля: им браузер красит панель установленного приложения,
+        // и она не должна спорить с шапкой.
+        theme_color: '#1B2A4A',
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },

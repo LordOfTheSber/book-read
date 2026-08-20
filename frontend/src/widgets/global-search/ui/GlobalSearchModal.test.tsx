@@ -2,7 +2,6 @@ import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { renderWithStore } from '@/test/renderWithStore';
@@ -36,11 +35,7 @@ describe('GlobalSearchModal', () => {
   });
 
   const renderModal = (onPickBook = vi.fn()) =>
-    renderWithStore(
-      <MemoryRouter>
-        <GlobalSearchModal open onClose={() => undefined} onPickBook={onPickBook} />
-      </MemoryRouter>
-    );
+    renderWithStore(<GlobalSearchModal open onClose={() => undefined} onPickBook={onPickBook} />);
 
   it('ищет разом по записям, авторам и выпискам', async () => {
     renderModal();

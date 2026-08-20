@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShelvesPage } from './ShelvesPage';
 import { Shelf, Tag as LibraryTag } from '@/shared/types/library';
@@ -51,12 +50,7 @@ const shelf = (overrides: Partial<Shelf> = {}): Shelf =>
     ...overrides
   }) as Shelf;
 
-const renderPage = () =>
-  renderWithStore(
-    <MemoryRouter>
-      <ShelvesPage />
-    </MemoryRouter>
-  );
+const renderPage = () => renderWithStore(<ShelvesPage />);
 
 describe('ShelvesPage', () => {
   beforeEach(() => {

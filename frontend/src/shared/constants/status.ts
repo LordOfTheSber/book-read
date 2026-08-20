@@ -1,4 +1,5 @@
 import type { ReadingStatus } from '@/shared/types/library';
+import { brand } from '@/shared/config/brand';
 
 export const statusOptions = [
   { label: 'Читаю', value: 'READING' },
@@ -10,28 +11,26 @@ export const statusOptions = [
 
 interface StatusMeta {
   label: string;
-  /** Пресет Ant Design: сам подстраивается под светлую/тёмную тему. */
-  color: string;
-  /** Токен темы для акцентов вне Tag (плитки, полоски). */
-  token: 'colorInfo' | 'colorSuccess' | 'colorError' | 'colorTextTertiary' | 'purple6';
+  /** Цвет статуса в фирменной палитре: он же текст чипа, он же акцент плитки и полоски. */
+  accent: string;
 }
 
 export const statusMeta: Record<ReadingStatus, StatusMeta> = {
-  READING: { label: 'Читаю', color: 'processing', token: 'colorInfo' },
+  READING: { label: 'Читаю', accent: brand.ink },
   // Отложено и заброшено — разные состояния: к первому собираются вернуться.
-  ON_HOLD: { label: 'Отложено', color: 'default', token: 'colorTextTertiary' },
-  COMPLETED: { label: 'Завершено', color: 'success', token: 'colorSuccess' },
+  ON_HOLD: { label: 'Отложено', accent: brand.amber },
+  COMPLETED: { label: 'Завершено', accent: brand.moss },
   // Оранжевый «warning» читался как предупреждение, хотя план — нейтральное намерение;
-  // заодно золотой остался за избранным, и плитки «В планах» и «Избранное» перестали совпадать.
-  PLANNED: { label: 'В планах', color: 'purple', token: 'purple6' },
-  DROPPED: { label: 'Заброшено', color: 'error', token: 'colorError' }
+  // заодно закладка осталась за прогрессом, и «В планах» перестало спорить с ней за внимание.
+  PLANNED: { label: 'В планах', accent: brand.plum },
+  DROPPED: { label: 'Заброшено', accent: brand.wax }
 };
 
 export const getStatusLabel = (status?: string) =>
   (status && statusMeta[status as ReadingStatus]?.label) || status || '—';
 
-export const getStatusColor = (status?: string) =>
-  (status && statusMeta[status as ReadingStatus]?.color) || 'default';
+export const getStatusAccent = (status?: string) =>
+  (status && statusMeta[status as ReadingStatus]?.accent) || brand.ink;
 
 export const sortOptions = [
   { label: 'Сначала новые', value: 'updatedAt,desc' },

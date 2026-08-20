@@ -16,8 +16,7 @@ import {
   Switch,
   Tag,
   Typography,
-  Upload,
-  theme
+  Upload
 } from 'antd';
 import type { UploadProps } from 'antd';
 import { Link } from 'react-router-dom';
@@ -65,7 +64,6 @@ interface ProfileFormValues {
 export const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const styles = useProfilePageStyles();
-  const { token } = theme.useToken();
   const { message } = App.useApp();
   const showRequestError = useRequestError();
   const { mode, setMode } = useThemeMode();
@@ -329,7 +327,7 @@ export const ProfilePage: React.FC = () => {
                   key: status,
                   label: statusMeta[status].label,
                   value: statusCount(status),
-                  color: token[statusMeta[status].token]
+                  color: statusMeta[status].accent
                 }))}
               />
             )}

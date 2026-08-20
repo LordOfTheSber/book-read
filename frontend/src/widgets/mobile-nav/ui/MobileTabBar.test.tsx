@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { MobileTabBar } from './MobileTabBar';
 import { createTestStore, renderWithStore } from '@/test/renderWithStore';
@@ -11,14 +10,13 @@ const user: User = { id: 'u1', username: 'sber', role: 'USER', blocked: false };
 
 const renderBar = (handlers: { onOpenMore?: () => void; onCreateRecord?: () => void } = {}, path = '/') =>
   renderWithStore(
-    <MemoryRouter initialEntries={[path]}>
-      <MobileTabBar
-        moreOpen={false}
-        onOpenMore={handlers.onOpenMore ?? (() => undefined)}
-        onCreateRecord={handlers.onCreateRecord ?? (() => undefined)}
-      />
-    </MemoryRouter>,
-    createTestStore({ auth: { user, authenticated: true, loadingUser: false, updatingAvatar: false } })
+    <MobileTabBar
+      moreOpen={false}
+      onOpenMore={handlers.onOpenMore ?? (() => undefined)}
+      onCreateRecord={handlers.onCreateRecord ?? (() => undefined)}
+    />,
+    createTestStore({ auth: { user, authenticated: true, loadingUser: false, updatingAvatar: false } }),
+    { route: path }
   );
 
 describe('MobileTabBar', () => {

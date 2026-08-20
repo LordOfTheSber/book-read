@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { AppHeader } from './AppHeader';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
@@ -26,14 +25,13 @@ const renderHeader = (
 
   return renderWithStore(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <AppHeader
-          onOpenSearch={handlers.onOpenSearch ?? (() => undefined)}
-          onCreateRecord={handlers.onCreateRecord ?? (() => undefined)}
-        />
-      </MemoryRouter>
+      <AppHeader
+        onOpenSearch={handlers.onOpenSearch ?? (() => undefined)}
+        onCreateRecord={handlers.onCreateRecord ?? (() => undefined)}
+      />
     </ThemeProvider>,
-    store
+    store,
+    { route: path }
   );
 };
 
@@ -104,6 +102,6 @@ describe('AppHeader', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Меню профиля' }));
 
     expect(await screen.findByText('Тема')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Тёмная/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ночь/ })).toBeInTheDocument();
   });
 });

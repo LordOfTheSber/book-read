@@ -405,6 +405,8 @@ export interface BookAnalytics {
   favoriteItems: number;
   averageRating?: number;
   statusBreakdown: Record<ReadingStatus, number>;
+  /** Доли видов произведения: из них собирается корешковая полоса. */
+  kindBreakdown?: Partial<Record<MediaKind, number>>;
   topTypes: Array<{ typeId: string; typeName: string; count: number }>;
   topSources: Array<{ sourceId: string; sourceName: string; count: number }>;
 }

@@ -19,11 +19,12 @@ import {
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import { DeleteOutlined, EditOutlined, InboxOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
-import { LibraryItem } from '@/shared/types/library';
+import { LibraryItem, ReadingStatus } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
-import { getStatusColor, getStatusLabel } from '@/shared/constants/status';
+import { StatusTag } from '@/shared/ui/StatusTag';
 import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
+import { deadlinePhrase, remainingPhrase } from '@/shared/lib/phrases';
 import { CoverThumb } from '@/shared/ui/CoverThumb';
 import { KindTag } from '@/shared/ui/KindTag';
 import { formatDate, formatDateTime } from '@/shared/lib/date';
@@ -145,16 +146,20 @@ export const BooksListWidget: React.FC<Props> = ({
     // Шаг зависит от единицы: «+10 томов» из списка никто не отмечает.
     const step = progressQuickSteps[unitKey][0];
     const complete = progress.percent === 100;
+    // Процент сам по себе ничего не решает: подсказка переводит его в «успею или нет».
+    const phrase = remainingPhrase(progress, unitKey) ?? deadlinePhrase(progress, unitKey);
 
     return (
       <div style={styles.progressBlock} onClick={(e) => e.stopPropagation()}>
-        <Progress
-          percent={progress.percent}
-          size="small"
-          showInfo={false}
-          status={complete ? 'success' : progress.behindSchedule ? 'exception' : 'normal'}
-          style={styles.progressBar}
-        />
+        <Tooltip title={phrase}>
+          <Progress
+            percent={progress.percent}
+            size="small"
+            showInfo={false}
+            status={complete ? 'success' : progress.behindSchedule ? 'exception' : 'normal'}
+            style={styles.progressBar}
+          />
+        </Tooltip>
         <div style={styles.progressMeta}>
           <Typography.Text type="secondary" style={styles.progressText}>
             {`${progress.current ?? 0}/${progress.total} ${unit}`}
@@ -234,6 +239,8 @@ export const BooksListWidget: React.FC<Props> = ({
               kind={item.kind}
               width={36}
               height={50}
+              // Закладка из обложки: в списке из полусотни строк начатое видно до чтения цифр.
+              progressPercent={item.progress?.percent ?? undefined}
               style={styles.rowCover}
             />
             <div style={styles.titleCell}>
@@ -267,11 +274,7 @@ export const BooksListWidget: React.FC<Props> = ({
         title: 'Статус',
         dataIndex: 'status',
         width: 130,
-        render: (status: string) => (
-          <Tag color={getStatusColor(status)} bordered={false} style={styles.tag}>
-            {getStatusLabel(status)}
-          </Tag>
-        )
+        render: (status: string) => <StatusTag status={status as ReadingStatus} style={styles.tag} />
       },
       {
         title: 'Тип',
@@ -439,6 +442,7 @@ export const BooksListWidget: React.FC<Props> = ({
                       width="100%"
                       height={200}
                       topOnly
+                      progressPercent={item.progress?.percent ?? undefined}
                       style={styles.cardCover}
                     />
                     <div style={styles.coverBadges}>
@@ -453,9 +457,7 @@ export const BooksListWidget: React.FC<Props> = ({
                             />
                           </span>
                         )}
-                        <Tag color={getStatusColor(item.status)} bordered={false} style={styles.tag}>
-                          {getStatusLabel(item.status)}
-                        </Tag>
+                        <StatusTag status={item.status} style={styles.tag} />
                       </Space>
                       {item.favorite && (
                         <Tooltip title="В избранном">

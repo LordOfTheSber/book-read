@@ -88,7 +88,8 @@ describe('QuotesTab', () => {
 
     renderWithStore(<QuotesTab item={item()} />);
 
-    expect(await screen.findByText('Не отвечайте!')).toBeInTheDocument();
+    // Цитата набирается в кавычках-ёлочках, как в макете, поэтому ищется подстрокой.
+    expect(await screen.findByText(/Не отвечайте!/)).toBeInTheDocument();
     expect(screen.getByText('первый контакт')).toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText('Удалить выписку'));

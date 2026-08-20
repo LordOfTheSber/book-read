@@ -11,6 +11,8 @@ import {
   VideoCameraOutlined
 } from '@ant-design/icons';
 import { MediaKind, ProgressUnit } from '@/shared/types/library';
+import { kindColor } from '@/shared/config/brand';
+import { alpha, mix } from '@/shared/lib/color';
 
 /** Пресет палитры Ant Design: тёмная тема пересчитывает его сама, в отличие от хардкода. */
 export type KindPalette =
@@ -86,3 +88,16 @@ export const mediaKindOptionsWithIcon = (Object.keys(mediaKindMeta) as MediaKind
 export const getMediaKindLabel = (kind?: MediaKind) => (kind ? mediaKindMeta[kind]?.label ?? kind : '—');
 
 export const getMediaKindPalette = (kind?: MediaKind): KindPalette => mediaKindMeta[kind as MediaKind]?.palette ?? 'blue';
+
+/**
+ * Цвета чипа вида в фирменном стиле: девять оттенков одной насыщенности вместо ярких пресетов
+ * Ant Design. Заливка и граница считаются из одного значения — так цвет вида остаётся один
+ * и на корешке заглушки, и в чипе, и в корешковой полосе.
+ */
+export const kindChipColors = (kind: MediaKind | undefined, dark: boolean) => {
+  const base = kindColor[kind as MediaKind]?.color ?? kindColor.BOOK.color;
+
+  return dark
+    ? { background: alpha(base, 0.26), border: alpha(base, 0.36), text: mix(base, '#FFFFFF', 0.68) }
+    : { background: mix(base, '#FFFFFF', 0.9), border: mix(base, '#FFFFFF', 0.78), text: base };
+};

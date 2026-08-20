@@ -8,6 +8,7 @@ import { searchQuotes } from '@/entities/book';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
+import { DogEar } from '@/shared/ui/DogEar';
 
 /** Экранирование для сборки регулярного выражения из пользовательского запроса. */
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -122,28 +123,24 @@ export const QuotesPage: React.FC = () => {
           }}
           renderItem={(quote) => (
             <List.Item style={{ paddingInline: 0 }}>
-              <div
-                style={{
-                  width: '100%',
-                  padding: 16,
-                  borderRadius: token.borderRadiusLG,
-                  background: token.colorBgContainer,
-                  border: `1px solid ${token.colorBorderSecondary}`
-                }}
-              >
+              {/* Загнутый уголок — метка написанного человеком: выписку видно среди
+                  системных карточек боковым зрением, без значка и подписи. */}
+              <DogEar style={{ width: '100%' }}>
                 <Typography.Paragraph
+                  className="brand-display"
                   style={{
                     marginBottom: 12,
-                    paddingInlineStart: 12,
-                    borderInlineStart: `3px solid ${token.colorPrimaryBorder}`,
+                    paddingInlineEnd: 20,
                     fontSize: 15,
                     fontStyle: 'italic',
                     whiteSpace: 'pre-line'
                   }}
                 >
+                  {`«`}
                   {highlight(quote.text)}
+                  {`»`}
                 </Typography.Paragraph>
-                <Space size={12} wrap style={{ paddingInlineStart: 15 }}>
+                <Space size={12} wrap>
                   <Space size={6}>
                     <BookOutlined style={{ color: token.colorTextTertiary }} />
                     <Typography.Text strong>{quote.itemTitle}</Typography.Text>
@@ -153,7 +150,7 @@ export const QuotesPage: React.FC = () => {
                   )}
                   {quote.note && <Typography.Text type="secondary">{quote.note}</Typography.Text>}
                 </Space>
-              </div>
+              </DogEar>
             </List.Item>
           )}
         />

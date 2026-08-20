@@ -10,6 +10,7 @@ import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
 import { Logo } from '@/shared/ui/Logo';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { logoutThunk } from '@/entities/auth';
+import { useYearGoalProgress } from '@/entities/engagement';
 import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
 import { OfflineQueueChip } from '@/widgets/offline-queue';
 import { useAppHeaderStyles } from './AppHeader.styles';
@@ -36,6 +37,8 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
   const user = useAppSelector((state) => state.auth.user);
   const { mode, setMode } = useThemeMode();
   const groupColors = useNavGroupColors();
+  // Живой знак: закладка в логотипе растёт вместе с целью года.
+  const goalProgress = useYearGoalProgress(Boolean(user));
 
   const isAdmin = isAdminLike(user?.role);
   const groups = useMemo(() => visibleGroups(isAdmin), [isAdmin]);
@@ -142,7 +145,17 @@ export const AppHeader: React.FC<Props> = ({ onOpenSearch, onCreateRecord }) => 
     <div style={styles.header}>
       <div style={styles.inner}>
         <Link to="/" style={styles.brand}>
-          <Logo size={30} />
+          <Logo
+            size={30}
+            goalProgress={goalProgress}
+            // Ночью корешок становится бумажным: чернильный знак на чернильной шапке пропадает.
+            inverted={mode === 'dark'}
+            title={
+              goalProgress === undefined
+                ? APP_NAME
+                : `${APP_NAME} — цель года выполнена на ${Math.round(goalProgress * 100)}%`
+            }
+          />
           <span style={styles.brandTitle}>{APP_NAME}</span>
         </Link>
 
