@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 900px; background: #FBF8F3; padding: 28px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 18px;">
+    <div class="lit" style="font-size: 18px; font-weight: 600;">Сессии: общее правило и исключения</div>
+    <div style="margin-top: 5px; color: rgba(23,32,46,0.78); font-size: 13px; line-height: 1.55; max-width: 960px;">В <a href="#">Admin</a> «Сессии» — только название вкладки. А это два числа в минутах, которые решают, когда человека выкинет из приложения: понять их по подписи «Максимальный срок жизни сессии, мин» нельзя, поэтому форма показывает последствия прямо на месте.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 460px minmax(0, 1fr); gap: 20px; margin-bottom: 20px;">
+
+    <!-- Общее правило -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Общее правило</div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px;">
+        <div class="lit" style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Сколько живёт вход</div>
+        <div style="font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.55; margin-bottom: 18px;">Действует на всех, у кого нет персонального значения.</div>
+
+        <sc-for list="{{settings}}" as="setting" hint-placeholder-count="2">
+          <div style="margin-bottom: 18px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 7px;">
+              <span style="font-size: 13px; color: rgba(23,32,46,0.78);">{{setting.label}}</span>
+              <span style="font-size: 12px; color: rgba(23,32,46,0.62);">{{setting.human}}</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <div style="flex: 1; min-width: 0; height: 40px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; padding: 0 11px; font-variant-numeric: tabular-nums;">{{setting.value}}</div>
+              <div style="{{setting.p1Style}}">{{setting.p1}}</div>
+              <div style="{{setting.p2Style}}">{{setting.p2}}</div>
+              <div style="{{setting.p3Style}}">{{setting.p3}}</div>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: rgba(23,32,46,0.62); line-height: 1.55;">{{setting.hint}}</div>
+          </div>
+        </sc-for>
+
+        <div style="padding: 14px 15px; border-radius: 12px; background: #EBEFF7; margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Что почувствует человек</div>
+          <div style="font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.6;">Работает — вход продлевается сам. Отошёл на 2 часа — придётся войти заново. И в любом случае через 30 дней вход спросят снова, даже если приложение не закрывали.</div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <div style="height: 36px; padding: 0 14px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px;">Вернуть по умолчанию</div>
+          <div style="height: 36px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center;">Сохранить</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Исключения -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Персональные исключения</div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span class="lit" style="font-size: 16px; font-weight: 600;">У кого не как у всех</span>
+          <span style="font-size: 12px; color: rgba(23,32,46,0.62);">2 из 14 пользователей</span>
+        </div>
+        <div style="padding: 8px 12px;">
+          <sc-for list="{{people}}" as="person" hint-placeholder-count="4">
+            <div style="{{person.rowStyle}}">
+              <span style="{{person.avatarStyle}}">{{person.initial}}</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; font-size: 13px; font-weight: 500;">{{person.name}}</span>
+                <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{person.role}}</span>
+              </span>
+              <span style="{{person.badgeStyle}}">{{person.rule}}</span>
+              <span style="width: 92px; text-align: right; font-size: 12px; color: rgba(23,32,46,0.62);">{{person.active}}</span>
+              <span style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px; display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 20px;">
+        <!-- Диалог пользователя -->
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Настройки одного человека</div>
+          <div style="background: #FFFFFF; border-radius: 16px; box-shadow: 0 10px 32px rgba(27,42,74,0.12); overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 10px;">
+              <span style="width: 34px; height: 34px; border-radius: 999px; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-weight: 700;">А</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; font-weight: 600;">anna</span>
+                <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62);">Редактор · 3 активные сессии</span>
+              </span>
+            </div>
+            <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span style="font-size: 13px; color: rgba(23,32,46,0.78);">Своё время жизни сессии</span>
+                <span style="width: 36px; height: 20px; border-radius: 999px; background: #C8552F; position: relative; flex-shrink: 0;">
+                  <span style="position: absolute; top: 2px; left: 18px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; display: block;"></span>
+                </span>
+              </div>
+
+              <div>
+                <div style="font-size: 13px; color: rgba(23,32,46,0.78); margin-bottom: 6px;">Бездействие до выхода</div>
+                <div style="height: 40px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 11px;">
+                  <span style="font-variant-numeric: tabular-nums;">480</span>
+                  <span style="font-size: 12px; color: rgba(23,32,46,0.62);">8 часов</span>
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size: 13px; color: rgba(23,32,46,0.78); margin-bottom: 6px;">Предел продления</div>
+                <div style="height: 40px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 11px; color: rgba(23,32,46,0.62);">
+                  <span style="font-variant-numeric: tabular-nums;">43 200</span>
+                  <span style="font-size: 12px;">как у всех · 30 дней</span>
+                </div>
+              </div>
+
+              <div style="padding: 13px 14px; border-radius: 12px; background: rgba(23,32,46,0.03); font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">Пустое поле означает «как у всех» — отдельной кнопки сброса не нужно.</div>
+
+              <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="height: 36px; padding: 0 14px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px;">Отмена</div>
+                <div style="height: 36px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center;">Сохранить</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Активные сессии -->
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Активные входы</div>
+          <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+            <div style="padding: 8px 12px;">
+              <sc-for list="{{sessions}}" as="session" hint-placeholder-count="3">
+                <div style="{{session.rowStyle}}">
+                  <span style="flex: 1; min-width: 0;">
+                    <span style="display: block; font-size: 13px; font-weight: 500;">{{session.device}}</span>
+                    <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{session.meta}}</span>
+                  </span>
+                  <span style="{{session.actionStyle}}">{{session.action}}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding: 14px 16px; border-top: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Завершение выкидывает человека из приложения сразу, без предупреждения.</span>
+              <span style="height: 36px; padding: 0 14px; border: 1px solid #E7CFCB; color: #8A2323; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px; flex-shrink: 0;">Завершить все</span>
+            </div>
+          </div>
+          <div style="margin-top: 12px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">Список входов в приложении не показывается вовсе: администратор меняет срок жизни сессии, не видя ни одной живой. Это же место отвечает на вопрос «кто-то зашёл под моим логином?».</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const preset = (active) => 'height: 40px; padding: 0 12px; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px; flex-shrink: 0; '
+      + (active ? 'background: #F7EAE4; color: #B04B29; font-weight: 600;' : 'border: 1px solid #E7E0D4; color: rgba(23,32,46,0.78);');
+
+    const settings = [
+      {
+        label: 'Бездействие до выхода',
+        human: '2 часа',
+        value: '120',
+        hint: 'Отсчёт идёт от последнего запроса: пока человек работает, вход продлевается сам.',
+        presets: [
+          { label: '30 мин', active: false },
+          { label: '2 часа', active: true },
+          { label: '8 часов', active: false }
+        ]
+      },
+      {
+        label: 'Предел продления',
+        human: '30 дней',
+        value: '43 200',
+        hint: 'Потолок для продлений: после него вход спросят заново, даже если приложение не закрывали.',
+        presets: [
+          { label: '7 дней', active: false },
+          { label: '30 дней', active: true },
+          { label: '90 дней', active: false }
+        ]
+      }
+    ].map((s) => ({
+      label: s.label,
+      human: s.human,
+      value: s.value,
+      hint: s.hint,
+      // Вложенных списков разметка не допускает, поэтому три пресета разложены полями.
+      p1: s.presets[0].label,
+      p2: s.presets[1].label,
+      p3: s.presets[2].label,
+      p1Style: preset(s.presets[0].active),
+      p2Style: preset(s.presets[1].active),
+      p3Style: preset(s.presets[2].active)
+    }));
+
+    const row = 'display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-bottom: 1px solid #F0EAE0;';
+    const avatar = (bg, fg) => 'width: 34px; height: 34px; border-radius: 999px; background: ' + bg + '; color: ' + fg
+      + '; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;';
+    const badge = (own) => 'height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; flex-shrink: 0; '
+      + (own ? 'background: #F7EAE4; color: #2E4472;' : 'background: rgba(23,32,46,0.05); color: rgba(23,32,46,0.62);');
+
+    const people = [
+      { name: 'anna', role: 'Редактор', initial: 'А', bg: '#EDEFF4', fg: '#2E4472', rule: '8 часов · своё', own: true, active: '3 входа' },
+      { name: 'sber', role: 'Супер админ', initial: 'С', bg: '#F0EBF5', fg: '#6B4EA6', rule: '30 мин · своё', own: true, active: '1 вход' },
+      { name: 'dmitry', role: 'Пользователь', initial: 'Д', bg: '#F1EDE6', fg: 'rgba(23,32,46,0.62)', rule: 'как у всех', own: false, active: '2 входа' },
+      { name: 'marina', role: 'Пользователь', initial: 'М', bg: '#F1EDE6', fg: 'rgba(23,32,46,0.62)', rule: 'как у всех', own: false, active: 'нет входов' }
+    ].map((p) => ({
+      name: p.name,
+      role: p.role,
+      initial: p.initial,
+      rule: p.rule,
+      active: p.active,
+      rowStyle: row,
+      avatarStyle: avatar(p.bg, p.fg),
+      badgeStyle: badge(p.own)
+    }));
+
+    const action = (danger) => 'height: 34px; padding: 0 12px; border-radius: 10px; font-size: 12px; display: inline-flex; align-items: center; flex-shrink: 0; '
+      + (danger ? 'border: 1px solid #E7CFCB; color: #8A2323;' : 'background: rgba(23,32,46,0.05); color: rgba(23,32,46,0.62);');
+    const sessions = [
+      { device: 'Chrome · Windows', meta: 'этот вход · последний запрос минуту назад', action: 'текущий', danger: false },
+      { device: 'Safari · iPhone', meta: 'вход 12 августа · последний запрос 3 часа назад', action: 'Завершить', danger: true },
+      { device: 'Firefox · Ubuntu', meta: 'вход 2 августа · последний запрос 6 дней назад', action: 'Завершить', danger: true }
+    ].map((s) => ({
+      device: s.device,
+      meta: s.meta,
+      action: s.action,
+      rowStyle: row,
+      actionStyle: action(s.danger)
+    }));
+
+    return { settings, people, sessions };
+  }
+}
+</script>
+</body>
+</html>
