@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   App,
   Button,
@@ -11,15 +11,12 @@ import {
   Skeleton,
   Space,
   Progress,
-  Table,
   Tag,
   Tooltip,
   Typography
 } from 'antd';
-import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import type { SorterResult } from 'antd/es/table/interface';
 import { DeleteOutlined, EditOutlined, InboxOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
-import { LibraryItem, ReadingStatus } from '@/shared/types/library';
+import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
 import { StatusTag } from '@/shared/ui/StatusTag';
@@ -27,11 +24,10 @@ import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/sh
 import { deadlinePhrase, remainingPhrase } from '@/shared/lib/phrases';
 import { CoverThumb } from '@/shared/ui/CoverThumb';
 import { KindTag } from '@/shared/ui/KindTag';
-import { formatDate, formatDateTime } from '@/shared/lib/date';
+import { formatDate } from '@/shared/lib/date';
 import { formatScore } from '@/shared/lib/format';
 import { useRequestError } from '@/shared/lib/errors';
 import { isAdminLike, canEditBooks, canDeleteBook } from '@/shared/lib/roles';
-import { DEFAULT_BOOK_SORT } from '@/features/book/set-book-filters';
 import { useBooksListStyles } from './BooksListWidget.styles';
 
 export type BooksViewMode = 'table' | 'grid';
@@ -52,16 +48,8 @@ interface Props {
 
 const dash = '—';
 
-/**
- * Стрелка в шапке колонки по строке сортировки из фильтров. Без этого таблица вела свой
- * счёт: выбор в «Сортировке» не подсвечивал колонку, а сброс стрелки третьим кликом убирал
- * подсветку, не меняя реального порядка записей.
- */
-const sortOrderFor = (field: string, sort?: string): 'ascend' | 'descend' | null => {
-  const [sortField, direction] = (sort ?? '').split(',');
-  if (sortField !== field) return null;
-  return direction === 'asc' ? 'ascend' : 'descend';
-};
+/** Ширины колонок строки — те же, что в макете: по ним же расставлена шапка списка. */
+const COL = { status: 118, progress: 210, rating: 78, updated: 118, actions: 76 };
 
 export const BooksListWidget: React.FC<Props> = ({
   viewMode,
@@ -222,145 +210,122 @@ export const BooksListWidget: React.FC<Props> = ({
     );
   };
 
-  const columns: ColumnsType<LibraryItem> = useMemo(
-    () => [
-      {
-        title: 'Произведение',
-        dataIndex: 'title',
-        sorter: true,
-        sortOrder: sortOrderFor('title', filters.sort),
-        width: '34%',
-        render: (_: string, item) => (
-          <div style={styles.titleWrap}>
-            {/* Обложка в списке: раздел 1 роадмапа ради неё и делался, а таблица её не показывала. */}
-            <CoverThumb
-              src={item.hasCover ? coverUrl(item.id, item.updatedAt) : undefined}
-              title={item.title}
-              kind={item.kind}
-              width={36}
-              height={50}
-              // Закладка из обложки: в списке из полусотни строк начатое видно до чтения цифр.
-              progressPercent={item.progress?.percent ?? undefined}
-              style={styles.rowCover}
+  /** Одна запись строкой: шесть колонок макета вместо таблицы Ant Design. */
+  const renderRow = (item: LibraryItem, last: boolean) => {
+    const selected = selectedIds.includes(item.id);
+    const authors = renderAuthors(item);
+
+    return (
+      <div
+        key={item.id}
+        style={styles.listRow(last, selected)}
+        onClick={canEdit ? () => onEdit(item) : undefined}
+        className={canEdit ? 'app-shell-hover' : undefined}
+      >
+        {canEdit && (
+          <span onClick={(event) => event.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
+            <Checkbox
+              checked={selected}
+              onChange={(event) => toggleSelection(item.id, event.target.checked)}
+              aria-label={`Выбрать «${item.title}»`}
             />
-            <div style={styles.titleCell}>
-              <div style={styles.titleRow}>
-                {/* Значок вида: иначе сериал и книга в списке выглядят одинаково. */}
-                <KindTag kind={item.kind} iconOnly />
-                {item.favorite && (
-                  <Tooltip title="В избранном">
-                    <StarFilled style={styles.favoriteIcon} />
-                  </Tooltip>
-                )}
-                <Typography.Text strong ellipsis={{ tooltip: item.title }}>
-                  {item.title}
-                </Typography.Text>
-              </div>
-              {renderAuthors(item) && (
-                <Typography.Text type="secondary" ellipsis={{ tooltip: renderAuthors(item) ?? undefined }} style={styles.altTitle}>
-                  {renderAuthors(item)}
-                </Typography.Text>
-              )}
-              {item.altTitle && (
-                <Typography.Text type="secondary" ellipsis={{ tooltip: item.altTitle }} style={styles.altTitle}>
-                  {item.altTitle}
-                </Typography.Text>
+          </span>
+        )}
+
+        <div style={{ ...styles.titleWrap, flex: 1 }}>
+          <CoverThumb
+            src={item.hasCover ? coverUrl(item.id, item.updatedAt) : undefined}
+            title={item.title}
+            kind={item.kind}
+            width={36}
+            height={48}
+            radius={8}
+            // Закладка из обложки: в списке из полусотни строк начатое видно до чтения цифр.
+            progressPercent={item.progress?.percent ?? undefined}
+            style={styles.rowCover}
+          />
+          <div style={styles.titleCell}>
+            <div style={styles.titleRow}>
+              <span style={styles.rowTitle}>{item.title}</span>
+              <KindTag kind={item.kind} />
+              {item.favorite && (
+                <Tooltip title="В избранном">
+                  <StarFilled style={styles.favoriteIcon} />
+                </Tooltip>
               )}
             </div>
+            {(authors || item.altTitle) && <div style={styles.rowMeta}>{authors ?? item.altTitle}</div>}
           </div>
-        )
-      },
-      {
-        title: 'Статус',
-        dataIndex: 'status',
-        width: 130,
-        render: (status: string) => <StatusTag status={status as ReadingStatus} style={styles.tag} />
-      },
-      {
-        title: 'Тип',
-        dataIndex: 'typeName',
-        width: 140,
-        render: (typeName?: string) =>
-          typeName ? (
-            <Tag bordered={false} style={styles.neutralTag}>
-              {typeName}
-            </Tag>
-          ) : (
-            <span style={styles.muted}>{dash}</span>
-          )
-      },
-      {
-        title: 'Источник',
-        dataIndex: 'sourceName',
-        width: 160,
-        responsive: ['lg'],
-        render: (_: string, item) => renderSource(item)
-      },
-      {
-        title: 'Прогресс',
-        dataIndex: 'progress',
-        width: 190,
-        responsive: ['lg'],
-        render: (_: unknown, item) => renderProgress(item) ?? <span style={styles.muted}>{dash}</span>
-      },
-      {
-        title: 'Оценка',
-        dataIndex: 'rating',
-        width: 100,
-        sorter: true,
-        sortOrder: sortOrderFor('rating', filters.sort),
-        render: (rating?: number) => renderRating(rating)
-      },
-      {
-        title: 'Обновлено',
-        dataIndex: 'updatedAt',
-        width: 150,
-        sorter: true,
-        sortOrder: sortOrderFor('updatedAt', filters.sort),
-        responsive: ['xl'],
-        render: (value?: string) => <span style={styles.muted}>{formatDateTime(value)}</span>
-      },
-      ...(isAdmin
-        ? [
-            {
-              // Раньше называлось «Автор», но теперь у произведения есть настоящие авторы.
-              title: 'Добавил',
-              dataIndex: 'createdByUsername',
-              width: 130,
-              responsive: ['xl'],
-              render: (value?: string) => value || <span style={styles.muted}>{dash}</span>
-            } as ColumnsType<LibraryItem>[number]
-          ]
-        : []),
-      ...(canEdit || isAdmin
-        ? [
-            {
-              title: '',
-              dataIndex: 'actions',
-              width: 96,
-              align: 'right',
-              render: (_: unknown, item: LibraryItem) => renderActions(item)
-            } as ColumnsType<LibraryItem>[number]
-          ]
-        : [])
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAdmin, canEdit, role, user?.id, styles, filters.sort]
-  );
+        </div>
 
-  const onTableChange = (
-    pagination: TablePaginationConfig,
-    _f: unknown,
-    sorter: SorterResult<LibraryItem> | SorterResult<LibraryItem>[]
-  ) => {
-    const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-    // Третий клик по шапке снимает сортировку — значит, порядок возвращается к умолчанию,
-    // а не остаётся прежним: иначе снятая стрелка обещала бы то, чего не произошло.
-    const sortValue = activeSorter?.order
-      ? `${String(activeSorter.field)},${activeSorter.order === 'descend' ? 'desc' : 'asc'}`
-      : DEFAULT_BOOK_SORT;
-    onChangePage((pagination.current || 1) - 1, pagination.pageSize || size, sortValue);
+        <div style={{ width: COL.status, flexShrink: 0 }}>
+          <StatusTag status={item.status} style={styles.tag} />
+        </div>
+
+        <div style={{ width: COL.progress, flexShrink: 0 }}>{renderProgress(item)}</div>
+
+        <div style={{ width: COL.rating, flexShrink: 0 }}>{renderRating(item.rating)}</div>
+
+        <div style={{ width: COL.updated, flexShrink: 0, ...styles.muted, fontSize: 13 }}>
+          {formatDate(item.updatedAt)}
+        </div>
+
+        <div
+          style={{ width: COL.actions, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {renderActions(item)}
+        </div>
+      </div>
+    );
   };
+
+  /**
+   * Строка телефона по Mobile1: обложка, название, автор и прогресс с «+N» прямо в строке.
+   * Шесть колонок на 390 px не помещаются, а крупные карточки давали одну запись на экран.
+   */
+  const renderMobileRow = (item: LibraryItem, last: boolean) => (
+    <div
+      key={item.id}
+      style={styles.mobileRow(last)}
+      onClick={canEdit ? () => onEdit(item) : undefined}
+    >
+      <CoverThumb
+        src={item.hasCover ? coverUrl(item.id, item.updatedAt) : undefined}
+        title={item.title}
+        kind={item.kind}
+        width={44}
+        height={62}
+        radius={8}
+        progressPercent={item.progress?.percent ?? undefined}
+        style={styles.rowCover}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={styles.titleRow}>
+          <span style={styles.rowTitle}>{item.title}</span>
+          {item.favorite && <StarFilled style={styles.favoriteIcon} />}
+        </div>
+        {renderAuthors(item) && <div style={styles.rowMeta}>{renderAuthors(item)}</div>}
+        <div style={{ marginTop: 8 }}>
+          {renderProgress(item) ?? (
+            <Space size={8}>
+              <StatusTag status={item.status} style={styles.tag} />
+              <KindTag kind={item.kind} iconOnly />
+            </Space>
+          )}
+        </div>
+      </div>
+      {canEdit && (
+        <span onClick={(event) => event.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
+          <Checkbox
+            checked={selectedIds.includes(item.id)}
+            onChange={(event) => toggleSelection(item.id, event.target.checked)}
+            aria-label={`Выбрать «${item.title}»`}
+          />
+        </span>
+      )}
+    </div>
+  );
 
   const emptyState = (
     <Empty
@@ -403,7 +368,7 @@ export const BooksListWidget: React.FC<Props> = ({
     </div>
   );
 
-  if (viewMode === 'grid' || isMobile) {
+  if (viewMode === 'grid' && !isMobile) {
     if (loading && items.length === 0) {
       return (
         <Row gutter={[16, 16]}>
@@ -499,7 +464,7 @@ export const BooksListWidget: React.FC<Props> = ({
                   )}
                   {item.sourceName && (
                     <Tag bordered={false} style={styles.neutralTag}>
-                      {item.sourceName}
+                      {renderSource(item)}
                     </Tag>
                   )}
                   {renderSeries(item) && (
@@ -542,35 +507,73 @@ export const BooksListWidget: React.FC<Props> = ({
     );
   }
 
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id));
+
+  if (loading && items.length === 0) {
+    return (
+      <div style={styles.table}>
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} style={{ padding: '14px 16px' }}>
+            <Skeleton active paragraph={{ rows: 1 }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return <div style={styles.emptyWrapper}>{emptyState}</div>;
+  }
+
   return (
-    <Table
-      rowKey={(record) => record.id}
-      columns={columns}
-      dataSource={items}
-      loading={loading}
-      // Выделение только там, где есть что менять: читателю чужой библиотеки оно ни к чему.
-      rowSelection={
-        canEdit
-          ? {
-              selectedRowKeys: selectedIds,
-              onChange: (keys) => onSelectionChange(keys.map(String)),
-              preserveSelectedRowKeys: true
-            }
-          : undefined
-      }
-      locale={{ emptyText: emptyState }}
-      pagination={{
-        current: page + 1,
-        pageSize: size,
-        total,
-        showSizeChanger: true,
-        showTotal: (count, range) => `${range[0]}–${range[1]} из ${count}`,
-        style: styles.tablePagination
-      }}
-      onChange={onTableChange}
-      size="middle"
-      scroll={{ x: 720 }}
-      style={styles.table}
-    />
+    <div style={styles.table}>
+      {/* Шапка списка — подписи колонок, а не кнопки сортировки: порядок задаётся одним
+          выбором в панели выше, и два места для одного и того же расходились между собой. */}
+      {!isMobile && (
+        <div style={styles.listHead}>
+          {canEdit && (
+            <span style={{ display: 'flex', flexShrink: 0 }}>
+              <Checkbox
+                checked={allSelected}
+                indeterminate={!allSelected && items.some((item) => selectedIds.includes(item.id))}
+                onChange={(event) =>
+                  onSelectionChange(
+                    event.target.checked
+                      ? Array.from(new Set([...selectedIds, ...items.map((item) => item.id)]))
+                      : selectedIds.filter((id) => !items.some((item) => item.id === id))
+                  )
+                }
+                aria-label="Выбрать все записи на странице"
+              />
+            </span>
+          )}
+          <span style={{ flex: 1, minWidth: 0 }}>Запись</span>
+          <span style={{ width: COL.status, flexShrink: 0 }}>Статус</span>
+          <span style={{ width: COL.progress, flexShrink: 0 }}>Прогресс</span>
+          <span style={{ width: COL.rating, flexShrink: 0 }}>Оценка</span>
+          <span style={{ width: COL.updated, flexShrink: 0 }}>Обновлено</span>
+          <span style={{ width: COL.actions, flexShrink: 0 }} />
+        </div>
+      )}
+
+      {items.map((item, index) =>
+        isMobile
+          ? renderMobileRow(item, index === items.length - 1)
+          : renderRow(item, index === items.length - 1)
+      )}
+
+      <div style={styles.listFooter}>
+        <Pagination
+          current={page + 1}
+          pageSize={size}
+          total={total}
+          showSizeChanger={!isMobile}
+          size={isMobile ? 'small' : 'default'}
+          onChange={(p, s) => onChangePage(p - 1, s, filters.sort)}
+          onShowSizeChange={(p, s) => onChangePage(p - 1, s, filters.sort)}
+          showTotal={(count, range) => `${range[0]}–${range[1]} из ${count}`}
+        />
+      </div>
+    </div>
   );
 };

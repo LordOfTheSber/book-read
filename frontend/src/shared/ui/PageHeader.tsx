@@ -9,6 +9,11 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   /** Заголовок вкладки, когда видимый заголовок не строка (узел, публичный профиль). */
   documentTitle?: string;
+  /**
+   * На телефоне заголовок не показывается: имя раздела уже стоит в верхней строке оболочки,
+   * и второй такой же занимает четверть экрана. Подпись при этом остаётся — в ней счётчики.
+   */
+  hideTitleOnMobile?: boolean;
 }
 
 /**
@@ -18,7 +23,13 @@ interface PageHeaderProps {
  * Отсюда же берётся заголовок вкладки: он всегда совпадает с тем, что человек видит
  * на странице, и не расходится с ним при добавлении новых разделов.
  */
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions, documentTitle }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({
+  title,
+  subtitle,
+  actions,
+  documentTitle,
+  hideTitleOnMobile
+}) => {
   const { token } = theme.useToken();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -37,12 +48,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions
       }}
     >
       <div style={{ minWidth: 0 }}>
-        <Typography.Title
-          level={2}
-          style={{ margin: 0, fontSize: isMobile ? 24 : 30, lineHeight: 1.2, letterSpacing: -0.4 }}
-        >
-          {title}
-        </Typography.Title>
+        {!(isMobile && hideTitleOnMobile) && (
+          <Typography.Title
+            level={2}
+            style={{ margin: 0, fontSize: isMobile ? 24 : 30, lineHeight: 1.2, letterSpacing: -0.4 }}
+          >
+            {title}
+          </Typography.Title>
+        )}
         {subtitle && (
           <Typography.Text type="secondary" style={{ display: 'block', marginTop: 6 }}>
             {subtitle}

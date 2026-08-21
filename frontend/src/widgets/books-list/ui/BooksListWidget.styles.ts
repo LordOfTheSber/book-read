@@ -41,6 +41,61 @@ export const useBooksListStyles = () => {
       } as CSSProperties,
       tablePagination: { padding: '12px 16px', marginBottom: 0 } as CSSProperties,
 
+      // --- Список строками (Main.dc.html) ---
+      listHead: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        height: 44,
+        padding: '0 16px',
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorFillQuaternary,
+        fontSize: 12,
+        fontWeight: 600,
+        color: token.colorTextTertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4
+      } as CSSProperties,
+      listRow: (last: boolean, selected: boolean): CSSProperties => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '11px 16px',
+        borderBottom: last ? undefined : `1px solid ${token.colorBorderSecondary}`,
+        ...(selected ? { background: token.colorPrimaryBg } : null)
+      }),
+      // Строка телефона: две колонки вместо шести, обложка крупнее — она же цель нажатия.
+      mobileRow: (last: boolean): CSSProperties => ({
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        padding: '12px 14px',
+        borderBottom: last ? undefined : `1px solid ${token.colorBorderSecondary}`
+      }),
+      rowTitle: {
+        fontWeight: 600,
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      } as CSSProperties,
+      rowMeta: {
+        marginTop: 3,
+        fontSize: 13,
+        color: token.colorTextTertiary,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      } as CSSProperties,
+      listFooter: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '12px 16px',
+        borderTop: `1px solid ${token.colorBorderSecondary}`
+      } as CSSProperties,
+
       card: {
         height: '100%',
         // Колонка из обложки и тела: без неё body с height:100% растягивал карточку

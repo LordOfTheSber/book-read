@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { App, Button, Dropdown, Input, Modal, Space, Tooltip, Typography } from 'antd';
+import { App, Button, Dropdown, Input, Modal, Space, Typography } from 'antd';
 import type { MenuProps } from 'antd';
-import { BookOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
+import { BookOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { applySavedFilter, toSavedFilter } from '@/features/book/set-book-filters';
 import { createSmartShelfThunk, deleteSmartShelfThunk, loadSmartShelves } from '@/entities/smart-shelf';
@@ -11,13 +11,30 @@ import { useRequestError } from '@/shared/lib/errors';
  * Умные полки: сохранённый фильтр как объект. Фильтр выдачи и так принимал десяток параметров —
  * не хватало только возможности назвать удачную комбинацию и вернуться к ней завтра.
  */
-export const SmartShelvesWidget: React.FC = () => {
+interface Props {
+  /**
+   * Окно сохранения может открывать строка применённых фильтров: сохраняют набор там,
+   * где его собрали, а не кнопкой в панели, стоящей отдельно от фильтров.
+   */
+  saveOpen?: boolean;
+  onSaveOpenChange?: (open: boolean) => void;
+  /** На узком экране остаётся только значок: подпись уводила панель на третью строку. */
+  iconOnly?: boolean;
+}
+
+export const SmartShelvesWidget: React.FC<Props> = ({
+  saveOpen: controlledOpen,
+  onSaveOpenChange,
+  iconOnly
+}) => {
   const dispatch = useAppDispatch();
   const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
   const filters = useAppSelector((state) => state.bookFilters);
   const shelves = useAppSelector((state) => state.smartShelves.list);
-  const [saveOpen, setSaveOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const saveOpen = controlledOpen ?? ownOpen;
+  const setSaveOpen = onSaveOpenChange ?? setOwnOpen;
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -78,16 +95,13 @@ export const SmartShelvesWidget: React.FC = () => {
 
   return (
     <>
-      <Space.Compact>
-        <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
-          <Button size="large" icon={<BookOutlined />}>
-            {`Умные полки${shelves.length ? ` (${shelves.length})` : ''}`}
-          </Button>
-        </Dropdown>
-        <Tooltip title="Сохранить текущие фильтры как умную полку">
-          <Button size="large" icon={<SaveOutlined />} onClick={() => setSaveOpen(true)} aria-label="Сохранить фильтры" />
-        </Tooltip>
-      </Space.Compact>
+      {/* Отдельной кнопки сохранения в панели больше нет: набор сохраняют там, где его
+          собрали — ссылкой в строке применённых фильтров. */}
+      <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
+        <Button size="large" icon={<BookOutlined />} aria-label="Умные полки">
+          {iconOnly ? shelves.length || undefined : `Умные полки${shelves.length ? ` (${shelves.length})` : ''}`}
+        </Button>
+      </Dropdown>
 
       <Modal
         title="Сохранить как умную полку"
