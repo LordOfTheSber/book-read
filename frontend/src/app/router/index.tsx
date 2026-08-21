@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { PageLayout } from '@/app/layouts/PageLayout';
 import { BooksPage } from '@/pages/books-page';
+import { RecordPage } from '@/pages/record-page';
 import { TypesPage } from '@/pages/types-page';
 import { SourcesPage } from '@/pages/sources-page';
 import { AuthorsPage } from '@/pages/authors-page';
@@ -64,6 +65,8 @@ const router = createBrowserRouter([
         element: <PageLayout />,
         children: [
           { index: true, element: <BooksPage /> },
+          // У записи свой адрес: на неё дают ссылку и открывают в новой вкладке.
+          { path: 'library/:id', element: <RecordPage /> },
           { path: 'analytics', element: <AnalyticsPage /> },
           { path: 'profile', element: <ProfilePage /> },
           // Публичный профиль живёт на коротком /u/:username: этот адрес люди пересылают друг другу.

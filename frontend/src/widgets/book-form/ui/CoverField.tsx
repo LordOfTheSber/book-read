@@ -1,45 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { App, Button, Space, Tooltip, Typography, Upload, theme } from 'antd';
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import { App, Button, Space, Tooltip, Upload, theme } from 'antd';
 import type { RcFile } from 'antd/es/upload';
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import { LibraryItem, MediaKind } from '@/shared/types/library';
 import { coverUrl, deleteCover, uploadCover } from '@/entities/book';
 import { CoverThumb } from '@/shared/ui/CoverThumb';
 import { useRequestError } from '@/shared/lib/errors';
 
 interface Props {
-  /** null — книга ещё не сохранена: адреса обложки нет, показываем только заглушку. */
-  item: LibraryItem | null;
+  item: LibraryItem;
   /** Название и вид берутся из формы: заглушка меняется вместе с вводом. */
   title: string;
   kind?: MediaKind;
+  /**
+   * Узкий экран: обложка становится боковой, а не во всю ширину карточки. Во всю ширину она
+   * на 390 px занимает почти весь экран, и до названия записи приходится прокручивать.
+   */
+  compact?: boolean;
 }
 
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
-const COVER_WIDTH = 132;
-const COVER_HEIGHT = 186;
+const COVER_HEIGHT = 366;
+const COMPACT_WIDTH = 120;
+const COMPACT_HEIGHT = 170;
 
 /**
  * Обложка живёт вне карточки: она загружается и удаляется отдельными запросами, потому что
- * хранится в объектном хранилище, а не в БД. Поэтому и правится она только у сохранённой книги.
- * Место у неё первое: обложка — то, по чему запись узнают в списке.
+ * хранится в объектном хранилище, а не в БД. Место у неё первое: обложка — то, по чему запись
+ * узнают в списке.
  */
-export const CoverField: React.FC<Props> = ({ item, title, kind }) => {
+export const CoverField: React.FC<Props> = ({ item, title, kind, compact }) => {
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const showRequestError = useRequestError();
-  const [hasCover, setHasCover] = useState(Boolean(item?.hasCover));
-  const [version, setVersion] = useState(item?.updatedAt);
+  const [hasCover, setHasCover] = useState(Boolean(item.hasCover));
+  const [version, setVersion] = useState(item.updatedAt);
   const [busy, setBusy] = useState(false);
 
-  // Панель переиспользуется под другую книгу без размонтирования: состояние обложки нужно сбросить.
+  // Страница переиспользуется под другую запись без размонтирования: состояние обложки сбрасываем.
   useEffect(() => {
-    setHasCover(Boolean(item?.hasCover));
-    setVersion(item?.updatedAt);
-  }, [item?.id, item?.hasCover, item?.updatedAt]);
+    setHasCover(Boolean(item.hasCover));
+    setVersion(item.updatedAt);
+  }, [item.id, item.hasCover, item.updatedAt]);
 
   const handleUpload = async (file: RcFile) => {
-    if (!item) return Upload.LIST_IGNORE;
     if (file.size > MAX_COVER_BYTES) {
       message.error('Обложка должна быть меньше 5 МБ');
       return Upload.LIST_IGNORE;
@@ -61,7 +65,6 @@ export const CoverField: React.FC<Props> = ({ item, title, kind }) => {
   };
 
   const handleDelete = async () => {
-    if (!item) return;
     setBusy(true);
     try {
       await deleteCover(item.id);
@@ -75,45 +78,36 @@ export const CoverField: React.FC<Props> = ({ item, title, kind }) => {
   };
 
   return (
-    <div style={{ width: COVER_WIDTH, flexShrink: 0 }}>
+    <div style={compact ? { display: 'flex', gap: 14, alignItems: 'flex-start' } : undefined}>
       <CoverThumb
-        src={item && hasCover ? coverUrl(item.id, version) : undefined}
+        src={hasCover ? coverUrl(item.id, version) : undefined}
         title={title || 'Без названия'}
         kind={kind}
-        width={COVER_WIDTH}
-        height={COVER_HEIGHT}
+        width={compact ? COMPACT_WIDTH : '100%'}
+        height={compact ? COMPACT_HEIGHT : COVER_HEIGHT}
         radius={token.borderRadiusLG}
-        style={{ border: `1px solid ${token.colorBorderSecondary}`, display: 'block' }}
+        progressPercent={item.progress?.percent ?? undefined}
+        style={{ display: 'block', flexShrink: 0 }}
       />
 
-      {item ? (
-        <Space size={4} style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
-          <Upload accept="image/png,image/jpeg,image/webp" showUploadList={false} beforeUpload={handleUpload}>
-            <Tooltip title="PNG, JPEG или WEBP до 5 МБ">
-              <Button size="small" icon={<UploadOutlined />} loading={busy}>
-                {hasCover ? 'Заменить' : 'Загрузить'}
-              </Button>
-            </Tooltip>
-          </Upload>
-          {hasCover && (
-            <Tooltip title="Удалить обложку">
-              <Button
-                size="small"
-                danger
-                type="text"
-                icon={<DeleteOutlined />}
-                onClick={handleDelete}
-                loading={busy}
-                aria-label="Удалить обложку"
-              />
-            </Tooltip>
-          )}
-        </Space>
-      ) : (
-        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12, textAlign: 'center' }}>
-          Обложку можно загрузить после сохранения
-        </Typography.Text>
-      )}
+      <Space
+        size={8}
+        direction={compact ? 'vertical' : 'horizontal'}
+        style={{ marginTop: compact ? 0 : 12, width: '100%' }}
+      >
+        <Upload accept="image/png,image/jpeg,image/webp" showUploadList={false} beforeUpload={handleUpload}>
+          <Tooltip title="PNG, JPEG или WEBP до 5 МБ">
+            <Button icon={<UploadOutlined />} loading={busy}>
+              {hasCover ? 'Заменить' : 'Загрузить'}
+            </Button>
+          </Tooltip>
+        </Upload>
+        {hasCover && (
+          <Tooltip title="Удалить обложку">
+            <Button icon={<DeleteOutlined />} onClick={handleDelete} loading={busy} aria-label="Удалить обложку" />
+          </Tooltip>
+        )}
+      </Space>
     </div>
   );
 };

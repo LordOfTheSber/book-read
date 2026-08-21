@@ -18,7 +18,7 @@ import {
 import { DeleteOutlined, EditOutlined, InboxOutlined, LinkOutlined, PlusOutlined, StarFilled } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { addSession, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
+import { advanceProgress, coverUrl, deleteBookThunk, loadBooks } from '@/entities/book';
 import { StatusTag } from '@/shared/ui/StatusTag';
 import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
 import { deadlinePhrase, remainingPhrase } from '@/shared/lib/phrases';
@@ -111,15 +111,11 @@ export const BooksListWidget: React.FC<Props> = ({
    * Ради него сессия и сделана лёгкой — без обязательных полей.
    */
   const advance = async (item: LibraryItem, delta: number) => {
-    const current = item.progress?.current ?? 0;
-    // Позицию за краем шкалы сервер всё равно обрежет — незачем сохранять её в истории.
-    const target = item.progress?.total ? Math.min(current + delta, item.progress.total) : current + delta;
-    if (target === current) {
-      message.info('Шкала уже пройдена до конца');
-      return;
-    }
     try {
-      await addSession(item.id, { fromPosition: current, toPosition: target });
+      if (!(await advanceProgress(item, delta))) {
+        message.info('Шкала уже пройдена до конца');
+        return;
+      }
       await dispatch(loadBooks(filters)).unwrap();
     } catch (error) {
       showRequestError(error, 'Не удалось отметить прогресс');

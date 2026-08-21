@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LibraryItem } from '@/shared/types/library';
-import { useAppSelector } from '@/shared/lib/hooks';
-import { BookFormDrawer } from '@/widgets/book-form';
 import { AddRecordModal } from '@/widgets/add-record';
 
 interface RecordFormContextValue {
@@ -18,34 +17,28 @@ const RecordFormContext = createContext<RecordFormContextValue | null>(null);
  * возвращаться на другую страницу. Теперь действие одно, оно в шапке и на нижней панели
  * телефона, а форму открывает любой экран — включая находку в поиске по ⌘K.
  *
- * Добавление и правка — разные окна: новая запись заводится поиском по каталогам
- * (`AddRecordModal`), а панель с вкладками нужна уже существующей записи.
+ * Добавление и правка разошлись: новая запись заводится поиском по каталогам
+ * (`AddRecordModal`), а существующая открывается своей страницей `/library/:id`.
  */
 export const RecordFormProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [addOpen, setAddOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [snapshot, setSnapshot] = useState<LibraryItem | null>(null);
-  const items = useAppSelector((state) => state.books.items);
-
-  /**
-   * Открытая карточка берётся из стора по идентификатору, а не хранится снимком: заход на вкладке
-   * «Прогресс» перечитывает список, и снимок оставлял на экране позицию до этого захода —
-   * следующее «+10» отсчитывалось от старого числа. Снимок остаётся запасным вариантом на случай,
-   * когда запись выпала из текущей страницы выдачи.
-   */
-  const editing = useMemo(
-    () => items.find((item) => item.id === snapshot?.id) ?? snapshot,
-    [items, snapshot]
-  );
+  const navigate = useNavigate();
 
   const openCreate = useCallback(() => {
     setAddOpen(true);
   }, []);
 
-  const openEdit = useCallback((item: LibraryItem) => {
-    setSnapshot(item);
-    setEditOpen(true);
-  }, []);
+  /*
+   * Шов остался один, а поведение сменилось: раньше здесь открывалась панель, теперь это переход
+   * на страницу записи. Поэтому строка списка, полка «Продолжить», находка в ⌘K и «Добавить и
+   * открыть карточку» перешли на страницу, не зная об этом.
+   */
+  const openEdit = useCallback(
+    (item: LibraryItem) => {
+      navigate(`/library/${item.id}`);
+    },
+    [navigate]
+  );
 
   const value = useMemo<RecordFormContextValue>(() => ({ openCreate, openEdit }), [openCreate, openEdit]);
 
@@ -53,8 +46,6 @@ export const RecordFormProvider: React.FC<React.PropsWithChildren> = ({ children
     <RecordFormContext.Provider value={value}>
       {children}
       <AddRecordModal open={addOpen} onClose={() => setAddOpen(false)} onOpenRecord={openEdit} />
-      {/* Панель правки монтируется только с записью: создание ушло в окно добавления. */}
-      {editing && <BookFormDrawer open={editOpen} editing={editing} onClose={() => setEditOpen(false)} />}
     </RecordFormContext.Provider>
   );
 };

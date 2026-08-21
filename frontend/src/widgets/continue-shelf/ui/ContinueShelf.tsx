@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { App, Button, Progress, Skeleton, Tooltip, Typography, theme } from 'antd';
-import { addSession, coverUrl, fetchBooks, loadBooks } from '@/entities/book';
+import { advanceProgress, coverUrl, fetchBooks, loadBooks } from '@/entities/book';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { CoverThumb } from '@/shared/ui/CoverThumb';
 import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
@@ -60,14 +60,11 @@ export const ContinueShelf: React.FC<Props> = ({ onOpen, onShowAll }) => {
   }, [load, total]);
 
   const advance = async (item: LibraryItem, delta: number) => {
-    const current = item.progress?.current ?? 0;
-    const target = item.progress?.total ? Math.min(current + delta, item.progress.total) : current + delta;
-    if (target === current) {
-      message.info('Шкала уже пройдена до конца');
-      return;
-    }
     try {
-      await addSession(item.id, { fromPosition: current, toPosition: target });
+      if (!(await advanceProgress(item, delta))) {
+        message.info('Шкала уже пройдена до конца');
+        return;
+      }
       await Promise.all([load(), dispatch(loadBooks(filters)).unwrap()]);
     } catch (error) {
       showRequestError(error, 'Не удалось отметить прогресс');

@@ -92,9 +92,9 @@ test('карточка сохраняет и издательские поля, 
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
 
-  // Перезагрузка отсекает состояние на клиенте: дальше проверяется то, что легло в базу.
+  // Перезагрузка отсекает состояние на клиенте: у записи свой адрес, и после неё открывается
+  // та же страница — дальше проверяется то, что легло в базу.
   await page.reload();
-  await page.getByLabel('Редактировать').first().click();
 
   await page.getByText('Издание и расположение').click();
   await expect(page.getByLabel('ISBN')).toHaveValue('9785171049676');
