@@ -36,12 +36,21 @@ test('регистрация приводит на страницу библио
   expect(stored).not.toContain(accessToken?.value ?? 'ACCESS_TOKEN');
 });
 
+/**
+ * «Добавить запись» открывает поиск по каталогам, а форма на шесть полей лежит за ссылкой
+ * «Завести вручную»: в e2e каталоги недоступны, поэтому запись всегда заводится руками.
+ */
+const addBookManually = async (page: import('@playwright/test').Page, title: string) => {
+  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
+  await page.getByRole('button', { name: 'Не нашлось? Завести вручную' }).click();
+  await page.getByLabel('Название', { exact: true }).fill(title);
+};
+
 test('добавленная книга появляется в списке и переживает перезагрузку', async ({ page }) => {
   await registerNewUser(page);
   const title = `Задача трёх тел ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
 
   await expect(page.getByText(title)).toBeVisible();
@@ -52,20 +61,26 @@ test('добавленная книга появляется в списке и 
 });
 
 /**
- * Карточка доезжает до базы целиком. Издательские поля лежат в свёрнутом блоке, отзыв — ниже
- * по форме, и до правки на сервер уходило только то, что было нарисовано на экране: запись
- * сохранялась, а половина введённого пропадала молча. Проверяется на живом стеке, потому что
- * потеря случалась именно между формой и базой.
+ * Карточка доезжает до базы целиком. Издательские поля лежат в свёрнутом блоке, отзыв — на
+ * отдельной вкладке, и до правки на сервер уходило только то, что было нарисовано на экране:
+ * запись сохранялась, а половина введённого пропадала молча. Проверяется на живом стеке, потому
+ * что потеря случалась именно между формой и базой.
+ *
+ * Заводится запись теперь одним названием, а издание и отзыв заполняются в карточке: при
+ * добавлении их не спрашивают — у книги, которую ещё не начали, их попросту нет.
  */
 test('карточка сохраняет и издательские поля, и отзыв', async ({ page }) => {
   await registerNewUser(page);
   const title = `Тёмный лес ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
+  await page.getByRole('button', { name: 'Добавить и открыть карточку' }).click();
+
   // По роли, а не по подписи: «Отзыв» подстрокой входит в имя вкладки «Оценка и отзыв».
+  await page.getByRole('tab', { name: 'Оценка и отзыв' }).click();
   await page.getByRole('textbox', { name: 'Отзыв' }).fill('Лучшая твёрдая фантастика');
 
+  await page.getByRole('tab', { name: 'Карточка' }).click();
   await page.getByText('Издание и расположение').click();
   await page.getByLabel('ISBN').fill('9785171049676');
   await page.getByLabel('Год издания').fill('2008');
@@ -74,7 +89,7 @@ test('карточка сохраняет и издательские поля, 
   await page.getByLabel('Шкаф').fill('Гостиная');
   await page.getByLabel('Полка', { exact: true }).fill('Вторая сверху');
 
-  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
 
   // Перезагрузка отсекает состояние на клиенте: дальше проверяется то, что легло в базу.
@@ -103,8 +118,7 @@ test('введённый в карточке автор заводится и п
   const author = `Лю Цысинь ${Date.now()}`;
   const title = `Тёмный лес ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
   await page.getByLabel('Авторы').fill(author);
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();

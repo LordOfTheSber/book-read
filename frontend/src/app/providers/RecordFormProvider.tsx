@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import { LibraryItem } from '@/shared/types/library';
 import { useAppSelector } from '@/shared/lib/hooks';
 import { BookFormDrawer } from '@/widgets/book-form';
+import { AddRecordModal } from '@/widgets/add-record';
 
 interface RecordFormContextValue {
   openCreate: () => void;
@@ -16,9 +17,13 @@ const RecordFormContext = createContext<RecordFormContextValue | null>(null);
  * Кнопка «Добавить» стояла только в библиотеке: из аналитики или ленты за ней надо было
  * возвращаться на другую страницу. Теперь действие одно, оно в шапке и на нижней панели
  * телефона, а форму открывает любой экран — включая находку в поиске по ⌘K.
+ *
+ * Добавление и правка — разные окна: новая запись заводится поиском по каталогам
+ * (`AddRecordModal`), а панель с вкладками нужна уже существующей записи.
  */
 export const RecordFormProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [open, setOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<LibraryItem | null>(null);
   const items = useAppSelector((state) => state.books.items);
 
@@ -34,13 +39,12 @@ export const RecordFormProvider: React.FC<React.PropsWithChildren> = ({ children
   );
 
   const openCreate = useCallback(() => {
-    setSnapshot(null);
-    setOpen(true);
+    setAddOpen(true);
   }, []);
 
   const openEdit = useCallback((item: LibraryItem) => {
     setSnapshot(item);
-    setOpen(true);
+    setEditOpen(true);
   }, []);
 
   const value = useMemo<RecordFormContextValue>(() => ({ openCreate, openEdit }), [openCreate, openEdit]);
@@ -48,7 +52,9 @@ export const RecordFormProvider: React.FC<React.PropsWithChildren> = ({ children
   return (
     <RecordFormContext.Provider value={value}>
       {children}
-      <BookFormDrawer open={open} editing={editing} onClose={() => setOpen(false)} />
+      <AddRecordModal open={addOpen} onClose={() => setAddOpen(false)} onOpenRecord={openEdit} />
+      {/* Панель правки монтируется только с записью: создание ушло в окно добавления. */}
+      {editing && <BookFormDrawer open={editOpen} editing={editing} onClose={() => setEditOpen(false)} />}
     </RecordFormContext.Provider>
   );
 };

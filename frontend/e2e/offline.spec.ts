@@ -25,7 +25,9 @@ const registerNewUser = async (page: import('@playwright/test').Page) => {
 };
 
 const addBook = async (page: import('@playwright/test').Page, title: string) => {
+  // «Добавить запись» открывает поиск по каталогам; форма на шесть полей — за «Завести вручную».
   await page.getByRole('button', { name: 'Добавить запись' }).first().click();
+  await page.getByRole('button', { name: 'Не нашлось? Завести вручную' }).click();
   await page.getByLabel('Название', { exact: true }).fill(title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   // Название всплывает и в списке, и в уведомлении об успехе: берём строго карточку.

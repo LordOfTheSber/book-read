@@ -1,9 +1,10 @@
 import React from 'react';
-import { Col, Divider, Form, InputNumber, Row, Select, Space, Switch, Typography, theme } from 'antd';
+import { Col, Divider, Form, InputNumber, Row, Select, Switch, Typography } from 'antd';
 import type { FormInstance } from 'antd';
 import { useAppSelector } from '@/shared/lib/hooks';
 import { statusOptions } from '@/shared/constants/status';
 import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
+import { ChoiceChips } from '@/shared/ui/ChoiceChips';
 import { isAdminLike } from '@/shared/lib/roles';
 import type { BookFilterState } from '@/features/book/set-book-filters';
 
@@ -23,47 +24,17 @@ interface FiltersFormValues {
 }
 
 /**
- * Чипы статуса вместо Segmented: подписи не обрезаются и переносятся по строкам.
- *
- * Каждый чип — настоящая кнопка-переключатель, а не span с обработчиком клика, каким был
- * CheckableTag: тот не попадал в обход по Tab и не отвечал на пробел с Enter, поэтому выбрать
- * статус с клавиатуры было нельзя. Оформление чипа всё равно задавалось здесь целиком.
+ * Статус фильтра чипами: «Любой» здесь такой же чип, как остальные, — снимать фильтр
+ * приходится чаще, чем ставить, и прятать это в выпадающий список незачем.
  */
-const StatusChips: React.FC<{ value?: string; onChange?: (value?: string) => void }> = ({ value, onChange }) => {
-  const { token } = theme.useToken();
-  const options = [{ label: 'Любой', value: '' }, ...statusOptions.map((s) => ({ label: s.label, value: s.value }))];
-
-  return (
-    <Space size={[8, 8]} wrap role="group" aria-label="Статус">
-      {options.map((option) => {
-        const checked = (value ?? '') === option.value;
-        return (
-          <button
-            key={option.value || 'any'}
-            type="button"
-            aria-pressed={checked}
-            onClick={() => onChange?.(option.value || undefined)}
-            style={{
-              font: 'inherit',
-              fontSize: 14,
-              lineHeight: 1.5,
-              cursor: 'pointer',
-              borderRadius: 999,
-              paddingInline: 14,
-              paddingBlock: 5,
-              border: `1px solid ${checked ? 'transparent' : token.colorBorder}`,
-              background: checked ? token.colorPrimary : 'transparent',
-              color: checked ? token.colorTextLightSolid : token.colorText,
-              transition: 'background .16s ease, border-color .16s ease'
-            }}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </Space>
-  );
-};
+const StatusChips: React.FC<{ value?: string; onChange?: (value?: string) => void }> = ({ value, onChange }) => (
+  <ChoiceChips
+    ariaLabel="Статус"
+    options={[{ label: 'Любой', value: '' }, ...statusOptions.map((s) => ({ label: s.label, value: s.value }))]}
+    value={value ?? ''}
+    onChange={(next) => onChange?.(next || undefined)}
+  />
+);
 
 interface Props {
   form: FormInstance<FiltersFormValues>;

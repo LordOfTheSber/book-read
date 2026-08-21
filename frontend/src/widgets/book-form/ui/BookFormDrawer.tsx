@@ -35,7 +35,7 @@ import {
 } from '@/shared/constants/format';
 import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { createBookThunk, updateBookThunk, uploadCoverFromUrl } from '@/entities/book';
+import { updateBookThunk, uploadCoverFromUrl } from '@/entities/book';
 import { loadAuthors } from '@/entities/author';
 import { loadSeries } from '@/entities/series';
 import { loadTags } from '@/entities/tag';
@@ -53,8 +53,8 @@ import { loadBooks } from '@/entities/book';
 
 interface Props {
   open: boolean;
-  /** null — создание новой книги. */
-  editing: LibraryItem | null;
+  /** Панель правит уже существующую запись: новая заводится окном добавления. */
+  editing: LibraryItem;
   onClose: () => void;
 }
 
@@ -89,7 +89,6 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const shelves = useAppSelector((state) => state.shelves.list);
   const filters = useAppSelector((state) => state.bookFilters);
   const screens = Grid.useBreakpoint();
-  const { token } = theme.useToken();
   const isMobile = !screens.md;
   const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
@@ -117,26 +116,22 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
   useEffect(() => {
     if (!open) return;
-    if (editing) {
-      form.setFieldsValue({
-        ...editing,
-        typeId: editing.typeId,
-        sourceId: editing.sourceId,
-        // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
-        authorNames: (editing.authors ?? []).map((author) => author.name),
-        tagNames: (editing.tags ?? []).map((tag) => tag.name),
-        shelfIds: (editing.shelves ?? []).map((shelf) => shelf.id),
-        seriesName: editing.seriesName,
-        startedAt: toDate(editing.startedAt),
-        finishedAt: toDate(editing.finishedAt),
-        deadline: toDate(editing.deadline),
-        // Текущей позиции в карточке нет: её ведут заходы и смена статуса на вкладке «Прогресс».
-        progressTotal: editing.progress?.total,
-        progressUnit: editing.progress?.unit
-      });
-    } else {
-      form.resetFields();
-    }
+    form.setFieldsValue({
+      ...editing,
+      typeId: editing.typeId,
+      sourceId: editing.sourceId,
+      // Авторы и серия ездят именами: сервер сам находит существующих и заводит новых.
+      authorNames: (editing.authors ?? []).map((author) => author.name),
+      tagNames: (editing.tags ?? []).map((tag) => tag.name),
+      shelfIds: (editing.shelves ?? []).map((shelf) => shelf.id),
+      seriesName: editing.seriesName,
+      startedAt: toDate(editing.startedAt),
+      finishedAt: toDate(editing.finishedAt),
+      deadline: toDate(editing.deadline),
+      // Текущей позиции в карточке нет: её ведут заходы и смена статуса на вкладке «Прогресс».
+      progressTotal: editing.progress?.total,
+      progressUnit: editing.progress?.unit
+    });
     setPendingCoverUrl(undefined);
     // Подстановка значений — не правка пользователя: заполненная карточка редактирования
     // не должна на входе считаться изменённой.
@@ -205,8 +200,8 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   };
 
   const effectiveUnit = resolveProgressUnit({
-    kind: watchedKind ?? editing?.kind,
-    format: watchedFormat ?? editing?.format,
+    kind: watchedKind ?? editing.kind,
+    format: watchedFormat ?? editing.format,
     progressUnit: watchedUnit
   });
   const unitShort = progressUnitLabel[effectiveUnit];
@@ -251,15 +246,9 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
     };
     setSaving(true);
     try {
-      if (editing) {
-        await dispatch(updateBookThunk({ id: editing.id, payload })).unwrap();
-        await attachCoverFromCatalog(editing.id);
-        message.success('Данные обновлены');
-      } else {
-        const created = await dispatch(createBookThunk(payload)).unwrap();
-        await attachCoverFromCatalog(created.id);
-        message.success('Запись добавлена');
-      }
+      await dispatch(updateBookThunk({ id: editing.id, payload })).unwrap();
+      await attachCoverFromCatalog(editing.id);
+      message.success('Данные обновлены');
       // Списки могли пополниться новыми авторами, сериями и тегами, заведёнными по ходу сохранения.
       dispatch(loadAuthors({ force: true }));
       dispatch(loadSeries({ force: true }));
@@ -278,7 +267,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const identityBlock = (
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexDirection: isMobile ? 'column' : 'row' }}>
       {/* Обложка стоит первой, а не в конце формы: в списке запись узнают именно по ней. */}
-      <CoverField item={editing} title={watchedTitle ?? editing?.title ?? ''} kind={watchedKind ?? editing?.kind} />
+      <CoverField item={editing} title={watchedTitle ?? editing.title} kind={watchedKind ?? editing.kind} />
 
       <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
@@ -356,7 +345,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
   const cardTab = (
     <Space direction="vertical" size={0} style={{ display: 'flex' }}>
       {/* Дубли показываются до сохранения: сообщать о них после — уже поздно. */}
-      <DuplicateHint title={watchedTitle} isbn={watchedIsbn} excludeId={editing?.id} />
+      <DuplicateHint title={watchedTitle} isbn={watchedIsbn} excludeId={editing.id} />
       {identityBlock}
 
       {/* Серия и полки — связи, а не издательские подробности: раньше серия лежала в свёрнутом
@@ -563,7 +552,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
 
   return (
     <Drawer
-      title={editing ? 'Редактирование записи' : 'Новая запись'}
+      title="Редактирование записи"
       open={open}
       onClose={requestClose}
       destroyOnHidden
@@ -579,7 +568,7 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '12px 24px' }}>
           <Button onClick={requestClose}>Отмена</Button>
           <Button type="primary" loading={saving} onClick={handleSubmit}>
-            {editing ? 'Сохранить' : 'Добавить'}
+            Сохранить
           </Button>
         </div>
       }
@@ -590,40 +579,23 @@ export const BookFormDrawer: React.FC<Props> = ({ open, editing, onClose }) => {
         component={false}
         layout="vertical"
         form={form}
-        initialValues={{ status: 'PLANNED', favorite: false, kind: 'BOOK' }}
         // onValuesChange срабатывает только на правку человеком: подстановка через
         // setFieldsValue его не вызывает, поэтому открытие карточки не считается изменением.
         onValuesChange={() => setDirty(true)}
       >
-        {/* Прогресс и выписки живут своими запросами, поэтому доступны только у сохранённой книги. */}
-        {editing ? (
-          <Tabs
-            items={[
-              { key: 'card', label: 'Карточка', children: cardTab },
-              {
-                key: 'progress',
-                label: 'Прогресс',
-                children: <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
-              },
-              { key: 'review', label: 'Оценка и отзыв', children: <RatingTab item={editing} form={form} /> },
-              { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> },
-              { key: 'loans', label: 'Выдачи', children: <LoansTab item={editing} /> }
-            ]}
-          />
-        ) : (
-          <Space direction="vertical" size={0} style={{ display: 'flex' }}>
-            {cardTab}
-            <div
-              style={{
-                marginTop: 8,
-                paddingTop: 16,
-                borderTop: `1px solid ${token.colorBorderSecondary}`
-              }}
-            >
-              <RatingTab item={null} form={form} />
-            </div>
-          </Space>
-        )}
+        <Tabs
+          items={[
+            { key: 'card', label: 'Карточка', children: cardTab },
+            {
+              key: 'progress',
+              label: 'Прогресс',
+              children: <ProgressTab item={editing} onProgressChanged={() => dispatch(loadBooks(filters))} />
+            },
+            { key: 'review', label: 'Оценка и отзыв', children: <RatingTab item={editing} form={form} /> },
+            { key: 'quotes', label: 'Выписки', children: <QuotesTab item={editing} /> },
+            { key: 'loans', label: 'Выдачи', children: <LoansTab item={editing} /> }
+          ]}
+        />
       </Form>
 
       <MetadataSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onPick={applyExternal} />

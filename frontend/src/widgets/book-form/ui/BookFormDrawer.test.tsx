@@ -95,36 +95,23 @@ const existing: LibraryItem = {
   hasCover: false
 } as LibraryItem;
 
+/** Пустая запись: нужна проверкам, которые заполняют карточку с нуля и сверяют весь запрос. */
+const blank: LibraryItem = { ...existing, id: 'b-6', title: 'Черновик', status: 'PLANNED', authors: [] };
+
 describe('BookFormDrawer', () => {
   beforeEach(() => {
     createBook.mockReset();
     updateBook.mockReset();
   });
 
-  it('не отправляет форму без названия', async () => {
-    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+  it('не сохраняет карточку с пустым названием', async () => {
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.clear(await screen.findByLabelText('Название'));
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
     expect(await screen.findByText('Название обязательно')).toBeInTheDocument();
-    expect(createBook).not.toHaveBeenCalled();
-  });
-
-  it('создаёт книгу и закрывает панель', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-2', title: 'Новая книга', authors: [] });
-    const onClose = vi.fn();
-    const store = createTestStore();
-
-    renderWithStore(<BookFormDrawer open editing={null} onClose={onClose} />, store);
-
-    await userEvent.type(screen.getByLabelText('Название'), 'Новая книга');
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
-
-    await waitFor(() => expect(createBook).toHaveBeenCalledTimes(1));
-    expect(createBook.mock.calls[0][0]).toMatchObject({ title: 'Новая книга', status: 'PLANNED' });
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    // Созданная книга должна сразу попасть в список, без повторной загрузки страницы.
-    await waitFor(() => expect(store.getState().books.items[0]?.title).toBe('Новая книга'));
+    expect(updateBook).not.toHaveBeenCalled();
   });
 
   it('подставляет данные редактируемой книги и сохраняет её по идентификатору', async () => {
@@ -146,18 +133,22 @@ describe('BookFormDrawer', () => {
 
   /** Автор — сущность, но карточка присылает имена: сервер сам находит или заводит их. */
   it('отправляет авторов именами, а серию — названием', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-3', authors: [] });
+    updateBook.mockResolvedValue({ ...blank });
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+    renderWithStore(<BookFormDrawer open editing={blank} onClose={vi.fn()} />);
 
-    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
+    const title = await screen.findByLabelText('Название');
+    await userEvent.clear(title);
+    await userEvent.type(title, 'Тёмный лес');
     await userEvent.type(screen.getByLabelText('Авторы'), 'Лю Цысинь{enter}');
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.type(screen.getByLabelText('Серия'), 'Воспоминания о прошлом Земли');
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
-    await waitFor(() => expect(createBook).toHaveBeenCalled());
-    expect(createBook.mock.calls[0][0]).toMatchObject({
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toMatchObject({
       title: 'Тёмный лес',
-      authorNames: ['Лю Цысинь']
+      authorNames: ['Лю Цысинь'],
+      seriesName: 'Воспоминания о прошлом Земли'
     });
   });
 
@@ -188,25 +179,19 @@ describe('BookFormDrawer', () => {
    * Полки и серия — связи, а не издательские подробности. Серия раньше лежала в свёрнутом блоке,
    * а положить запись на полку из карточки было нельзя вовсе: только выделением в списке.
    */
-  it('отправляет выбранную полку и серию вместе с карточкой', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-4', authors: [], shelves: [] });
+  it('отправляет выбранную полку вместе с карточкой', async () => {
+    updateBook.mockResolvedValue({ ...blank, shelves: [] });
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
-
-    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
-    await userEvent.type(screen.getByLabelText('Серия'), 'Воспоминания о прошлом Земли');
+    renderWithStore(<BookFormDrawer open editing={blank} onClose={vi.fn()} />);
 
     // Полка выбирается из уже созданных: заводить её опечаткой в карточке нельзя.
-    await userEvent.click(screen.getByLabelText('Полки'));
+    await userEvent.click(await screen.findByLabelText('Полки'));
     await userEvent.click(await screen.findByTitle('Подарить'));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
-    await waitFor(() => expect(createBook).toHaveBeenCalled());
-    expect(createBook.mock.calls[0][0]).toMatchObject({
-      seriesName: 'Воспоминания о прошлом Земли',
-      shelfIds: ['s-1']
-    });
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toMatchObject({ shelfIds: ['s-1'] });
   });
 
   /**
@@ -215,9 +200,9 @@ describe('BookFormDrawer', () => {
    * собранной по каталогу, пропадала молча.
    */
   it('сохраняет данные из каталога, даже если блок «Издание» не раскрывали', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-5', authors: [] });
+    updateBook.mockResolvedValue({ ...blank });
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />);
+    renderWithStore(<BookFormDrawer open editing={blank} onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Найти в каталогах/ }));
     await userEvent.type(await screen.findByPlaceholderText('Название, автор или ISBN'), 'тёмный лес');
@@ -225,10 +210,10 @@ describe('BookFormDrawer', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Заполнить' }));
 
     await waitFor(() => expect(screen.getByLabelText('Название')).toHaveValue('Тёмный лес'));
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
-    await waitFor(() => expect(createBook).toHaveBeenCalled());
-    expect(createBook.mock.calls[0][0]).toMatchObject({
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toMatchObject({
       title: 'Тёмный лес',
       authorNames: ['Лю Цысинь'],
       isbn: '9785171049676',
@@ -278,20 +263,22 @@ describe('BookFormDrawer', () => {
    * доезжало только нарисованное на экране.
    */
   it('отправляет на сервер каждое заполненное поле', async () => {
-    createBook.mockResolvedValue({ ...existing, id: 'b-6', authors: [] });
+    updateBook.mockResolvedValue({ ...blank });
     const store = createTestStore({
       bookTypes: { list: [{ id: 't-1', name: 'Фантастика' }], loading: false, loaded: true },
       sources: { list: [{ id: 'src-1', name: 'Читай-город' }], loading: false, loaded: true }
     } as never);
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={vi.fn()} />, store);
+    renderWithStore(<BookFormDrawer open editing={blank} onClose={vi.fn()} />, store);
 
     const pickOption = async (fieldLabel: string, option: string) => {
       await userEvent.click(screen.getByLabelText(fieldLabel));
       await userEvent.click(await screen.findByTitle(option));
     };
 
-    await userEvent.type(screen.getByLabelText('Название'), 'Тёмный лес');
+    const title = await screen.findByLabelText('Название');
+    await userEvent.clear(title);
+    await userEvent.type(title, 'Тёмный лес');
     await userEvent.type(screen.getByLabelText('Альтернативное название'), 'The Dark Forest');
     await userEvent.type(screen.getByLabelText('Авторы'), 'Лю Цысинь{enter}');
     await userEvent.type(screen.getByLabelText('Теги'), 'перечитать{enter}');
@@ -329,14 +316,16 @@ describe('BookFormDrawer', () => {
     await userEvent.type(screen.getByLabelText('Шкаф'), 'Гостиная');
     await userEvent.type(screen.getByLabelText('Полка'), 'Вторая сверху');
 
-    await userEvent.type(screen.getByLabelText('Заметка'), 'дочитать до отпуска');
+    // Заметка и отзыв живут на своей вкладке: панель правки собирает запрос со всех сразу.
+    await userEvent.click(screen.getByRole('tab', { name: 'Оценка и отзыв' }));
+    await userEvent.type(await screen.findByLabelText('Заметка'), 'дочитать до отпуска');
     await userEvent.type(screen.getByLabelText('Отзыв'), 'Лучшая твёрдая фантастика');
     await userEvent.type(screen.getByLabelText('Под спойлер-катом'), 'все умерли');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
-    await waitFor(() => expect(createBook).toHaveBeenCalled());
-    expect(createBook.mock.calls[0][0]).toEqual({
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
+    expect(updateBook.mock.calls[0][1]).toEqual({
       kind: 'MANGA',
       title: 'Тёмный лес',
       altTitle: 'The Dark Forest',
@@ -378,15 +367,14 @@ describe('BookFormDrawer', () => {
   }, 60000);
 
   it('оставляет панель открытой, если сохранение не удалось', async () => {
-    createBook.mockRejectedValue(new Error('Сервер недоступен'));
+    updateBook.mockRejectedValue(new Error('Сервер недоступен'));
     const onClose = vi.fn();
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={onClose} />);
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={onClose} />);
 
-    await userEvent.type(screen.getByLabelText('Название'), 'Новая книга');
-    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Сохранить' }));
 
-    await waitFor(() => expect(createBook).toHaveBeenCalled());
+    await waitFor(() => expect(updateBook).toHaveBeenCalled());
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -403,9 +391,9 @@ describe('BookFormDrawer', () => {
   it('переспрашивает перед закрытием, если введённое ещё не сохранено', async () => {
     const onClose = vi.fn();
 
-    renderWithStore(<BookFormDrawer open editing={null} onClose={onClose} />);
+    renderWithStore(<BookFormDrawer open editing={existing} onClose={onClose} />);
 
-    await userEvent.type(screen.getByLabelText('Название'), 'Новая книга');
+    await userEvent.type(await screen.findByLabelText('Название'), ' и продолжение');
     await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
 
     // Панель остаётся открытой, пока человек не подтвердит потерю ввода.
