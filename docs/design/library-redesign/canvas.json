@@ -872,6 +872,24 @@
       "h": 920,
       "title": "Отзыв: реакции и обсуждение",
       "page": "page-brand"
+    },
+    {
+      "file": "LibrarySwitch.dc.html",
+      "x": 0,
+      "y": 21600,
+      "w": 1360,
+      "h": 860,
+      "title": "Переключение: список или рабочий стол",
+      "page": "page-current"
+    },
+    {
+      "file": "LibrarySwitchBrand.dc.html",
+      "x": 0,
+      "y": 21600,
+      "w": 1360,
+      "h": 860,
+      "title": "Переключение: список или рабочий стол",
+      "page": "page-brand"
     }
   ],
   "annotations": [
