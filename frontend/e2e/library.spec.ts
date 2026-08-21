@@ -53,11 +53,12 @@ test('добавленная книга появляется в списке и 
   await addBookManually(page, title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
 
-  await expect(page.getByText(title)).toBeVisible();
+  // Точное совпадение: название записи стоит в строке списка целиком и само по себе.
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
 
   // Перезагрузка проверяет, что запись действительно сохранена, а не только попала в состояние.
   await page.reload();
-  await expect(page.getByText(title)).toBeVisible();
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
 });
 
 /**
@@ -90,7 +91,8 @@ test('карточка сохраняет и издательские поля, 
   await page.getByLabel('Полка', { exact: true }).fill('Вторая сверху');
 
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page.getByText(title)).toBeVisible();
+  // На странице записи название стоит дважды: в хлебных крошках и заголовком.
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
 
   // Перезагрузка отсекает состояние на клиенте: у записи свой адрес, и после неё открывается
   // та же страница — дальше проверяется то, что легло в базу.
