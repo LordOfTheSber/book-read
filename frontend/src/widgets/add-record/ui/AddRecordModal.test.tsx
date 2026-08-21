@@ -200,7 +200,7 @@ describe('AddRecordModal', () => {
     const { rerender } = renderWithStore(<AddRecordModal open onClose={vi.fn()} onOpenRecord={vi.fn()} />);
 
     await searchAndPick();
-    await userEvent.click(await screen.findByRole('button', { name: 'Добавить', exact: true }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Добавить$/ }));
     await waitFor(() => expect(createBook).toHaveBeenCalled());
 
     rerender(<AddRecordModal open={false} onClose={vi.fn()} onOpenRecord={vi.fn()} />);
