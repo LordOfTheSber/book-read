@@ -112,9 +112,9 @@ test('введённый в карточке автор заводится и п
   // В списке автор идёт подписью под названием.
   await expect(page.getByText(author).first()).toBeVisible();
 
-  // Справочники свёрнуты в группу: одиннадцать равноправных вкладок в шапке не помещались.
-  await page.getByRole('menuitem', { name: 'Справочники' }).hover();
-  await page.getByRole('link', { name: 'Авторы' }).click();
+  // Справочники свёрнуты под «Ещё»: одиннадцать равноправных вкладок в шапке не помещались.
+  await page.getByRole('button', { name: /Ещё/ }).click();
+  await page.getByRole('menuitem', { name: 'Авторы' }).click();
   await expect(page.getByText(author)).toBeVisible();
   await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
 });
@@ -155,8 +155,10 @@ test('цель года заводится и показывает прогре�
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {
   const username = await registerNewUser(page);
 
-  await page.getByRole('button', { name: new RegExp(username) }).click();
-  await page.getByRole('menuitem', { name: 'Выйти' }).click();
+  // Имя пользователя переехало с кнопки внутрь меню: в шапке остался только аватар.
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await expect(page.getByText(username, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Выйти' }).click();
 
   await expect(page).toHaveURL(/\/login$/);
 
