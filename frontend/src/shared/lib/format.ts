@@ -38,10 +38,11 @@ export const formatMs = (value?: number | null) => {
   return value >= 1000 ? `${(value / 1000).toFixed(2)} с` : `${Math.round(value)} мс`;
 };
 
-/** Оценка без лишнего нуля: 7 остаётся семёркой, 7.5 — семёркой с половиной. */
+/** Оценка без лишнего нуля: 7 остаётся семёркой, 7,5 — семёркой с половиной. Запятая, а не
+ * точка: во всём остальном русском интерфейсе дробная часть отделяется ею. */
 export const formatScore = (value?: number | null) => {
   if (value === undefined || value === null) return null;
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
 };
 
 export const calculateUsed = (total?: number | null, free?: number | null) =>

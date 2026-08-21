@@ -1,26 +1,42 @@
 import React, { useState } from 'react';
-import { Button, Empty, Progress, Space, Typography, theme } from 'antd';
+import { Button, Empty, Space, Typography, theme } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined, LockOutlined, StarFilled, WarningOutlined } from '@ant-design/icons';
 import { LibraryItem } from '@/shared/types/library';
-import { ratingCriteria } from '@/shared/constants/ratingCriteria';
+import { criteriaValues } from '@/shared/lib/rating';
 import { formatScore } from '@/shared/lib/format';
 
 interface Props {
   item: LibraryItem;
 }
 
-/** Оценка по критерию: число рядом со шкалой читается лучше, чем число в сером теге. */
-const CriterionRow: React.FC<{ label: string; value: number }> = ({ label, value }) => {
+/**
+ * Оценка по критерию плашкой: подпись слева, число справа.
+ *
+ * Незаполненный критерий показывается прочерком, а не пропадает: читателю видно, что автор
+ * разбирал книгу по частям и до финала оценка не дошла — это тоже сведение.
+ */
+const CriterionBox: React.FC<{ label: string; value?: number }> = ({ label, value }) => {
   const { token } = theme.useToken();
-  const tone = value >= 8 ? token.colorSuccess : value >= 5 ? token.colorWarning : token.colorError;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      {/* Подпись и значение — один текстовый узел: «Сюжет: 9.5» читается как единая строка. */}
-      <Typography.Text style={{ width: 118, flexShrink: 0, fontSize: 13 }}>
-        {`${label}: ${formatScore(value)}`}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        padding: '9px 12px',
+        borderRadius: token.borderRadius,
+        background: token.colorFillQuaternary
+      }}
+    >
+      <Typography.Text style={{ fontSize: 13 }}>{label}</Typography.Text>
+      <Typography.Text
+        type={value === undefined ? 'secondary' : undefined}
+        style={{ fontWeight: value === undefined ? 400 : 700, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {value === undefined ? '—' : formatScore(value)}
       </Typography.Text>
-      <Progress percent={value * 10} showInfo={false} size="small" strokeColor={tone} style={{ margin: 0, flex: 1 }} />
     </div>
   );
 };
@@ -33,16 +49,13 @@ export const ReviewBlock: React.FC<Props> = ({ item }) => {
   const { token } = theme.useToken();
   const [spoilerVisible, setSpoilerVisible] = useState(false);
 
-  const criteria = ratingCriteria
-    .map((criterion) => ({ label: criterion.label as string, value: item[criterion.key] }))
-    .filter((criterion): criterion is { label: string; value: number } =>
-      criterion.value !== undefined && criterion.value !== null
-    );
+  const criteria = criteriaValues(item);
+  const hasCriteria = criteria.some((criterion) => criterion.value !== undefined);
 
   const score = formatScore(item.rating);
 
   // Заметка тоже наполняет вкладку: без неё запись с одной приватной пометкой выглядела бы пустой.
-  if (!score && !item.review && !item.reviewSpoiler && !item.note && criteria.length === 0) {
+  if (!score && !item.review && !item.reviewSpoiler && !item.note && !hasCriteria) {
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -60,10 +73,10 @@ export const ReviewBlock: React.FC<Props> = ({ item }) => {
 
   return (
     <Space direction="vertical" size={16} style={{ display: 'flex' }}>
-      {(score || criteria.length > 0) && (
-        <div style={{ ...panel, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+      {(score || hasCriteria) && (
+        <div style={{ ...panel, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {score && (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 108 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <StarFilled style={{ color: token.colorWarning, fontSize: 20, alignSelf: 'center' }} />
               <Typography.Text style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
                 {score}
@@ -71,10 +84,10 @@ export const ReviewBlock: React.FC<Props> = ({ item }) => {
               <Typography.Text type="secondary">/ 10</Typography.Text>
             </div>
           )}
-          {criteria.length > 0 && (
-            <div style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+          {hasCriteria && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
               {criteria.map((criterion) => (
-                <CriterionRow key={criterion.label} label={criterion.label} value={criterion.value} />
+                <CriterionBox key={criterion.key} label={criterion.label} value={criterion.value} />
               ))}
             </div>
           )}

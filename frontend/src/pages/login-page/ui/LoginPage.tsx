@@ -16,6 +16,7 @@ interface LoginFormValues {
 
 export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { message } = App.useApp();
@@ -23,13 +24,20 @@ export const LoginPage: React.FC = () => {
 
   const handleFinish = async (values: LoginFormValues) => {
     setLoading(true);
+    setFailed(false);
     try {
       const result = await login(values);
       dispatch(authActions.setCredentials(result));
       message.success(`С возвращением, ${result.user.username}`);
       navigate('/');
     } catch (error) {
-      showRequestError(error, 'Не удалось войти');
+      /*
+       * Не уточняем, что именно не подошло. Ответ «логин верный, пароль нет» подсказывает
+       * подбирающему, что учётная запись существует, — и превращает форму входа в проверку,
+       * кто здесь зарегистрирован.
+       */
+      setFailed(true);
+      showRequestError(error, 'Логин или пароль не подходят');
     } finally {
       setLoading(false);
     }
@@ -37,16 +45,46 @@ export const LoginPage: React.FC = () => {
 
   return (
     <AuthLayout
-      title="Вход"
-      subtitle="Войдите, чтобы вернуться к своей библиотеке"
-      footer={<>Нет аккаунта? <Link to="/register">Зарегистрируйтесь</Link></>}
+      title="С возвращением"
+      subtitle="Библиотека ждёт вас на месте"
+      footer={
+        <>
+          Впервые здесь? <Link to="/register">Завести аккаунт</Link>
+        </>
+      }
     >
       <Form layout="vertical" onFinish={handleFinish} requiredMark={false} size="large">
-        <Form.Item name="username" label="Логин" rules={usernameRules}>
-          <Input prefix={<UserOutlined />} autoComplete="username" autoFocus placeholder="Ваш логин" />
+        <Form.Item
+          name="username"
+          label="Логин"
+          rules={usernameRules}
+          validateStatus={failed ? 'error' : undefined}
+        >
+          <Input
+            prefix={<UserOutlined />}
+            autoComplete="username"
+            autoFocus
+            placeholder="Ваш логин"
+            onChange={() => setFailed(false)}
+          />
         </Form.Item>
-        <Form.Item name="password" label="Пароль" rules={passwordRequiredRule}>
-          <Input.Password prefix={<LockOutlined />} autoComplete="current-password" placeholder="Пароль" />
+        {/*
+          * Ссылки «Забыли пароль?» здесь нет намеренно: восстанавливать доступ пока не по чему —
+          * у аккаунта нет почты, и ссылка вела бы в тупик. Она появится вместе с восстановлением.
+          */}
+        <Form.Item
+          name="password"
+          label="Пароль"
+          rules={passwordRequiredRule}
+          validateStatus={failed ? 'error' : undefined}
+          help={failed ? 'Логин или пароль не подходят' : undefined}
+        >
+          <Input.Password
+            prefix={<LockOutlined />}
+            autoComplete="current-password"
+            placeholder="Пароль"
+            onChange={() => setFailed(false)}
+          />
         </Form.Item>
         <Button type="primary" htmlType="submit" block size="large" loading={loading}>
           Войти
