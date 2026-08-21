@@ -1,111 +1,31 @@
 import React, { useEffect } from 'react';
-import { Button, Col, Divider, Drawer, Form, Grid, InputNumber, Row, Select, Space, Switch, Typography, theme } from 'antd';
+import { Button, Drawer, Form, Grid } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { statusOptions } from '@/shared/constants/status';
-import { mediaKindOptionsWithIcon } from '@/shared/constants/mediaKind';
 import { resetFilters, setFilters } from '@/features/book/set-book-filters';
-import { isAdminLike } from '@/shared/lib/roles';
+import { FiltersForm, filtersToFormValues, formValuesToFilters, type FiltersFormValues } from './FiltersForm';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-interface FiltersFormValues {
-  kind?: string;
-  typeId?: string;
-  authorId?: string;
-  seriesId?: string;
-  tagId?: string;
-  shelfId?: string;
-  status?: string;
-  favorite?: boolean;
-  wishlist?: boolean;
-  minRating?: number;
-  maxRating?: number;
-  userId?: string;
-}
-
 /**
- * Чипы статуса вместо Segmented: подписи не обрезаются и переносятся по строкам.
+ * Фильтры панелью справа: то же, что в рельсе рабочего стола, но по кнопке.
  *
- * Каждый чип — настоящая кнопка-переключатель, а не span с обработчиком клика, каким был
- * CheckableTag: тот не попадал в обход по Tab и не отвечал на пробел с Enter, поэтому выбрать
- * статус с клавиатуры было нельзя. Оформление чипа всё равно задавалось здесь целиком.
- */
-const StatusChips: React.FC<{ value?: string; onChange?: (value?: string) => void }> = ({ value, onChange }) => {
-  const { token } = theme.useToken();
-  const options = [{ label: 'Любой', value: '' }, ...statusOptions.map((s) => ({ label: s.label, value: s.value }))];
-
-  return (
-    <Space size={[8, 8]} wrap role="group" aria-label="Статус">
-      {options.map((option) => {
-        const checked = (value ?? '') === option.value;
-        return (
-          <button
-            key={option.value || 'any'}
-            type="button"
-            aria-pressed={checked}
-            onClick={() => onChange?.(option.value || undefined)}
-            style={{
-              font: 'inherit',
-              fontSize: 14,
-              lineHeight: 1.5,
-              cursor: 'pointer',
-              borderRadius: 999,
-              paddingInline: 14,
-              paddingBlock: 5,
-              border: `1px solid ${checked ? 'transparent' : token.colorBorder}`,
-              background: checked ? token.colorPrimary : 'transparent',
-              color: checked ? token.colorTextLightSolid : token.colorText,
-              transition: 'background .16s ease, border-color .16s ease'
-            }}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </Space>
-  );
-};
-
-/**
- * Фильтры вынесены в drawer: они нужны эпизодически и не должны постоянно
- * отъедать треть ширины у списка книг.
+ * Поля живут в `FiltersForm` и общие для обоих мест — иначе набор фильтров пришлось бы
+ * держать в двух экземплярах и следить, чтобы они не разошлись.
  */
 export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
-  const bookTypes = useAppSelector((state) => state.bookTypes.list);
-  const authors = useAppSelector((state) => state.authors.list);
-  const series = useAppSelector((state) => state.series.list);
-  const tags = useAppSelector((state) => state.tags.list);
-  const shelves = useAppSelector((state) => state.shelves.list);
-  const users = useAppSelector((state) => state.users.list);
-  const usersLoading = useAppSelector((state) => state.users.loading);
-  const role = useAppSelector((state) => state.auth.user?.role);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const [form] = Form.useForm<FiltersFormValues>();
-  const isAdmin = isAdminLike(role);
 
   // Drawer открывается с актуальным состоянием фильтров, а не с тем, что было.
   useEffect(() => {
     if (open) {
-      form.setFieldsValue({
-        kind: filters.kind,
-        typeId: filters.typeId,
-        authorId: filters.authorId,
-        seriesId: filters.seriesId,
-        tagId: filters.tagId,
-        shelfId: filters.shelfId,
-        status: filters.status ?? '',
-        favorite: filters.favorite ?? false,
-        wishlist: filters.wishlist ?? false,
-        minRating: filters.minRating,
-        maxRating: filters.maxRating,
-        userId: filters.userId
-      });
+      form.setFieldsValue(filtersToFormValues(filters));
     }
   }, [open, filters, form]);
 
@@ -115,16 +35,7 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
     if (!values) {
       return;
     }
-    dispatch(
-      setFilters({
-        ...values,
-        // Пустые значения убираем из запроса, иначе уедут в URL как `status=`.
-        status: values.status || undefined,
-        favorite: values.favorite || undefined,
-        wishlist: values.wishlist || undefined,
-        page: 0
-      })
-    );
+    dispatch(setFilters(formValuesToFilters(values)));
     onClose();
   };
 
@@ -152,143 +63,7 @@ export const FiltersPanelWidget: React.FC<Props> = ({ open, onClose }) => {
         </div>
       }
     >
-      <Form layout="vertical" form={form}>
-        <Form.Item name="status" label="Статус">
-          <StatusChips />
-        </Form.Item>
-
-        <Form.Item name="kind" label="Вид">
-          {/* Со значками вид узнаётся так же, как в списке: подписи читать не нужно. */}
-          <Select
-            placeholder="Все виды"
-            allowClear
-            showSearch
-            optionFilterProp="title"
-            options={mediaKindOptionsWithIcon}
-          />
-        </Form.Item>
-
-        <Form.Item name="typeId" label="Тип">
-          <Select
-            placeholder="Все типы"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            options={bookTypes.map((t) => ({ label: t.name, value: t.id }))}
-          />
-        </Form.Item>
-
-        <Form.Item name="authorId" label="Автор">
-          <Select
-            placeholder="Все авторы"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            options={authors.map((author) => ({ label: author.name, value: author.id }))}
-          />
-        </Form.Item>
-
-        <Form.Item name="seriesId" label="Серия">
-          <Select
-            placeholder="Все серии"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            options={series.map((item) => ({ label: item.name, value: item.id }))}
-          />
-        </Form.Item>
-
-        {/* Тег — контекст в дополнение к типу-жанру, полка — набор, собранный руками. */}
-        <Form.Item name="tagId" label="Тег">
-          <Select
-            placeholder="Все теги"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            options={tags.map((tag) => ({ label: `${tag.name} (${tag.itemCount})`, value: tag.id }))}
-          />
-        </Form.Item>
-
-        <Form.Item name="shelfId" label="Полка">
-          <Select
-            placeholder="Все полки"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            options={shelves.map((shelf) => ({ label: `${shelf.name} (${shelf.itemCount})`, value: shelf.id }))}
-          />
-        </Form.Item>
-
-        <Divider style={{ margin: '8px 0 16px' }} />
-
-        <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-          Оценка
-        </Typography.Text>
-        <Row gutter={8} style={{ marginTop: 8 }}>
-          <Col span={12}>
-            <Form.Item
-              name="minRating"
-              dependencies={['maxRating']}
-              rules={[
-                ({ getFieldValue }) => ({
-                  // Диапазон «от 9 до 3» молча возвращал пустую выдачу — теперь он не применяется.
-                  validator: (_, value) => {
-                    const max = getFieldValue('maxRating');
-                    return value === undefined || value === null || max === undefined || max === null || value <= max
-                      ? Promise.resolve()
-                      : Promise.reject(new Error('«От» больше, чем «до»'));
-                  }
-                })
-              ]}
-            >
-              {/* Подпись «Оценка» стоит над парой полей, к самим полям она не привязана:
-                  без aria-label диктор объявлял бы их безымянными. */}
-              <InputNumber
-                min={0}
-                max={10}
-                step={0.5}
-                placeholder="от"
-                aria-label="Оценка от"
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="maxRating" dependencies={['minRating']}>
-              <InputNumber
-                min={0}
-                max={10}
-                step={0.5}
-                placeholder="до"
-                aria-label="Оценка до"
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item name="favorite" label="Только избранное" valuePropName="checked" style={{ marginTop: 8 }}>
-          <Switch />
-        </Form.Item>
-
-        {/* «В планах» и «надо купить» — разные вопросы, поэтому и фильтр отдельный. */}
-        <Form.Item name="wishlist" label="Только список желаемого" valuePropName="checked">
-          <Switch />
-        </Form.Item>
-
-        {isAdmin && (
-          <Form.Item name="userId" label="Пользователь">
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder="Все пользователи"
-              loading={usersLoading}
-              options={users.map((u) => ({ label: u.username, value: u.id }))}
-            />
-          </Form.Item>
-        )}
-      </Form>
+      <FiltersForm form={form} />
     </Drawer>
   );
 };

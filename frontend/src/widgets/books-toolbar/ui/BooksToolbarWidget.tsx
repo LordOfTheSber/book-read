@@ -1,9 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Button, Input, Segmented, Select, Tooltip, theme } from 'antd';
-import { AppstoreOutlined, FilterOutlined, SearchOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import {
+  AppstoreOutlined,
+  FilterOutlined,
+  LayoutOutlined,
+  SearchOutlined,
+  UnorderedListOutlined
+} from '@ant-design/icons';
 import { sortOptions } from '@/shared/constants/status';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import type { BooksViewMode } from '@/widgets/books-list';
+
+/** Список во всю ширину — вариант А макетов; рабочий стол с рельсом — вариант Б. */
+export type BooksLayout = 'list' | 'desk';
 
 export interface ActiveFilterChip {
   key: string;
@@ -17,6 +26,9 @@ interface Props {
   onSortChange: (value: string) => void;
   viewMode: BooksViewMode;
   onViewModeChange: (value: BooksViewMode) => void;
+  /** Раскладка страницы: список во всю ширину или рабочий стол с рельсом слева. */
+  layout: BooksLayout;
+  onLayoutChange: (value: BooksLayout) => void;
   onOpenFilters: () => void;
   /** Число применённых фильтров — на значке кнопки; сами чипы рисует страница под панелью. */
   activeFilterCount: number;
@@ -32,6 +44,8 @@ export const BooksToolbarWidget: React.FC<Props> = ({
   onSortChange,
   viewMode,
   onViewModeChange,
+  layout,
+  onLayoutChange,
   onOpenFilters,
   activeFilterCount,
   isMobile,
@@ -117,14 +131,33 @@ export const BooksToolbarWidget: React.FC<Props> = ({
             placeholder="Сортировка"
           />
 
-          <Badge count={activeFilterCount} size="small" offset={[-4, 4]}>
-            <Button size="large" icon={<FilterOutlined />} onClick={onOpenFilters}>
-              Фильтры
-            </Button>
-          </Badge>
+          {/* В рабочем столе и фильтры, и умные полки стоят в рельсе слева: те же кнопки
+              в панели были бы вторым входом в одно и то же. */}
+          {layout === 'list' && (
+            <Badge count={activeFilterCount} size="small" offset={[-4, 4]}>
+              <Button size="large" icon={<FilterOutlined />} onClick={onOpenFilters}>
+                Фильтры
+              </Button>
+            </Badge>
+          )}
 
-          {smartShelves}
+          {layout === 'list' && smartShelves}
         </div>
+
+        {/* Рельс забирает 258 px: на телефоне их взять неоткуда, поэтому переключатель
+            раскладки живёт рядом с выбором вида и исчезает вместе с ним. */}
+        {!isMobile && (
+          <Tooltip title={layout === 'desk' ? 'Скрыть рельс полок' : 'Показать рельс полок'}>
+            <Button
+              size="large"
+              icon={<LayoutOutlined />}
+              type={layout === 'desk' ? 'primary' : 'default'}
+              aria-pressed={layout === 'desk'}
+              aria-label={layout === 'desk' ? 'Скрыть рельс полок' : 'Показать рельс полок'}
+              onClick={() => onLayoutChange(layout === 'desk' ? 'list' : 'desk')}
+            />
+          </Tooltip>
+        )}
 
         {!isMobile && (
           <Segmented

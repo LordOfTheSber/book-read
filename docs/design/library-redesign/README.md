@@ -334,9 +334,9 @@ python3 _audit.py
 | `CoverField` — обложка | `RecordPage` | заглушка с корешком |
 | `MetadataSearchModal` — поиск по каталогам | `QuickAdd` | нет |
 | `IsbnScannerModal` — сканер | **`ScanIsbn`** (новый) | нет |
-| `FiltersPanelWidget` — фильтры | `Filters` | нет |
+| `FiltersPanelWidget` — фильтры | `Filters` | форма общая с рельсом |
 | `BulkActionsBar` — массовые действия | `Dialogs` | нет |
-| `SmartShelvesWidget` — умная полка | `Dialogs` | нет |
+| `SmartShelvesWidget` — умная полка | `Dialogs` | список в рельсе |
 | `GlobalSearchModal` — поиск ⌘K | `Header` | **да** |
 
 ### Полки, справочники, профиль

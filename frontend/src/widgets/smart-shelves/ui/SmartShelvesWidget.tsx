@@ -20,12 +20,18 @@ interface Props {
   onSaveOpenChange?: (open: boolean) => void;
   /** На узком экране остаётся только значок: подпись уводила панель на третью строку. */
   iconOnly?: boolean;
+  /**
+   * В рельсе полки стоят списком, а не под кнопкой: место под них там уже отведено,
+   * и прятать три строки за выпадающим меню незачем.
+   */
+  variant?: 'button' | 'rail';
 }
 
 export const SmartShelvesWidget: React.FC<Props> = ({
   saveOpen: controlledOpen,
   onSaveOpenChange,
-  iconOnly
+  iconOnly,
+  variant = 'button'
 }) => {
   const dispatch = useAppDispatch();
   const { message, modal } = App.useApp();
@@ -95,13 +101,52 @@ export const SmartShelvesWidget: React.FC<Props> = ({
 
   return (
     <>
-      {/* Отдельной кнопки сохранения в панели больше нет: набор сохраняют там, где его
-          собрали — ссылкой в строке применённых фильтров. */}
+      {variant === 'rail' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {shelves.length === 0 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Сохранённых наборов пока нет
+            </Typography.Text>
+          )}
+          {shelves.map((shelf) => (
+            <div key={shelf.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                type="button"
+                className="app-shell-reset app-shell-hover"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  minHeight: 32,
+                  padding: '0 8px',
+                  borderRadius: 8,
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+                onClick={() => dispatch(applySavedFilter(shelf.filter))}
+              >
+                {shelf.name}
+              </button>
+              <Button
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                aria-label={`Удалить умную полку «${shelf.name}»`}
+                onClick={() => confirmDelete(shelf.id, shelf.name)}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+      /* Отдельной кнопки сохранения в панели больше нет: набор сохраняют там, где его
+         собрали — ссылкой в строке применённых фильтров. */
       <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
         <Button size="large" icon={<BookOutlined />} aria-label="Умные полки">
           {iconOnly ? shelves.length || undefined : `Умные полки${shelves.length ? ` (${shelves.length})` : ''}`}
         </Button>
       </Dropdown>
+      )}
 
       <Modal
         title="Сохранить как умную полку"
