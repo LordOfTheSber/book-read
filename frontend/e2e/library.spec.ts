@@ -36,36 +36,52 @@ test('регистрация приводит на страницу библио
   expect(stored).not.toContain(accessToken?.value ?? 'ACCESS_TOKEN');
 });
 
+/**
+ * «Добавить запись» открывает поиск по каталогам, а форма на шесть полей лежит за ссылкой
+ * «Завести вручную»: в e2e каталоги недоступны, поэтому запись всегда заводится руками.
+ */
+const addBookManually = async (page: import('@playwright/test').Page, title: string) => {
+  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
+  await page.getByRole('button', { name: 'Не нашлось? Завести вручную' }).click();
+  await page.getByLabel('Название', { exact: true }).fill(title);
+};
+
 test('добавленная книга появляется в списке и переживает перезагрузку', async ({ page }) => {
   await registerNewUser(page);
   const title = `Задача трёх тел ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
 
-  await expect(page.getByText(title)).toBeVisible();
+  // Точное совпадение: название записи стоит в строке списка целиком и само по себе.
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
 
   // Перезагрузка проверяет, что запись действительно сохранена, а не только попала в состояние.
   await page.reload();
-  await expect(page.getByText(title)).toBeVisible();
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
 });
 
 /**
- * Карточка доезжает до базы целиком. Издательские поля лежат в свёрнутом блоке, отзыв — ниже
- * по форме, и до правки на сервер уходило только то, что было нарисовано на экране: запись
- * сохранялась, а половина введённого пропадала молча. Проверяется на живом стеке, потому что
- * потеря случалась именно между формой и базой.
+ * Карточка доезжает до базы целиком. Издательские поля лежат в свёрнутом блоке, отзыв — на
+ * отдельной вкладке, и до правки на сервер уходило только то, что было нарисовано на экране:
+ * запись сохранялась, а половина введённого пропадала молча. Проверяется на живом стеке, потому
+ * что потеря случалась именно между формой и базой.
+ *
+ * Заводится запись теперь одним названием, а издание и отзыв заполняются в карточке: при
+ * добавлении их не спрашивают — у книги, которую ещё не начали, их попросту нет.
  */
 test('карточка сохраняет и издательские поля, и отзыв', async ({ page }) => {
   await registerNewUser(page);
   const title = `Тёмный лес ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
+  await page.getByRole('button', { name: 'Добавить и открыть карточку' }).click();
+
   // По роли, а не по подписи: «Отзыв» подстрокой входит в имя вкладки «Оценка и отзыв».
+  await page.getByRole('tab', { name: 'Оценка и отзыв' }).click();
   await page.getByRole('textbox', { name: 'Отзыв' }).fill('Лучшая твёрдая фантастика');
 
+  await page.getByRole('tab', { name: 'Карточка' }).click();
   await page.getByText('Издание и расположение').click();
   await page.getByLabel('ISBN').fill('9785171049676');
   await page.getByLabel('Год издания').fill('2008');
@@ -74,12 +90,13 @@ test('карточка сохраняет и издательские поля, 
   await page.getByLabel('Шкаф').fill('Гостиная');
   await page.getByLabel('Полка', { exact: true }).fill('Вторая сверху');
 
-  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
-  await expect(page.getByText(title)).toBeVisible();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  // На странице записи название стоит дважды: в хлебных крошках и заголовком.
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
 
-  // Перезагрузка отсекает состояние на клиенте: дальше проверяется то, что легло в базу.
+  // Перезагрузка отсекает состояние на клиенте: у записи свой адрес, и после неё открывается
+  // та же страница — дальше проверяется то, что легло в базу.
   await page.reload();
-  await page.getByLabel('Редактировать').first().click();
 
   await page.getByText('Издание и расположение').click();
   await expect(page.getByLabel('ISBN')).toHaveValue('9785171049676');
@@ -103,8 +120,7 @@ test('введённый в карточке автор заводится и п
   const author = `Лю Цысинь ${Date.now()}`;
   const title = `Тёмный лес ${Date.now()}`;
 
-  await page.getByRole('button', { name: 'Добавить запись' }).first().click();
-  await page.getByLabel('Название', { exact: true }).fill(title);
+  await addBookManually(page, title);
   await page.getByLabel('Авторы').fill(author);
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
@@ -112,9 +128,9 @@ test('введённый в карточке автор заводится и п
   // В списке автор идёт подписью под названием.
   await expect(page.getByText(author).first()).toBeVisible();
 
-  // Справочники свёрнуты в группу: одиннадцать равноправных вкладок в шапке не помещались.
-  await page.getByRole('menuitem', { name: 'Справочники' }).hover();
-  await page.getByRole('link', { name: 'Авторы' }).click();
+  // Справочники свёрнуты под «Ещё»: одиннадцать равноправных вкладок в шапке не помещались.
+  await page.getByRole('button', { name: /Ещё/ }).click();
+  await page.getByRole('menuitem', { name: 'Авторы' }).click();
   await expect(page.getByText(author)).toBeVisible();
   await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
 });
@@ -155,8 +171,10 @@ test('цель года заводится и показывает прогре�
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {
   const username = await registerNewUser(page);
 
-  await page.getByRole('button', { name: new RegExp(username) }).click();
-  await page.getByRole('menuitem', { name: 'Выйти' }).click();
+  // Имя пользователя переехало с кнопки внутрь меню: в шапке остался только аватар.
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await expect(page.getByText(username, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Выйти' }).click();
 
   await expect(page).toHaveURL(/\/login$/);
 

@@ -782,6 +782,114 @@
       "h": 1180,
       "title": "Состояния и обратная связь",
       "page": "page-brand"
+    },
+    {
+      "file": "AuthForms.dc.html",
+      "x": 0,
+      "y": 20500,
+      "w": 1360,
+      "h": 940,
+      "title": "Регистрация, восстановление и смена пароля",
+      "page": "page-current"
+    },
+    {
+      "file": "AuthFormsBrand.dc.html",
+      "x": 0,
+      "y": 20500,
+      "w": 1360,
+      "h": 940,
+      "title": "Регистрация, восстановление и смена пароля",
+      "page": "page-brand"
+    },
+    {
+      "file": "ScanIsbn.dc.html",
+      "x": 1460,
+      "y": 20500,
+      "w": 1360,
+      "h": 900,
+      "title": "Сканер ISBN — пять состояний",
+      "page": "page-current"
+    },
+    {
+      "file": "ScanIsbnBrand.dc.html",
+      "x": 1460,
+      "y": 20500,
+      "w": 1360,
+      "h": 900,
+      "title": "Сканер ISBN — пять состояний",
+      "page": "page-brand"
+    },
+    {
+      "file": "AdminSessions.dc.html",
+      "x": 2920,
+      "y": 20500,
+      "w": 1360,
+      "h": 900,
+      "title": "Сессии: правило и исключения",
+      "page": "page-current"
+    },
+    {
+      "file": "AdminSessionsBrand.dc.html",
+      "x": 2920,
+      "y": 20500,
+      "w": 1360,
+      "h": 900,
+      "title": "Сессии: правило и исключения",
+      "page": "page-brand"
+    },
+    {
+      "file": "AdminBackups.dc.html",
+      "x": 4380,
+      "y": 20500,
+      "w": 1360,
+      "h": 960,
+      "title": "Резервные копии и восстановление",
+      "page": "page-current"
+    },
+    {
+      "file": "AdminBackupsBrand.dc.html",
+      "x": 4380,
+      "y": 20500,
+      "w": 1360,
+      "h": 960,
+      "title": "Резервные копии и восстановление",
+      "page": "page-brand"
+    },
+    {
+      "file": "ReviewThread.dc.html",
+      "x": 5840,
+      "y": 20500,
+      "w": 1360,
+      "h": 920,
+      "title": "Отзыв: реакции и обсуждение",
+      "page": "page-current"
+    },
+    {
+      "file": "ReviewThreadBrand.dc.html",
+      "x": 5840,
+      "y": 20500,
+      "w": 1360,
+      "h": 920,
+      "title": "Отзыв: реакции и обсуждение",
+      "page": "page-brand"
+    },
+    {
+      "file": "LibrarySwitch.dc.html",
+      "x": 0,
+      "y": 21600,
+      "w": 1360,
+      "h": 860,
+      "title": "Переключение: список или рабочий стол",
+      "page": "page-current"
+    },
+    {
+      "file": "LibrarySwitchBrand.dc.html",
+      "x": 0,
+      "y": 21600,
+      "w": 1360,
+      "h": 860,
+      "title": "Переключение: список или рабочий стол",
+      "page": "page-brand"
     }
   ],
   "annotations": [

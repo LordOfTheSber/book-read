@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Empty, Input, List, Skeleton, Space, Typography, theme } from 'antd';
+import { useSearchParams } from 'react-router-dom';
 import { BookOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Quote } from '@/shared/types/library';
@@ -7,6 +8,7 @@ import { searchQuotes } from '@/entities/book';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
+import { DogEar } from '@/shared/ui/DogEar';
 
 /** Экранирование для сборки регулярного выражения из пользовательского запроса. */
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -18,10 +20,21 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 export const QuotesPage: React.FC = () => {
   const { token } = theme.useToken();
   const showRequestError = useRequestError();
-  const [query, setQuery] = useState('');
+  /**
+   * Запрос приходит и из адреса: поиск по ⌘K находит выписку на любой странице и приводит
+   * сюда — со своим текстом, а не на пустое поле.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebouncedValue(query, 300);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    // Адрес держит последний запрос: страницу с найденным можно переслать или обновить.
+    setSearchParams(value ? { q: value } : {}, { replace: true });
+  };
 
   React.useEffect(() => {
     if (!debouncedQuery.trim()) {
@@ -73,7 +86,7 @@ export const QuotesPage: React.FC = () => {
         size="large"
         placeholder="Например, «не отвечайте»"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => handleQueryChange(event.target.value)}
       />
 
       {loading ? (
@@ -110,28 +123,24 @@ export const QuotesPage: React.FC = () => {
           }}
           renderItem={(quote) => (
             <List.Item style={{ paddingInline: 0 }}>
-              <div
-                style={{
-                  width: '100%',
-                  padding: 16,
-                  borderRadius: token.borderRadiusLG,
-                  background: token.colorBgContainer,
-                  border: `1px solid ${token.colorBorderSecondary}`
-                }}
-              >
+              {/* Загнутый уголок — метка написанного человеком: выписку видно среди
+                  системных карточек боковым зрением, без значка и подписи. */}
+              <DogEar style={{ width: '100%' }}>
                 <Typography.Paragraph
+                  className="brand-display"
                   style={{
                     marginBottom: 12,
-                    paddingInlineStart: 12,
-                    borderInlineStart: `3px solid ${token.colorPrimaryBorder}`,
+                    paddingInlineEnd: 20,
                     fontSize: 15,
                     fontStyle: 'italic',
                     whiteSpace: 'pre-line'
                   }}
                 >
+                  {`«`}
                   {highlight(quote.text)}
+                  {`»`}
                 </Typography.Paragraph>
-                <Space size={12} wrap style={{ paddingInlineStart: 15 }}>
+                <Space size={12} wrap>
                   <Space size={6}>
                     <BookOutlined style={{ color: token.colorTextTertiary }} />
                     <Typography.Text strong>{quote.itemTitle}</Typography.Text>
@@ -141,7 +150,7 @@ export const QuotesPage: React.FC = () => {
                   )}
                   {quote.note && <Typography.Text type="secondary">{quote.note}</Typography.Text>}
                 </Space>
-              </div>
+              </DogEar>
             </List.Item>
           )}
         />

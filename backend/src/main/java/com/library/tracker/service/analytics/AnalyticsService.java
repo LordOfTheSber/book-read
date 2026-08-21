@@ -84,6 +84,12 @@ public class AnalyticsService {
                                                            LibraryItemRepository.StatusCount::getStatus,
                                                            LibraryItemRepository.StatusCount::getCount ) );
 
+        var kindBreakdown = libraryItemRepository.countByKind( targetUserId )
+                                                 .stream()
+                                                 .collect( Collectors.toMap(
+                                                         LibraryItemRepository.KindCount::getKind,
+                                                         LibraryItemRepository.KindCount::getCount ) );
+
         var topTypes = libraryItemRepository.countByType( targetUserId )
                                             .stream()
                                             .map( tc -> TypeCountResponse.builder()
@@ -107,6 +113,7 @@ public class AnalyticsService {
                                     .favoriteItems( favoriteItems )
                                     .averageRating( avg != null ? BigDecimal.valueOf( avg ) : null )
                                     .statusBreakdown( statusBreakdown )
+                                    .kindBreakdown( kindBreakdown )
                                     .topTypes( topTypes )
                                     .topSources( topSources )
                                     .build();

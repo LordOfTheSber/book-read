@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Grid } from 'antd';
-import { BookOutlined, CheckCircleOutlined, ClockCircleOutlined, PlusOutlined, ReadOutlined, StarOutlined } from '@ant-design/icons';
+import { Button, Grid, Tag, Typography, theme } from 'antd';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { StatTile } from '@/shared/ui/StatTile';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { setFilters, resetFilters, type BookFilterState } from '@/features/book/set-book-filters';
 import { loadBooks } from '@/entities/book';
@@ -18,16 +16,33 @@ import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
 import { pluralize } from '@/shared/lib/plural';
 import { statusMeta } from '@/shared/constants/status';
 import { getMediaKindLabel } from '@/shared/constants/mediaKind';
-import { LibraryItem, MediaKind, ReadingStatus } from '@/shared/types/library';
+import { MediaKind, ReadingStatus } from '@/shared/types/library';
 import { BooksListWidget, type BooksViewMode } from '@/widgets/books-list';
-import { BooksToolbarWidget, type ActiveFilterChip } from '@/widgets/books-toolbar';
+import { BooksToolbarWidget, type ActiveFilterChip, type BooksLayout } from '@/widgets/books-toolbar';
 import { FiltersPanelWidget } from '@/widgets/filters-panel';
-import { BookFormDrawer } from '@/widgets/book-form';
 import { BulkActionsBar } from '@/widgets/bulk-actions';
 import { SmartShelvesWidget } from '@/widgets/smart-shelves';
-import { useBooksPageStyles } from './BooksPage.styles';
+import { BooksStatusRail } from '@/widgets/books-status-rail';
+import { LibraryRail } from '@/widgets/library-rail';
+import { ContinueShelf } from '@/widgets/continue-shelf';
+import { useRecordForm } from '@/app/providers/RecordFormProvider';
 
 const VIEW_MODE_KEY = 'books-view-mode';
+const LAYOUT_KEY = 'books-layout';
+
+/** Раскладка запоминается рядом с видом списка: вернувшись, человек видит то, что оставил. */
+const readLayout = (): BooksLayout => {
+  if (typeof window === 'undefined') return 'list';
+  return window.localStorage.getItem(LAYOUT_KEY) === 'desk' ? 'desk' : 'list';
+};
+
+const appliedRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  flexWrap: 'wrap',
+  marginBottom: 14
+};
 
 const readViewMode = (): BooksViewMode => {
   if (typeof window === 'undefined') return 'table';
@@ -37,7 +52,6 @@ const readViewMode = (): BooksViewMode => {
 export const BooksPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.bookFilters);
-  const items = useAppSelector((state) => state.books.items);
   const total = useAppSelector((state) => state.books.total);
   const bookTypes = useAppSelector((state) => state.bookTypes.list);
   const authors = useAppSelector((state) => state.authors.list);
@@ -52,27 +66,20 @@ export const BooksPage: React.FC = () => {
   const role = useAppSelector((state) => state.auth.user?.role);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const styles = useBooksPageStyles();
+  const { token } = theme.useToken();
   const isAdmin = isAdminLike(role);
   const canEdit = canEditBooks(role);
+  // Добавление и редактирование живут в оболочке: действие «Добавить» одно на всё приложение.
+  const { openCreate, openEdit } = useRecordForm();
 
   const [viewMode, setViewMode] = useState<BooksViewMode>(readViewMode);
+  const [layout, setLayout] = useState<BooksLayout>(readLayout);
+  // Рельс отнимает 258 px: на телефоне их взять неоткуда, там остаётся drawer.
+  const showRail = layout === 'desk' && !isMobile;
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingSnapshot, setEditingSnapshot] = useState<LibraryItem | null>(null);
+  const [saveShelfOpen, setSaveShelfOpen] = useState(false);
   /** Выделение для массовых операций: живёт на странице, потому что панель действий над списком. */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  /**
-   * Открытая карточка берётся из стора по идентификатору, а не хранится снимком: заход на вкладке
-   * «Прогресс» перечитывает список, и снимок оставлял на экране позицию до этого захода —
-   * следующее «+10» отсчитывалось от старого числа. Снимок остаётся запасным вариантом на случай,
-   * когда запись выпала из текущей страницы выдачи.
-   */
-  const editing = useMemo(
-    () => items.find((item) => item.id === editingSnapshot?.id) ?? editingSnapshot,
-    [items, editingSnapshot]
-  );
 
   // Загрузка данных живёт на странице: виджеты только отображают состояние.
   useEffect(() => {
@@ -113,12 +120,13 @@ export const BooksPage: React.FC = () => {
     window.localStorage.setItem(VIEW_MODE_KEY, mode);
   };
 
-  const handleChangePage = (page: number, size: number, sort?: string) => {
-    dispatch(setFilters({ page, size, sort }));
+  const handleLayoutChange = (value: BooksLayout) => {
+    setLayout(value);
+    window.localStorage.setItem(LAYOUT_KEY, value);
   };
 
-  const handleStatusTile = (status?: ReadingStatus) => {
-    dispatch(setFilters({ status: filters.status === status ? undefined : status, page: 0 }));
+  const handleChangePage = (page: number, size: number, sort?: string) => {
+    dispatch(setFilters({ page, size, sort }));
   };
 
   const activeFilters = useMemo<ActiveFilterChip[]>(() => {
@@ -170,16 +178,6 @@ export const BooksPage: React.FC = () => {
 
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 
-  const openCreate = () => {
-    setEditingSnapshot(null);
-    setFormOpen(true);
-  };
-
-  const openEdit = (item: LibraryItem) => {
-    setEditingSnapshot(item);
-    setFormOpen(true);
-  };
-
   const statusCount = (status: ReadingStatus) => analytics?.statusBreakdown?.[status] ?? 0;
 
   const subtitle = analytics
@@ -190,100 +188,106 @@ export const BooksPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader
-        title="Моя библиотека"
-        subtitle={subtitle}
-        actions={
-          canEdit && (
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
-              Добавить запись
-            </Button>
-          )
-        }
+      {/* Кнопки действия здесь больше нет: «Добавить» стоит в шапке и доступно с любой
+          страницы — на библиотеке она была вторым таким же экземпляром. */}
+      <PageHeader title="Моя библиотека" subtitle={subtitle} hideTitleOnMobile />
+
+      {/* Пять плиток высотой 76 px занимали первый экран и повторяли фильтры из панели ниже.
+          Строка чипов говорит то же самое и поднимает начало списка примерно на 180 px. */}
+      <BooksStatusRail
+        analytics={analytics}
+        loading={analyticsLoading}
+        status={filters.status}
+        favorite={filters.favorite}
+        wishlist={filters.wishlist}
+        onSelectStatus={(status) => dispatch(setFilters({ status, page: 0 }))}
+        onToggleFavorite={() => dispatch(setFilters({ favorite: filters.favorite ? undefined : true, page: 0 }))}
+        onToggleWishlist={() => dispatch(setFilters({ wishlist: filters.wishlist ? undefined : true, page: 0 }))}
+        isMobile={isMobile}
       />
 
-      <div style={styles.stats}>
-        <StatTile
-          label="Всего"
-          value={analytics?.totalItems ?? 0}
-          icon={<BookOutlined />}
-          loading={analyticsLoading && !analytics}
+      {/* Рабочий стол: полки и фильтры уезжают в постоянный рельс слева, а над списком
+          встаёт то, что читается прямо сейчас. Список при этом тот же. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+        {showRail && <LibraryRail />}
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {showRail && (
+            <ContinueShelf
+              onOpen={openEdit}
+              onShowAll={() => dispatch(setFilters({ status: 'READING', page: 0 }))}
+            />
+          )}
+
+        <BooksToolbarWidget
+          search={filters.q ?? ''}
+          onSearchChange={(value) => dispatch(setFilters({ q: value || undefined, page: 0 }))}
+          sort={filters.sort}
+          onSortChange={(value) => dispatch(setFilters({ sort: value, page: 0 }))}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          onOpenFilters={() => setFiltersOpen(true)}
+          layout={layout}
+          onLayoutChange={handleLayoutChange}
+          activeFilterCount={activeFilters.length}
+          isMobile={isMobile}
+          smartShelves={
+            <SmartShelvesWidget saveOpen={saveShelfOpen} onSaveOpenChange={setSaveShelfOpen} iconOnly={isMobile} />
+          }
         />
-        <StatTile
-          label="Читаю"
-          value={statusCount('READING')}
-          icon={<ReadOutlined />}
-          accent={styles.accents.reading}
-          active={filters.status === 'READING'}
-          loading={analyticsLoading && !analytics}
-          onClick={() => handleStatusTile('READING')}
+
+        {/* Что именно сейчас показано — строкой под панелью, а не внутри неё: набор фильтров
+            относится к списку, и сохранять его как умную полку логично здесь же. */}
+        {activeFilters.length > 0 && (
+          <div style={appliedRowStyle}>
+            <Typography.Text type="secondary">Показаны:</Typography.Text>
+            {activeFilters.map((filter) => (
+              <Tag
+                key={filter.key}
+                closable
+                onClose={(event) => {
+                  event.preventDefault();
+                  dispatch(setFilters({ [filter.key]: undefined, page: 0 } as Partial<BookFilterState>));
+                }}
+                bordered={false}
+                style={{ borderRadius: 999, paddingInline: 10, background: token.colorFillQuaternary, marginInlineEnd: 0 }}
+              >
+                {filter.label}
+              </Tag>
+            ))}
+            <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => dispatch(resetFilters())}>
+              Сбросить всё
+            </Button>
+            <Typography.Text type="secondary">·</Typography.Text>
+            <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setSaveShelfOpen(true)}>
+              Сохранить как умную полку
+            </Button>
+          </div>
+        )}
+
+        {/* Панель массовых операций появляется только при выделении и не занимает места впустую. */}
+        {canEdit && selectedIds.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <BulkActionsBar selectedIds={selectedIds} onClearSelection={() => setSelectedIds([])} />
+          </div>
+        )}
+
+        <BooksListWidget
+          viewMode={viewMode}
+          isMobile={isMobile}
+          onChangePage={handleChangePage}
+          onEdit={openEdit}
+          onCreate={openCreate}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={() => dispatch(resetFilters())}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
         />
-        <StatTile
-          label="Завершено"
-          value={statusCount('COMPLETED')}
-          icon={<CheckCircleOutlined />}
-          accent={styles.accents.completed}
-          active={filters.status === 'COMPLETED'}
-          loading={analyticsLoading && !analytics}
-          onClick={() => handleStatusTile('COMPLETED')}
-        />
-        <StatTile
-          label="В планах"
-          value={statusCount('PLANNED')}
-          icon={<ClockCircleOutlined />}
-          accent={styles.accents.planned}
-          active={filters.status === 'PLANNED'}
-          loading={analyticsLoading && !analytics}
-          onClick={() => handleStatusTile('PLANNED')}
-        />
-        <StatTile
-          label="Избранное"
-          value={analytics?.favoriteItems ?? 0}
-          hint={analytics?.averageRating ? `средняя оценка ${analytics.averageRating.toFixed(1)}` : undefined}
-          icon={<StarOutlined />}
-          accent={styles.accents.favorite}
-          active={Boolean(filters.favorite)}
-          loading={analyticsLoading && !analytics}
-          onClick={() => dispatch(setFilters({ favorite: filters.favorite ? undefined : true, page: 0 }))}
-        />
+
+              </div>
       </div>
 
-      <BooksToolbarWidget
-        search={filters.q ?? ''}
-        onSearchChange={(value) => dispatch(setFilters({ q: value || undefined, page: 0 }))}
-        sort={filters.sort}
-        onSortChange={(value) => dispatch(setFilters({ sort: value, page: 0 }))}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        onOpenFilters={() => setFiltersOpen(true)}
-        activeFilters={activeFilters}
-        onRemoveFilter={(key) => dispatch(setFilters({ [key]: undefined, page: 0 } as Partial<BookFilterState>))}
-        onResetFilters={() => dispatch(resetFilters())}
-        isMobile={isMobile}
-        smartShelves={<SmartShelvesWidget />}
-      />
-
-      {/* Панель массовых операций появляется только при выделении и не занимает места впустую. */}
-      {canEdit && selectedIds.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <BulkActionsBar selectedIds={selectedIds} onClearSelection={() => setSelectedIds([])} />
-        </div>
-      )}
-
-      <BooksListWidget
-        viewMode={viewMode}
-        isMobile={isMobile}
-        onChangePage={handleChangePage}
-        onEdit={openEdit}
-        onCreate={openCreate}
-        hasActiveFilters={hasActiveFilters}
-        onResetFilters={() => dispatch(resetFilters())}
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-      />
-
-      <FiltersPanelWidget open={filtersOpen} onClose={() => setFiltersOpen(false)} />
-      <BookFormDrawer open={formOpen} editing={editing} onClose={() => setFormOpen(false)} />
+<FiltersPanelWidget open={filtersOpen} onClose={() => setFiltersOpen(false)} />
     </div>
   );
 };

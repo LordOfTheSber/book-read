@@ -37,6 +37,12 @@ export const fetchBooks = async (params: FetchBooksParams): Promise<PageResponse
   return data;
 };
 
+/** Одна запись по идентификатору: её страница открывается по прямой ссылке и после перезагрузки. */
+export const fetchBook = async (id: string) => {
+  const { data } = await httpClient.get<LibraryItem>(`/items/${id}`);
+  return data;
+};
+
 export const createBook = async (payload: Partial<LibraryItem>) => {
   const { data } = await httpClient.post<LibraryItem>('/items', payload);
   return data;

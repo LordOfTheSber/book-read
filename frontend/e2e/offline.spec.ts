@@ -25,7 +25,9 @@ const registerNewUser = async (page: import('@playwright/test').Page) => {
 };
 
 const addBook = async (page: import('@playwright/test').Page, title: string) => {
+  // «Добавить запись» открывает поиск по каталогам; форма на шесть полей — за «Завести вручную».
   await page.getByRole('button', { name: 'Добавить запись' }).first().click();
+  await page.getByRole('button', { name: 'Не нашлось? Завести вручную' }).click();
   await page.getByLabel('Название', { exact: true }).fill(title);
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   // Название всплывает и в списке, и в уведомлении об успехе: берём строго карточку.
@@ -50,18 +52,18 @@ test('правка без сети ложится в очередь и доез�
   await page.getByLabel('Альтернативное название').fill('Dune');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
-  // Правка не потеряна и не молчит: баннер показывает, сколько ждёт отправки.
-  await expect(page.getByText(/Не отправлено: 1 изменение|Изменения сохраняются локально/)).toBeVisible();
+  // Правка не потеряна и не молчит: чип в шапке показывает, сколько ждёт отправки.
+  await expect(page.getByText(/1 правка не ушла|1 правка ждёт сети/)).toBeVisible();
 
   await page.unroute('**/api/v1/items/*');
   // Возврат сети приложение узнаёт от браузера — эмулируем то же событие.
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
 
-  await expect(page.getByText(/Не отправлено|Нет сети/)).toBeHidden();
+  await expect(page.getByText(/правка не ушла|правка ждёт сети|Нет сети/)).toBeHidden();
 
-  // Правка действительно доехала до сервера, а не осталась в состоянии страницы.
+  // Правка действительно доехала до сервера, а не осталась в состоянии страницы: у записи свой
+  // адрес, перезагрузка открывает ту же страницу.
   await page.reload();
-  await page.getByLabel('Редактировать').first().click();
   await expect(page.getByLabel('Альтернативное название')).toHaveValue('Dune');
 });
 
@@ -81,7 +83,7 @@ test('очередь не хранит ничего, похожего на уч�
   await page.getByLabel('Редактировать').first().click();
   await page.getByLabel('Альтернативное название').fill('Hyperion');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page.getByText(/Не отправлено|Изменения сохраняются локально/)).toBeVisible();
+  await expect(page.getByText(/1 правка не ушла|1 правка ждёт сети/)).toBeVisible();
 
   const stored = await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {

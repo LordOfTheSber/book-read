@@ -31,6 +31,9 @@ export const useAnalyticsPageStyles = () => {
         paddingTop: 12,
         borderTop: `1px solid ${token.colorBorderSecondary}`
       } as CSSProperties,
+      spineStrip: {
+        marginBottom: 18
+      } as CSSProperties,
       hint: { marginTop: 12, marginBottom: 0 } as CSSProperties,
       /** Управление карточки, вынесенное в тело на узком экране. */
       controls: { marginBottom: 16 } as CSSProperties

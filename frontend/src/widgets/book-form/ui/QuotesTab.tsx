@@ -5,6 +5,7 @@ import { LibraryItem, Quote } from '@/shared/types/library';
 import { addQuote, deleteQuote, fetchQuotes } from '@/entities/book';
 import { progressPositionLabel, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
 import { useRequestError } from '@/shared/lib/errors';
+import { DogEar } from '@/shared/ui/DogEar';
 
 interface Props {
   item: LibraryItem;
@@ -121,20 +122,25 @@ export const QuotesTab: React.FC<Props> = ({ item }) => {
               </Tooltip>
             ]}
           >
-            <div style={{ minWidth: 0 }}>
-              {/* Вертикальная линия слева — обычный типографский признак цитаты. */}
+            {/* Загнутый уголок: выписка — написанное человеком, и это видно без подписи. */}
+            <DogEar
+              style={{ minWidth: 0, width: '100%', padding: '14px 16px' }}
+              size={20}
+              // Внутри панели карточка лежит на белом, а не на бумаге страницы.
+              foldColor={token.colorBgElevated}
+            >
               <Typography.Paragraph
+                className="brand-display"
                 style={{
                   marginBottom: quote.position || quote.note ? 8 : 0,
-                  paddingInlineStart: 12,
-                  borderInlineStart: `3px solid ${token.colorBorder}`,
+                  paddingInlineEnd: 14,
                   fontStyle: 'italic',
                   whiteSpace: 'pre-line'
                 }}
               >
-                {quote.text}
+                {`«${quote.text}»`}
               </Typography.Paragraph>
-              <Space size={12} wrap style={{ paddingInlineStart: 15 }}>
+              <Space size={12} wrap>
                 {quote.position !== undefined && quote.position !== null && (
                   <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                     {`${unitShort} ${quote.position}`}
@@ -146,7 +152,7 @@ export const QuotesTab: React.FC<Props> = ({ item }) => {
                   </Typography.Text>
                 )}
               </Space>
-            </div>
+            </DogEar>
           </List.Item>
         )}
       />

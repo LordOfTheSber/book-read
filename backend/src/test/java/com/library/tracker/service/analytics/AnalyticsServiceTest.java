@@ -1,12 +1,14 @@
 package com.library.tracker.service.analytics;
 
 import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ProgressUnit;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.ReadingSessionRepository;
 import com.library.tracker.service.UserService;
+import com.library.tracker.web.dto.BookAnalyticsResponse;
 import com.library.tracker.web.dto.PeriodStatsResponse;
 import com.library.tracker.web.dto.ReadingAnalyticsResponse;
 
@@ -92,6 +94,22 @@ class AnalyticsServiceTest {
         assertThatThrownBy( () -> service.bookAnalytics( Optional.of( UUID.randomUUID() ) ) )
                 .isInstanceOf( AccessDeniedException.class )
                 .hasMessageContaining( "Недостаточно прав для просмотра аналитики другого пользователя" );
+    }
+
+    /** Корешковая полоса на клиенте рисуется по этой разбивке — значит, она должна доезжать. */
+    @Test
+    void bookAnalyticsCountsItemsByKind() {
+        when( libraryItemRepository.countByStatus( any() ) ).thenReturn( List.of() );
+        when( libraryItemRepository.countByType( any() ) ).thenReturn( List.of() );
+        when( libraryItemRepository.countBySource( any() ) ).thenReturn( List.of() );
+        when( libraryItemRepository.countByKind( any() ) )
+                .thenReturn( List.of( kindCount( MediaKind.BOOK, 104 ), kindCount( MediaKind.MANGA, 40 ) ) );
+
+        BookAnalyticsResponse response = service.bookAnalytics( Optional.empty() );
+
+        assertThat( response.getKindBreakdown() )
+                .containsEntry( MediaKind.BOOK, 104L )
+                .containsEntry( MediaKind.MANGA, 40L );
     }
 
     @Test
@@ -384,6 +402,21 @@ class AnalyticsServiceTest {
             @Override
             public long getActiveDays() {
                 return activeDays;
+            }
+        };
+    }
+
+    private LibraryItemRepository.KindCount kindCount( MediaKind kind, long count ) {
+        return new LibraryItemRepository.KindCount() {
+
+            @Override
+            public MediaKind getKind() {
+                return kind;
+            }
+
+            @Override
+            public long getCount() {
+                return count;
             }
         };
     }

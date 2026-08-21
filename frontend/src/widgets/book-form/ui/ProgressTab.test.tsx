@@ -40,11 +40,12 @@ describe('ProgressTab', () => {
     fetchLogs.mockReset().mockResolvedValue([]);
   });
 
-  it('показывает текущую позицию и остаток', async () => {
+  it('показывает текущую позицию, а остаток переводит в срок', async () => {
     renderWithStore(<ProgressTab item={item()} onProgressChanged={vi.fn()} />);
 
     expect(await screen.findByText(/100 из 400/)).toBeInTheDocument();
-    expect(screen.getByText(/осталось 300/)).toBeInTheDocument();
+    // Не «осталось 300 стр.»: число само по себе не отвечает на вопрос «успею ли».
+    expect(screen.getByText(/Осталось 300 страниц/)).toBeInTheDocument();
   });
 
   /** Быстрое «+10» — это заход от текущей позиции, а не установка абсолютного значения. */

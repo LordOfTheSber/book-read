@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { App as AntdApp, ConfigProvider, theme as antdTheme, ThemeConfig } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
+import { brand, uiFont } from '@/shared/config/brand';
+import { alpha, mix } from '@/shared/lib/color';
 
 export type ThemeMode = 'light' | 'dark' | 'teal';
 
@@ -12,9 +14,9 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const themeOptions: Array<{ value: ThemeMode; label: string; swatch: string }> = [
-  { value: 'light', label: 'Светлая', swatch: '#f6f7f9' },
+  { value: 'light', label: 'Бумага', swatch: brand.paper },
   { value: 'teal', label: 'Бирюзовая', swatch: '#0fbf9f' },
-  { value: 'dark', label: 'Тёмная', swatch: '#171a21' }
+  { value: 'dark', label: 'Ночь', swatch: brand.night.surface }
 ];
 
 const getInitialMode = (): ThemeMode => {
@@ -29,12 +31,9 @@ const getInitialMode = (): ThemeMode => {
   return 'light';
 };
 
-const fontStack =
-  "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-
 /** Общая для всех тем геометрия и типографика — цвета задаются отдельно. */
 const baseToken: ThemeConfig['token'] = {
-  fontFamily: fontStack,
+  fontFamily: uiFont,
   fontSize: 14,
   borderRadius: 10,
   borderRadiusLG: 14,
@@ -59,17 +58,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         algorithm: antdTheme.darkAlgorithm,
         token: {
           ...baseToken,
-          colorPrimary: '#3b82f6',
-          colorBgLayout: '#0f1115',
-          colorBgContainer: '#171a21',
-          colorBgElevated: '#1d212a',
-          colorBorderSecondary: '#262b35',
+          // Ночью акцентом становится сама закладка: чернила на чернильном фоне не видны.
+          colorPrimary: brand.bookmark,
+          colorInfo: brand.bookmark,
+          colorLink: '#DE8461',
+          colorSuccess: '#5C9E7C',
+          colorWarning: brand.amber,
+          colorError: '#C25050',
+          colorBgLayout: brand.night.layout,
+          colorBgContainer: brand.night.surface,
+          colorBgElevated: brand.night.elevated,
+          colorBorderSecondary: brand.night.border,
           boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
           boxShadowSecondary: '0 4px 16px rgba(0,0,0,0.35)'
         },
         components: {
-          Layout: { headerBg: '#171a21', bodyBg: '#0f1115' },
-          Menu: { itemBg: 'transparent', horizontalItemSelectedColor: '#3b82f6' }
+          Layout: { headerBg: brand.night.surface, bodyBg: brand.night.layout },
+          Menu: { itemBg: 'transparent', horizontalItemSelectedColor: brand.bookmark }
         }
       };
     }
@@ -99,16 +104,59 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       algorithm: antdTheme.defaultAlgorithm,
       token: {
         ...baseToken,
-        colorPrimary: '#2563eb',
-        colorBgLayout: '#f6f7f9',
-        colorBgContainer: '#ffffff',
-        colorBorderSecondary: '#eaecf0',
-        boxShadow: '0 1px 2px rgba(16,24,40,0.06)',
-        boxShadowSecondary: '0 4px 16px rgba(16,24,40,0.08)'
+        // Чернила — основной цвет каркаса. Закладка остаётся единственным тёплым акцентом
+        // и живёт на прогрессе, ссылках и активных состояниях, а не на каждой кнопке.
+        colorPrimary: brand.ink,
+        colorInfo: brand.ink,
+        // Производные тона Ant Design считает от основного цвета, и у тёмных чернил они
+        // выходят серыми: подсветка вкладки становилась мышиного цвета. Задаём явно —
+        // разбавленными чернилами, как в макетах.
+        colorPrimaryBg: mix(brand.ink, brand.surface, 0.92),
+        colorPrimaryBgHover: mix(brand.ink, brand.surface, 0.86),
+        colorPrimaryBorder: mix(brand.ink, brand.surface, 0.76),
+        colorPrimaryHover: mix(brand.ink, brand.surface, 0.16),
+        colorPrimaryActive: mix(brand.ink, '#000000', 0.16),
+        // То же для статусных цветов: чипы «Читаю», «Завершено» и «Заброшено» должны быть
+        // бумажными заливками с цветным текстом, а не сплошными пятнами.
+        colorInfoBg: mix(brand.ink, brand.surface, 0.92),
+        colorInfoBorder: mix(brand.ink, brand.surface, 0.76),
+        colorInfoText: brand.ink,
+        colorSuccessBg: brand.mossBg,
+        colorSuccessBorder: mix(brand.moss, brand.surface, 0.7),
+        colorSuccessText: brand.moss,
+        colorWarningBg: brand.amberBg,
+        colorWarningBorder: mix(brand.amber, brand.surface, 0.7),
+        colorWarningText: brand.amber,
+        colorErrorBg: brand.waxBg,
+        colorErrorBorder: mix(brand.wax, brand.surface, 0.7),
+        colorErrorText: brand.wax,
+        colorLink: brand.bookmarkText,
+        colorLinkHover: brand.bookmarkHover,
+        colorSuccess: brand.moss,
+        colorWarning: brand.amber,
+        colorError: brand.wax,
+        colorTextBase: brand.inkText,
+        colorBgLayout: brand.paper,
+        colorBgContainer: brand.surface,
+        colorBgElevated: brand.surface,
+        colorBorder: brand.binding,
+        colorBorderSecondary: brand.binding,
+        // Заливки тоже бумажные, а не серые: холодный серый рядом с тёплым фоном
+        // читается как грязное пятно, особенно на больших плоскостях вроде выписок.
+        colorFillQuaternary: mix(brand.paperSoft, brand.surface, 0.45),
+        colorFillTertiary: brand.paperSoft,
+        colorFillSecondary: brand.bindingSoft,
+        colorFill: brand.binding,
+        boxShadow: `0 1px 2px ${alpha(brand.ink, 0.06)}`,
+        boxShadowSecondary: `0 8px 28px ${alpha(brand.ink, 0.1)}`
       },
       components: {
-        Layout: { headerBg: '#ffffff', bodyBg: '#f6f7f9' },
-        Menu: { itemBg: 'transparent' }
+        Layout: { headerBg: brand.surface, bodyBg: brand.paper },
+        Menu: { itemBg: 'transparent' },
+        // Прогресс — это закладка, а не основной цвет: полоса и ленточка на обложке
+        // должны читаться как одна и та же вещь.
+        Progress: { defaultColor: brand.bookmark },
+        Slider: { trackBg: brand.bookmark, trackHoverBg: brand.bookmarkHover }
       }
     };
   }, [mode]);

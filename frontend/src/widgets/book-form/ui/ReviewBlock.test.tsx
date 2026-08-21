@@ -44,17 +44,22 @@ describe('ReviewBlock', () => {
   it('показывает оценки по критериям', () => {
     renderWithStore(<ReviewBlock item={item({ ratingPlot: 9.5, ratingCharacters: 7 })} />);
 
-    expect(screen.getByText('Сюжет: 9.5')).toBeInTheDocument();
-    expect(screen.getByText('Персонажи: 7')).toBeInTheDocument();
-    // Незаполненный критерий не должен занимать место пустым значением.
-    expect(screen.queryByText(/Финал/)).not.toBeInTheDocument();
+    expect(screen.getByText('Сюжет')).toBeInTheDocument();
+    expect(screen.getByText('9,5')).toBeInTheDocument();
+    expect(screen.getByText('Персонажи')).toBeInTheDocument();
+    /*
+     * Незаполненный критерий остаётся на месте с прочерком: читателю видно, что книгу
+     * разбирали по частям и до финала оценка не дошла — это тоже сведение о ней.
+     */
+    expect(screen.getByText('Финал')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   /** Общая оценка — главное число вкладки, и раньше блок её вообще не показывал. */
   it('показывает общую оценку отдельно от критериев', () => {
     renderWithStore(<ReviewBlock item={item({ rating: 8.5, ratingPlot: 9 })} />);
 
-    expect(screen.getByText('8.5')).toBeInTheDocument();
+    expect(screen.getByText('8,5')).toBeInTheDocument();
     expect(screen.getByText('/ 10')).toBeInTheDocument();
   });
 

@@ -7,6 +7,7 @@ import { APP_NAME, useDocumentTitle } from '@/shared/lib/documentTitle';
 import { Logo } from './Logo';
 
 interface Props {
+  /** Заголовок карточки; он же уходит в заголовок вкладки браузера. */
   title: string;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
@@ -79,7 +80,7 @@ export const AuthLayout: React.FC<Props> = ({ title, subtitle, children, footer 
           style={{ marginBottom: 0, borderRadius: token.borderRadiusLG, borderColor: token.colorBorderSecondary }}
           styles={{ body: { padding: 28 } }}
         >
-          <Typography.Title level={3} style={{ marginTop: 0, marginBottom: subtitle ? 4 : 20 }}>
+          <Typography.Title level={2} style={{ marginTop: 0, marginBottom: subtitle ? 4 : 20, fontSize: 24 }}>
             {title}
           </Typography.Title>
           {subtitle && (

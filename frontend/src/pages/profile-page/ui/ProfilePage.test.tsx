@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
@@ -45,11 +44,9 @@ const storeWithUser = () =>
 
 const renderPage = () =>
   renderWithStore(
-    <MemoryRouter>
-      <ThemeProvider>
-        <ProfilePage />
-      </ThemeProvider>
-    </MemoryRouter>,
+    <ThemeProvider>
+      <ProfilePage />
+    </ThemeProvider>,
     storeWithUser()
   );
 

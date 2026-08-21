@@ -26,15 +26,18 @@ import {
   StopOutlined
 } from '@ant-design/icons';
 import type { BarListItem } from '@/shared/ui/BarList';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
+import { setFilters } from '@/features/book/set-book-filters';
 import { analyticsActions, loadBookAnalytics, loadReadingAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { statusMeta } from '@/shared/constants/status';
-import { PeriodStats, ReadingStatus } from '@/shared/types/library';
+import { MediaKind, PeriodStats, ReadingStatus } from '@/shared/types/library';
 import { isAdminLike } from '@/shared/lib/roles';
 import { BarList } from '@/shared/ui/BarList';
+import { SpineStrip, type SpineShare } from '@/shared/ui/SpineStrip';
 import { ActivityHeatmap } from '@/shared/ui/ActivityHeatmap';
 import { ColumnChart } from '@/shared/ui/ColumnChart';
 import { formatDate } from '@/shared/lib/date';
@@ -107,6 +110,7 @@ const decimal = (value?: number) => (value == null ? '—' : value.toLocaleStrin
 
 export const AnalyticsPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { token } = theme.useToken();
   const styles = useAnalyticsPageStyles();
   const { data, loading, error, reading, readingLoading, readingError, currentUserId } = useAppSelector(
@@ -129,6 +133,22 @@ export const AnalyticsPage: React.FC = () => {
 
   const total = data?.totalItems ?? 0;
   const statusCount = (status: ReadingStatus) => data?.statusBreakdown?.[status] ?? 0;
+
+  /** Виды в порядке убывания доли: широкие корешки слева, как на полке. */
+  const kindShares = useMemo<SpineShare[]>(
+    () =>
+      Object.entries(data?.kindBreakdown ?? {})
+        .map(([kind, count]) => ({ kind: kind as MediaKind, count: count ?? 0 }))
+        .filter((share) => share.count > 0)
+        .sort((a, b) => b.count - a.count),
+    [data?.kindBreakdown]
+  );
+
+  /** Разрез ведёт в библиотеку: у среза аналитики должен быть выход к самим записям. */
+  const openKind = (kind: MediaKind) => {
+    dispatch(setFilters({ kind, page: 0 }));
+    navigate('/');
+  };
   const isEmpty = !loading && (!data || total === 0);
   const readingSkeleton = readingLoading && !reading;
 
@@ -299,7 +319,7 @@ export const AnalyticsPage: React.FC = () => {
             value={statusCount(status)}
             hint={total ? `${Math.round((statusCount(status) / total) * 100)}%` : undefined}
             icon={statusIcons[status]}
-            accent={token[statusMeta[status].token]}
+            accent={statusMeta[status].accent}
             loading={loading && !data}
           />
         ))}
@@ -492,6 +512,13 @@ export const AnalyticsPage: React.FC = () => {
                   <Skeleton active paragraph={{ rows: 5 }} />
                 ) : (
                   <>
+                    {/* Корешковая полоса: доли видов произведения одной строкой. Она же —
+                        фирменный приём, и нажатие на корешок открывает этот вид в библиотеке. */}
+                    {kindShares.length > 0 && (
+                      <div style={styles.spineStrip}>
+                        <SpineStrip shares={kindShares} onSelect={openKind} />
+                      </div>
+                    )}
                     {/* База процентов — вся библиотека, а не лидер списка: иначе первый автор
                         всегда «100%», и две разные величины выглядят одинаково. */}
                     <BarList total={total} items={breakdownItems} emptyText="Данных для разбивки пока нет" />

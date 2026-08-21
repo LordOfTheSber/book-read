@@ -23,6 +23,7 @@ import { Achievement, GoalMetric, ReadingGoal, Streak, YearInReview } from '@/sh
 import { formatDate, toLocalIso } from '@/shared/lib/date';
 import { useRequestError } from '@/shared/lib/errors';
 import { pluralize } from '@/shared/lib/plural';
+import { goalPhrase, streakPhrase } from '@/shared/lib/phrases';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { MetricList } from '@/shared/ui/MetricList';
@@ -32,6 +33,7 @@ import {
   fetchGoal,
   fetchStreak,
   fetchYearInReview,
+  resetYearGoal,
   saveGoal
 } from '@/entities/engagement';
 
@@ -102,6 +104,8 @@ export const GoalsPage: React.FC = () => {
     setSaving(true);
     try {
       setGoal(await saveGoal(year, values));
+      // Знак в шапке рисует закладку по цели: без сброса кеша он остался бы на прежней длине.
+      resetYearGoal();
       message.success('Цель сохранена');
     } catch (error) {
       showRequestError(error, 'Не удалось сохранить цель');
@@ -131,9 +135,11 @@ export const GoalsPage: React.FC = () => {
     return (
       <Col xs={24} md={8} key={title}>
         <Card size="small" title={title}>
+          {/* Отставание от графика — не ошибка: сургучный цвет тревоги оставлен удалению
+              и сбоям, а про отставание словами сказано выше. */}
           <Progress
             percent={metric.percent}
-            status={metric.onTrack ? 'active' : 'exception'}
+            status={metric.percent >= 100 ? 'success' : 'normal'}
             format={() => `${metric.done} / ${metric.target}`}
           />
           <MetricList
@@ -202,11 +208,18 @@ export const GoalsPage: React.FC = () => {
         </Form>
 
         {goal?.configured ? (
-          <Row gutter={[16, 16]}>
+          <>
+            {/* Одна фраза вместо трёх процентов: решение принимают не по «выполнено на 75%»,
+                а по тому, впереди графика человек или позади. */}
+            <Typography.Paragraph className="brand-display" style={{ fontSize: 17, marginBottom: 16 }}>
+              {goalPhrase(goal)}
+            </Typography.Paragraph>
+            <Row gutter={[16, 16]}>
             {renderMetric('Произведения', 'шт.', goal.items)}
             {renderMetric('Страницы', 'стр.', goal.pages)}
             {renderMetric('Время', 'мин.', goal.minutes)}
-          </Row>
+            </Row>
+          </>
         ) : (
           <Typography.Text type="secondary">
             Цель ещё не поставлена. Достаточно любой одной цифры — остальные можно не заполнять.
@@ -245,7 +258,10 @@ export const GoalsPage: React.FC = () => {
                 </Tooltip>
               ))}
             </div>
-            <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+            <Typography.Paragraph style={{ marginTop: 12, marginBottom: 4 }}>
+              {streakPhrase(streak ?? undefined)}
+            </Typography.Paragraph>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
               Серия держится, пока не пропущено два дня подряд: вчерашняя отметка её не рвёт.
             </Typography.Paragraph>
           </Card>

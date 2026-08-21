@@ -1,6 +1,7 @@
 package com.library.tracker.repository;
 
 import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.MediaKind;
 import com.library.tracker.domain.ReadingStatus;
 
 import java.math.BigDecimal;
@@ -111,6 +112,18 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             group by li.status
             """ )
     List<StatusCount> countByStatus( UUID userId );
+
+    /**
+     * Разбивка по видам произведения. Нужна корешковой полосе: её ширины — доли коллекции,
+     * а не украшение, поэтому считать их на клиенте по текущей странице выдачи нельзя.
+     */
+    @Query( """
+            select li.kind as kind, count(li) as count
+            from LibraryItem li
+            where li.kind is not null and (:userId is null or li.createdBy.id = :userId)
+            group by li.kind
+            """ )
+    List<KindCount> countByKind( UUID userId );
 
     @Query( """
             select avg(li.rating)
@@ -462,6 +475,13 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
     interface StatusCount {
 
         ReadingStatus getStatus();
+
+        long getCount();
+    }
+
+    interface KindCount {
+
+        MediaKind getKind();
 
         long getCount();
     }

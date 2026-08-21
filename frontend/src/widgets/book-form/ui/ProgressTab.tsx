@@ -21,8 +21,9 @@ import {
 import { CheckCircleOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { LibraryItem, ReadingLog, ReadingSession } from '@/shared/types/library';
-import { addSession, deleteSession, fetchLogs, fetchSessions } from '@/entities/book';
+import { addSession, advanceProgress, deleteSession, fetchLogs, fetchSessions } from '@/entities/book';
 import { progressQuickSteps, progressUnitLabel, resolveProgressUnit } from '@/shared/constants/format';
+import { remainingPhrase } from '@/shared/lib/phrases';
 import { ratingCriteria } from '@/shared/constants/ratingCriteria';
 import { formatDate } from '@/shared/lib/date';
 import { formatScore } from '@/shared/lib/format';
@@ -114,16 +115,17 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
 
   /** Быстрое «+N»: заход от текущей позиции, без открытия формы. */
   const quickAdvance = async (delta: number) => {
-    const current = progress?.current ?? 0;
-    // Сервер и так обрежет позицию по объёму, но тогда в истории останется заход за краем шкалы.
-    const target = progress?.total ? Math.min(current + delta, progress.total) : current + delta;
-    if (target === current) {
-      message.info('Шкала уже пройдена до конца');
-      return;
-    }
     setPendingStep(delta);
     try {
-      await submitSession({ fromPosition: current, toPosition: target });
+      if (!(await advanceProgress(item, delta))) {
+        message.info('Шкала уже пройдена до конца');
+        return;
+      }
+      message.success('Заход записан');
+      await load();
+      onProgressChanged();
+    } catch (error) {
+      showRequestError(error, 'Не удалось записать заход');
     } finally {
       setPendingStep(null);
     }
@@ -167,7 +169,11 @@ export const ProgressTab: React.FC<Props> = ({ item, onProgressChanged }) => {
           />
           <Space size={12} wrap>
             {progress?.remaining ? (
-              <Typography.Text type="secondary">{`осталось ${progress.remaining} ${unit}`}</Typography.Text>
+              // Не «осталось 188 стр.», а сколько это в вечерах: цифру человек всё равно
+              // переводит в срок, и продукт может сделать это за него.
+              <Typography.Text type="secondary">
+                {remainingPhrase(progress, unitKey) ?? `осталось ${progress.remaining} ${unit}`}
+              </Typography.Text>
             ) : (
               <Typography.Text type="success">
                 <CheckCircleOutlined /> Шкала пройдена
