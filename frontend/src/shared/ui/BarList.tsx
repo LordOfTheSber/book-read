@@ -10,8 +10,18 @@ export interface BarListItem {
 
 interface Props {
   items: BarListItem[];
-  /** База для процентов; если не задана — берётся максимум по списку. */
+  /**
+   * База для долей. Задана — полосы и проценты считаются от неё: разрез, который делит
+   * библиотеку, должен говорить о библиотеке. Не задана — процентов нет вовсе, а полосы
+   * меряются лидером списка: доля одного автора в тысяче записей — это доли процента,
+   * и полоса при такой базе перестаёт быть полосой.
+   */
   total?: number;
+  /**
+   * Переход к записям среза. Если задан, строка становится кнопкой: у разреза аналитики
+   * должен быть выход к самим книгам, иначе это тупик с числом.
+   */
+  onSelect?: (item: BarListItem) => void;
   emptyText?: string;
 }
 
@@ -19,7 +29,7 @@ interface Props {
  * Ранжированный список с горизонтальными полосами — читается быстрее таблицы
  * из двух колонок и не требует библиотеки графиков.
  */
-export const BarList: React.FC<Props> = ({ items, total, emptyText = 'Данных пока нет' }) => {
+export const BarList: React.FC<Props> = ({ items, total, onSelect, emptyText = 'Данных пока нет' }) => {
   const { token } = theme.useToken();
   const visible = items.filter((item) => item.value > 0);
 
@@ -27,25 +37,36 @@ export const BarList: React.FC<Props> = ({ items, total, emptyText = 'Данны
     return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />;
   }
 
-  const base = total && total > 0 ? total : Math.max(...visible.map((item) => item.value));
+  const relative = Boolean(total && total > 0);
+  const base = relative ? (total as number) : Math.max(...visible.map((item) => item.value));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {visible.map((item) => {
         const share = base > 0 ? Math.round((item.value / base) * 100) : 0;
         const color = item.color || token.colorPrimary;
+        const Row = onSelect ? 'button' : 'div';
 
         return (
-          <div key={item.key}>
+          <Row
+            key={item.key}
+            type={onSelect ? 'button' : undefined}
+            className={onSelect ? 'app-shell-reset' : undefined}
+            onClick={onSelect ? () => onSelect(item) : undefined}
+            aria-label={onSelect ? `${item.label}: открыть в библиотеке` : undefined}
+            style={{ display: 'block', width: '100%', textAlign: 'left' }}
+          >
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
               <Typography.Text ellipsis={{ tooltip: item.label }} style={{ minWidth: 0 }}>
                 {item.label}
               </Typography.Text>
               <Typography.Text style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 <span style={{ fontWeight: 600 }}>{item.value}</span>
-                <Typography.Text type="secondary" style={{ marginLeft: 6 }}>
-                  {share}%
-                </Typography.Text>
+                {relative && (
+                  <Typography.Text type="secondary" style={{ marginLeft: 6 }}>
+                    {share}%
+                  </Typography.Text>
+                )}
               </Typography.Text>
             </div>
             <div
@@ -67,7 +88,7 @@ export const BarList: React.FC<Props> = ({ items, total, emptyText = 'Данны
                 }}
               />
             </div>
-          </div>
+          </Row>
         );
       })}
     </div>

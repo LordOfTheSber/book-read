@@ -26,6 +26,15 @@ public interface ReviewReactionRepository extends JpaRepository<ReviewReaction, 
             """ )
     List<KindCount> countByKind( UUID itemId );
 
+    /** Свои отметки на списке отзывов: лента должна знать, где сердце уже нажато. */
+    @Query( """
+            select r
+            from ReviewReaction r
+            where r.item.id in :itemIds
+              and r.user.id = :userId
+            """ )
+    List<ReviewReaction> findMineByItems( Collection<UUID> itemIds, UUID userId );
+
     /** Счётчики для списка отзывов — одним запросом на список, а не по запросу на строку. */
     @Query( """
             select r.item.id as itemId, count(r) as count

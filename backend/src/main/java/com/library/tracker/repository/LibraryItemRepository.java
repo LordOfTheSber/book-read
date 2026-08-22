@@ -255,6 +255,19 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
     List<LibraryItem> findReviewed( UUID userId, Pageable pageable );
 
     /**
+     * Записи по списку идентификаторов вместе с авторами и владельцем: лента достаёт так отзывы
+     * своих событий, и без выборки авторов сюда каждая карточка стоила бы отдельного запроса.
+     */
+    @Query( """
+            select distinct li
+            from LibraryItem li
+            left join fetch li.authors
+            left join fetch li.createdBy
+            where li.id in :ids
+            """ )
+    List<LibraryItem> findAllWithAuthors( Collection<UUID> ids );
+
+    /**
      * Помесячная динамика. Год и месяц отдаются числами, а склейку в {@code 2026-08} делает сервис:
      * в JPQL это была бы конкатенация с приведением типов, читаемая хуже, чем строчка на Java.
      */

@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { Activity, ProfileSummary, PublicProfile } from '@/shared/types/library';
+import { Activity, ProfileSummary, PublicProfile, TrendingBook } from '@/shared/types/library';
 
 export interface ProfilePayload {
   displayName?: string;
@@ -57,5 +57,11 @@ export const searchProfiles = async (query: string) => {
 
 export const fetchFeed = async (limit?: number) => {
   const { data } = await httpClient.get<Activity[]>('/profiles/me/feed', { params: { limit } });
+  return data;
+};
+
+/** Что обсуждают за неделю — в той же области видимости, что и лента. */
+export const fetchTrending = async () => {
+  const { data } = await httpClient.get<TrendingBook[]>('/profiles/me/feed/trending');
   return data;
 };

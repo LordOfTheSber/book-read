@@ -1,6 +1,7 @@
 package com.library.tracker.web.dto;
 
 import com.library.tracker.domain.MediaKind;
+import com.library.tracker.domain.ReactionKind;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,6 +23,9 @@ public class PublicReviewResponse {
     MediaKind kind;
     String title;
     List<String> authorNames;
+    /** Год и объём — подпись под названием в ленте: «Стругацкие · 1972 · 224 стр.». */
+    Integer publishedYear;
+    Integer pageCount;
     boolean hasCover;
     BigDecimal rating;
     String review;
@@ -29,4 +33,6 @@ public class PublicReviewResponse {
     LocalDate finishedAt;
     long reactionCount;
     long commentCount;
+    /** Своя отметка, если она есть: без неё лента не знает, нажато сердце или нет. */
+    ReactionKind myReaction;
 }

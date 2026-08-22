@@ -17,6 +17,11 @@ interface Props {
   itemId: string;
   /** Свой отзыв реакцией не отмечают: кнопки прячутся, комментарии остаются. */
   own?: boolean;
+  /**
+   * Показывать ли строку реакций. В ленте она уже стоит в карточке поста, и вторая такая же
+   * под комментариями означала бы две правды об одном и том же счётчике.
+   */
+  reactions?: boolean;
 }
 
 const MAX_COMMENT_LENGTH = 2000;
@@ -25,7 +30,7 @@ const MAX_COMMENT_LENGTH = 2000;
  * Обсуждение одного отзыва. Тред грузится по требованию — раскрытым под каждым отзывом в ленте
  * он стоил бы запроса на строку, а читают его далеко не у каждой записи.
  */
-export const ReviewThreadPanel: React.FC<Props> = ({ itemId, own }) => {
+export const ReviewThreadPanel: React.FC<Props> = ({ itemId, own, reactions = true }) => {
   const { message } = App.useApp();
   const showRequestError = useRequestError();
   const [thread, setThread] = useState<ReviewThread | null>(null);
@@ -94,24 +99,26 @@ export const ReviewThreadPanel: React.FC<Props> = ({ itemId, own }) => {
 
   return (
     <Space direction="vertical" size={12} style={{ display: 'flex' }}>
-      <Space size={8} wrap>
-        {reactionOrder.map((kind) => {
-          const count = thread.reactions[kind] ?? 0;
-          const mine = thread.myReaction === kind;
-          return (
-            <Tooltip key={kind} title={own ? 'Свой отзыв реакцией не отмечают' : reactionMeta[kind].label}>
-              <Button
-                size="small"
-                type={mine ? 'primary' : 'default'}
-                disabled={own}
-                onClick={() => toggleReaction(kind)}
-              >
-                <span aria-hidden>{reactionMeta[kind].emoji}</span> {count}
-              </Button>
-            </Tooltip>
-          );
-        })}
-      </Space>
+      {reactions && (
+        <Space size={8} wrap>
+          {reactionOrder.map((kind) => {
+            const count = thread.reactions[kind] ?? 0;
+            const mine = thread.myReaction === kind;
+            return (
+              <Tooltip key={kind} title={own ? 'Свой отзыв реакцией не отмечают' : reactionMeta[kind].label}>
+                <Button
+                  size="small"
+                  type={mine ? 'primary' : 'default'}
+                  disabled={own}
+                  onClick={() => toggleReaction(kind)}
+                >
+                  <span aria-hidden>{reactionMeta[kind].emoji}</span> {count}
+                </Button>
+              </Tooltip>
+            );
+          })}
+        </Space>
+      )}
 
       {thread.comments.length > 0 && (
         <List

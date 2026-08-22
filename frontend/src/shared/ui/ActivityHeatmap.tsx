@@ -86,7 +86,9 @@ export const ActivityHeatmap: React.FC<Props> = ({ days, window = 371 }) => {
   };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    /* Только вбок: `overflow-x: auto` без пары приводит браузер к `auto` и по вертикали,
+       и лишний пиксель превратил бы календарь в скроллер (так и случилось с графиком). */
+    <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
       <div style={{ display: 'flex', gap: 3, minWidth: 'min-content' }}>
         {weeks.map((week) => {
           return (

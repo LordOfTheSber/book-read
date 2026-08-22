@@ -358,6 +358,7 @@ class ControllerSecurityMatrixTest {
                 Endpoint.get( "/api/v1/profiles/me", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.put( "/api/v1/profiles/me", "{\"publicProfile\":true}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/profiles/me/feed", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/profiles/me/feed/trending", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/profiles/search", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/profiles/reader", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/profiles/reader/activity", SUPER_ADMIN, ADMIN, EDITOR, USER ),

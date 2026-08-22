@@ -6,6 +6,7 @@ import com.library.tracker.web.dto.ActivityResponse;
 import com.library.tracker.web.dto.ProfileSummaryResponse;
 import com.library.tracker.web.dto.ProfileUpdateRequest;
 import com.library.tracker.web.dto.PublicProfileResponse;
+import com.library.tracker.web.dto.TrendingBookResponse;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -96,5 +97,11 @@ public class ProfileController {
     @GetMapping( "/me/feed" )
     public List<ActivityResponse> feed( @RequestParam( required = false ) Integer limit ) {
         return activityService.feed( limit );
+    }
+
+    /** Что обсуждают за неделю в той же области видимости, что и лента. */
+    @GetMapping( "/me/feed/trending" )
+    public List<TrendingBookResponse> trending() {
+        return activityService.trending();
     }
 }

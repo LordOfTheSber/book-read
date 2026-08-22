@@ -21,4 +21,10 @@ public class ActivityResponse {
     String subject;
     String detail;
     OffsetDateTime createdAt;
+    /**
+     * Сам отзыв — у событий «написал отзыв» и только у тех, чей текст спрашивающему виден.
+     * Лента показывает отзыв целиком, а не ссылку на него, и запрашивать его строкой на событие
+     * значило бы платить запросом за каждую карточку.
+     */
+    PublicReviewResponse review;
 }
