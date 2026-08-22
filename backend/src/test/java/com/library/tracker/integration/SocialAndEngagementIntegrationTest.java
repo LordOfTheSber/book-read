@@ -8,6 +8,7 @@ import com.library.tracker.domain.Loan;
 import com.library.tracker.domain.ReactionKind;
 import com.library.tracker.domain.ReadingGoal;
 import com.library.tracker.domain.ReadingStatus;
+import com.library.tracker.domain.ReviewComment;
 import com.library.tracker.domain.ReviewReaction;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Shelf;
@@ -20,6 +21,7 @@ import com.library.tracker.repository.ActivityEventRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.LoanRepository;
 import com.library.tracker.repository.ReadingGoalRepository;
+import com.library.tracker.repository.ReviewCommentRepository;
 import com.library.tracker.repository.ReviewReactionRepository;
 import com.library.tracker.repository.ShelfMemberRepository;
 import com.library.tracker.repository.ShelfRepository;
@@ -28,6 +30,7 @@ import com.library.tracker.repository.UserFollowRepository;
 import com.library.tracker.repository.UserRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -66,6 +69,9 @@ class SocialAndEngagementIntegrationTest extends PostgresContainerTest {
 
     @Autowired
     private ReviewReactionRepository reviewReactionRepository;
+
+    @Autowired
+    private ReviewCommentRepository reviewCommentRepository;
 
     @Autowired
     private ShelfRepository shelfRepository;
@@ -131,6 +137,71 @@ class SocialAndEngagementIntegrationTest extends PostgresContainerTest {
         List<UUID> visible = userRepository.findPublicProfileIds( List.of( owner.getId(), hermit.getId() ) );
 
         assertThat( visible ).containsExactly( owner.getId() );
+    }
+
+    /**
+     * Сводка «обсуждают на этой неделе» считает только отзывы и только внутри окна: иначе книга,
+     * о которой писали год назад, висела бы в ней вечно, а «дочитал» попадал бы в неё наравне
+     * с написанным текстом.
+     */
+    @Test
+    void weeklyCountsCountReviewsInsideTheWindowOnly() {
+        LibraryItem item = libraryItemRepository.saveAndFlush( item( owner, "Пикник на обочине" ) );
+        activityEventRepository.saveAndFlush( reviewEvent( owner, item ) );
+        activityEventRepository.saveAndFlush( event( owner, "Пикник на обочине" ) );
+
+        List<ActivityEventRepository.ItemCount> week = activityEventRepository.countReviewsSince(
+                Set.of( owner.getId() ), LocalDateTime.now().minusDays( 7 ) );
+
+        assertThat( week ).hasSize( 1 );
+        assertThat( week.get( 0 ).getItemId() ).isEqualTo( item.getId() );
+        assertThat( week.get( 0 ).getCount() ).isEqualTo( 1 );
+
+        // Окно, начавшееся после события, его не видит: сводка отвечает «за неделю», а не «за всё время».
+        assertThat( activityEventRepository.countReviewsSince( Set.of( owner.getId() ),
+                                                              LocalDateTime.now().plusMinutes( 1 ) ) ).isEmpty();
+    }
+
+    /** Чужой комментарий не должен вытаскивать в сводку книгу из-за пределов видимости. */
+    @Test
+    void weeklyCommentsAreScopedToItemOwners() {
+        LibraryItem mine = libraryItemRepository.saveAndFlush( item( owner, "Дюна" ) );
+        LibraryItem theirs = libraryItemRepository.saveAndFlush( item( reader, "Чужое" ) );
+        reviewCommentRepository.saveAndFlush( comment( mine, reader ) );
+        reviewCommentRepository.saveAndFlush( comment( theirs, owner ) );
+
+        List<ReviewCommentRepository.ItemCount> counts = reviewCommentRepository.countSince(
+                Set.of( owner.getId() ), LocalDateTime.now().minusDays( 7 ) );
+
+        assertThat( counts ).hasSize( 1 );
+        assertThat( counts.get( 0 ).getItemId() ).isEqualTo( mine.getId() );
+    }
+
+    /** Отзывы ленты достаются одной выборкой вместе с авторами — по идентификаторам событий. */
+    @Test
+    void feedFetchesItemsWithAuthorsInOneQuery() {
+        LibraryItem first = libraryItemRepository.saveAndFlush( item( owner, "Пикник на обочине" ) );
+        LibraryItem second = libraryItemRepository.saveAndFlush( item( owner, "Дюна" ) );
+
+        List<LibraryItem> found = libraryItemRepository.findAllWithAuthors(
+                Set.of( first.getId(), second.getId() ) );
+
+        assertThat( found ).extracting( LibraryItem::getTitle )
+                           .containsExactlyInAnyOrder( "Пикник на обочине", "Дюна" );
+    }
+
+    /** Своя отметка на списке отзывов — тем же запросом, что и счётчики: чужие сюда не попадают. */
+    @Test
+    void ownReactionsAreFoundForTheWholeList() {
+        LibraryItem item = libraryItemRepository.saveAndFlush( item( owner, "Задача трёх тел" ) );
+        reviewReactionRepository.saveAndFlush( reaction( item, reader, ReactionKind.LIKE ) );
+        reviewReactionRepository.saveAndFlush( reaction( item, owner, ReactionKind.DISAGREE ) );
+
+        List<ReviewReaction> mine = reviewReactionRepository.findMineByItems(
+                Set.of( item.getId() ), reader.getId() );
+
+        assertThat( mine ).hasSize( 1 );
+        assertThat( mine.get( 0 ).getKind() ).isEqualTo( ReactionKind.LIKE );
     }
 
     @Test
@@ -303,6 +374,23 @@ class SocialAndEngagementIntegrationTest extends PostgresContainerTest {
         event.setType( ActivityType.FINISHED_READING );
         event.setSubject( subject );
         return event;
+    }
+
+    private ActivityEvent reviewEvent( User actor, LibraryItem item ) {
+        ActivityEvent event = new ActivityEvent();
+        event.setActor( actor );
+        event.setType( ActivityType.PUBLISHED_REVIEW );
+        event.setItem( item );
+        event.setSubject( item.getTitle() );
+        return event;
+    }
+
+    private ReviewComment comment( LibraryItem item, User author ) {
+        ReviewComment comment = new ReviewComment();
+        comment.setItem( item );
+        comment.setAuthor( author );
+        comment.setBody( "Согласен" );
+        return comment;
     }
 
     private ReviewReaction reaction( LibraryItem item, User user, ReactionKind kind ) {

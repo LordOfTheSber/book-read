@@ -6,19 +6,28 @@ import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.ActivityEventRepository;
+import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.ReviewCommentRepository;
 import com.library.tracker.repository.UserFollowRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.service.UserService;
 import com.library.tracker.web.dto.ActivityResponse;
+import com.library.tracker.web.dto.PublicReviewResponse;
+import com.library.tracker.web.dto.TrendingBookResponse;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -43,11 +52,22 @@ public class ActivityService {
 
     private static final int MAX_LIMIT = 200;
 
+    /** Окно сводки «обсуждают на этой неделе»: ровно неделя, а не «последние N событий». */
+    private static final int TRENDING_WINDOW_DAYS = 7;
+
+    /** Больше пяти книг сбоку — это уже второй список, а не подсказка. */
+    private static final int TRENDING_LIMIT = 5;
+
     private final ActivityEventRepository activityEventRepository;
+    private final ReviewCommentRepository reviewCommentRepository;
+    private final LibraryItemRepository libraryItemRepository;
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
     private final UserService userService;
     private final ProfileMapper profileMapper;
+    private final PublicReviewMapper publicReviewMapper;
+    private final ReviewAccess reviewAccess;
+    private final Clock clock;
 
     public void record( User actor, ActivityType type, LibraryItem item, Shelf shelf, String subject, String detail ) {
         if ( actor == null ) {
@@ -77,6 +97,59 @@ public class ActivityService {
         return toResponses( events, currentUser );
     }
 
+    /**
+     * О чём пишут и спорят вокруг спрашивающего за неделю. Область та же, что у ленты: сводка
+     * отвечает «что обсуждают у меня в подписках», и книга из закрытого профиля в неё не попадает
+     * ни своим отзывом, ни чужим комментарием.
+     */
+    @Transactional( readOnly = true )
+    public List<TrendingBookResponse> trending() {
+        User currentUser = userService.getCurrentUser();
+        Set<UUID> actorIds = new LinkedHashSet<>( visibleActorIds(
+                userFollowRepository.findFolloweeIds( currentUser.getId() ) ) );
+        actorIds.add( currentUser.getId() );
+
+        LocalDateTime since = LocalDateTime.now( clock ).minusDays( TRENDING_WINDOW_DAYS );
+        Map<UUID, Long> reviews = activityEventRepository.countReviewsSince( actorIds, since ).stream()
+                                                         .collect( Collectors.toMap(
+                                                                 ActivityEventRepository.ItemCount::getItemId,
+                                                                 ActivityEventRepository.ItemCount::getCount ) );
+        Map<UUID, Long> comments = reviewCommentRepository.countSince( actorIds, since ).stream()
+                                                          .collect( Collectors.toMap(
+                                                                  ReviewCommentRepository.ItemCount::getItemId,
+                                                                  ReviewCommentRepository.ItemCount::getCount ) );
+
+        Set<UUID> itemIds = new LinkedHashSet<>( reviews.keySet() );
+        itemIds.addAll( comments.keySet() );
+        if ( itemIds.isEmpty() ) {
+            return List.of();
+        }
+
+        return libraryItemRepository.findAllWithAuthors( itemIds ).stream()
+                                    .filter( item -> reviewAccess.canSee( item, currentUser ) )
+                                    .map( item -> TrendingBookResponse.builder()
+                                                                      .itemId( item.getId() )
+                                                                      .kind( item.getKind() )
+                                                                      .title( item.getTitle() )
+                                                                      .hasCover( item.getCoverKey() != null )
+                                                                      .reviewCount( reviews.getOrDefault(
+                                                                              item.getId(), 0L ) )
+                                                                      .commentCount( comments.getOrDefault(
+                                                                              item.getId(), 0L ) )
+                                                                      .build() )
+                                    // Сначала то, что и написали, и обсудили: один отзыв без
+                                    // единого ответа — ещё не обсуждение.
+                                    .sorted( Comparator
+                                                     .comparingLong( ( TrendingBookResponse book ) ->
+                                                                             book.getReviewCount()
+                                                                                     + book.getCommentCount() )
+                                                     .reversed()
+                                                     .thenComparing( TrendingBookResponse::getTitle,
+                                                                     String.CASE_INSENSITIVE_ORDER ) )
+                                    .limit( TRENDING_LIMIT )
+                                    .toList();
+    }
+
     /** События одного человека — для его профиля. Видимость профиля проверяется вызывающим. */
     @Transactional( readOnly = true )
     public List<ActivityResponse> byUser( User actor, Integer limit ) {
@@ -95,20 +168,51 @@ public class ActivityService {
 
     private List<ActivityResponse> toResponses( List<ActivityEvent> events, User currentUser ) {
         Set<UUID> followed = profileMapper.followedIds( currentUser );
+        Map<UUID, PublicReviewResponse> reviews = reviewsOf( events, currentUser );
         List<ActivityResponse> responses = new ArrayList<>( events.size() );
         for ( ActivityEvent event : events ) {
+            UUID itemId = event.getItem() != null ? event.getItem().getId() : null;
             responses.add( ActivityResponse.builder()
                                            .id( event.getId() )
                                            .type( event.getType() )
                                            .actor( profileMapper.toSummary( event.getActor(), followed ) )
-                                           .itemId( event.getItem() != null ? event.getItem().getId() : null )
+                                           .itemId( itemId )
                                            .shelfId( event.getShelf() != null ? event.getShelf().getId() : null )
                                            .subject( event.getSubject() )
                                            .detail( event.getDetail() )
                                            .createdAt( toOffsetDateTime( event.getCreatedAt() ) )
+                                           .review( event.getType() == ActivityType.PUBLISHED_REVIEW && itemId != null
+                                                            ? reviews.get( itemId )
+                                                            : null )
                                            .build() );
         }
         return responses;
+    }
+
+    /**
+     * Отзывы событий «написал отзыв» — одной выборкой на всю ленту. Видимость проверяется на
+     * каждой записи отдельно: открытость профиля автора события ещё не значит, что текст можно
+     * показать, — отзыв мог быть удалён, а карточка убрана с открытых полок.
+     */
+    private Map<UUID, PublicReviewResponse> reviewsOf( List<ActivityEvent> events, User currentUser ) {
+        Set<UUID> itemIds = new LinkedHashSet<>();
+        for ( ActivityEvent event : events ) {
+            if ( event.getType() == ActivityType.PUBLISHED_REVIEW && event.getItem() != null ) {
+                itemIds.add( event.getItem().getId() );
+            }
+        }
+        if ( itemIds.isEmpty() ) {
+            return Map.of();
+        }
+
+        List<LibraryItem> visible = libraryItemRepository.findAllWithAuthors( itemIds ).stream()
+                                                         .filter( item -> reviewAccess.canSee( item, currentUser ) )
+                                                         .toList();
+        Map<UUID, PublicReviewResponse> byItem = new HashMap<>();
+        for ( PublicReviewResponse review : publicReviewMapper.toResponses( visible ) ) {
+            byItem.put( review.getItemId(), review );
+        }
+        return byItem;
     }
 
     private int normalizeLimit( Integer limit ) {

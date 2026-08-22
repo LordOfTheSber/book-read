@@ -578,6 +578,9 @@ export interface PublicReview {
   kind: MediaKind;
   title: string;
   authorNames: string[];
+  /** Год и объём — подпись под названием: «Стругацкие · 1972 · 224 стр.». */
+  publishedYear?: number;
+  pageCount?: number;
   hasCover: boolean;
   rating?: number;
   review?: string;
@@ -585,6 +588,8 @@ export interface PublicReview {
   finishedAt?: string;
   reactionCount: number;
   commentCount: number;
+  /** Своя отметка: без неё лента рисовала бы сердце пустым поверх собственной реакции. */
+  myReaction?: ReactionKind;
 }
 
 /** Страница /u/username: шапка, счётчики, открытые полки и последние отзывы. */
@@ -628,6 +633,21 @@ export interface Activity {
   subject?: string;
   detail?: string;
   createdAt: string;
+  /**
+   * Сам отзыв — только у событий «написал отзыв» и только когда текст спрашивающему виден.
+   * Лента показывает его целиком, а не ссылкой, и ходить за ним запросом на карточку не нужно.
+   */
+  review?: PublicReview;
+}
+
+/** Книга, о которой писали и спорили за неделю: правая колонка ленты. */
+export interface TrendingBook {
+  itemId: string;
+  kind: MediaKind;
+  title: string;
+  hasCover: boolean;
+  reviewCount: number;
+  commentCount: number;
 }
 
 export type ReactionKind = 'LIKE' | 'WANT_TO_READ' | 'DISAGREE';
