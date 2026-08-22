@@ -1,5 +1,6 @@
 import type { Progress, ProgressUnit, ReadingGoal, Streak } from '@/shared/types/library';
 import { plural, pluralize } from '@/shared/lib/plural';
+import { formatNumber, formatScore } from '@/shared/lib/format';
 
 /**
  * Единицы шкалы в двух падежах: «Осталось 2 страницы» и «по 24 страницы в день» согласуются
@@ -106,4 +107,70 @@ export const streakPhrase = (streak?: Streak): string | undefined => {
   return streak.readToday
     ? `${days} подряд — сегодня уже отмечено`
     : `${days} подряд. Сегодня ещё не отмечено — одна страница сохранит серию`;
+};
+
+const BOOK_FORMS: [string, string, string] = ['книга', 'книги', 'книг'];
+const PAGE_FORMS: [string, string, string] = ['страница', 'страницы', 'страниц'];
+const HOUR_FORMS: [string, string, string] = ['час', 'часа', 'часов'];
+const MINUTE_FORMS: [string, string, string] = ['минута', 'минуты', 'минут'];
+
+export interface ReadingSummary {
+  /** Начало фразы: «За 2026 год», «За последние полгода», «За всё время». */
+  scope: string;
+  finished: number;
+  pages: number;
+  minutes: number;
+  /** Средняя оценка считается по всей библиотеке, поэтому и называется в фразе так же. */
+  averageRating?: number;
+  /** Прирост дочитанного к сопоставимому отрезку, в процентах; пусто — сравнивать не с чем. */
+  finishedDelta?: number | null;
+  /** Чем закончится сравнение: «за тот же отрезок прошлого года». */
+  comparedTo?: string;
+}
+
+/**
+ * Итог периода фразой: «За 2026 год дочитано 36 книг — на 22% больше, чем за тот же отрезок
+ * прошлого года. Прочитано 11 240 страниц и прослушано 64 часа, средняя оценка по библиотеке — 8,4».
+ *
+ * Страница аналитики начинается с вывода, а не с восьми одинаковых плиток: сначала «что
+ * произошло», и только потом графики, по которым это видно.
+ */
+export const readingSummaryPhrase = (summary: ReadingSummary): string => {
+  const { scope, finished, pages, minutes, averageRating, finishedDelta, comparedTo } = summary;
+
+  if (finished === 0 && pages === 0 && minutes === 0) {
+    return `${scope} записей о чтении нет.`;
+  }
+
+  // «Дочитано 0 книг» — не фраза, а пустая ячейка таблицы: у нуля своя формулировка, и сравнивать
+  // ноль с прошлым годом («на 100% меньше») тоже незачем.
+  let head = finished === 0 ? `${scope} ничего не дочитано` : `${scope} дочитано ${pluralize(finished, BOOK_FORMS)}`;
+
+  if (finished > 0 && finishedDelta != null && comparedTo) {
+    head +=
+      finishedDelta === 0
+        ? ` — столько же, сколько ${comparedTo}`
+        : ` — на ${Math.abs(finishedDelta)}% ${finishedDelta > 0 ? 'больше' : 'меньше'}, чем ${comparedTo}`;
+  }
+
+  const facts: string[] = [];
+  if (pages > 0) {
+    facts.push(`прочитано ${formatNumber(pages)} ${plural(pages, PAGE_FORMS)}`);
+  }
+  if (minutes > 0) {
+    // Меньше часа в часах — это «0 часов»: короткий отрезок остаётся в минутах.
+    facts.push(
+      minutes >= 60
+        ? `прослушано ${pluralize(Math.round(minutes / 60), HOUR_FORMS)}`
+        : `прослушано ${pluralize(minutes, MINUTE_FORMS)}`
+    );
+  }
+
+  let tail = facts.join(' и ');
+  const score = formatScore(averageRating);
+  if (score) {
+    tail = tail ? `${tail}, средняя оценка по библиотеке — ${score}` : `Средняя оценка по библиотеке — ${score}`;
+  }
+
+  return tail ? `${head}. ${tail.charAt(0).toUpperCase()}${tail.slice(1)}.` : `${head}.`;
 };

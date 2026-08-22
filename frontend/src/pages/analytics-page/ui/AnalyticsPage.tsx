@@ -5,7 +5,6 @@ import {
   Col,
   Empty,
   Grid,
-  List,
   Row,
   Segmented,
   Select,
@@ -15,68 +14,100 @@ import {
   Typography,
   theme
 } from 'antd';
-import {
-  BookOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  PauseCircleOutlined,
-  ReadOutlined,
-  ShoppingOutlined,
-  StarOutlined,
-  StopOutlined
-} from '@ant-design/icons';
-import type { BarListItem } from '@/shared/ui/BarList';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { setFilters } from '@/features/book/set-book-filters';
+import { applySavedFilter } from '@/features/book/set-book-filters';
 import { analyticsActions, loadBookAnalytics, loadReadingAnalytics } from '@/entities/analytics';
 import { loadUsers } from '@/entities/user';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { StatTile } from '@/shared/ui/StatTile';
-import { statusMeta } from '@/shared/constants/status';
-import { MediaKind, PeriodStats, ReadingStatus } from '@/shared/types/library';
+import { MetricList } from '@/shared/ui/MetricList';
+import { MediaKind, PeriodStats, SavedFilter } from '@/shared/types/library';
 import { isAdminLike } from '@/shared/lib/roles';
-import { BarList } from '@/shared/ui/BarList';
+import { BarList, type BarListItem } from '@/shared/ui/BarList';
 import { SpineStrip, type SpineShare } from '@/shared/ui/SpineStrip';
 import { ActivityHeatmap } from '@/shared/ui/ActivityHeatmap';
-import { ColumnChart } from '@/shared/ui/ColumnChart';
+import { ColumnChart, type ColumnChartItem } from '@/shared/ui/ColumnChart';
 import { formatDate } from '@/shared/lib/date';
+import { formatNumber, formatScore } from '@/shared/lib/format';
 import { pluralize } from '@/shared/lib/plural';
+import { readingSummaryPhrase } from '@/shared/lib/phrases';
 import { progressUnitGenitive } from '@/shared/constants/format';
 import { useAnalyticsPageStyles } from './AnalyticsPage.styles';
 
-const statusOrder: ReadingStatus[] = ['READING', 'ON_HOLD', 'COMPLETED', 'PLANNED', 'DROPPED'];
+const MONTH_LABELS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
-const statusIcons: Record<ReadingStatus, React.ReactNode> = {
-  READING: <ReadOutlined />,
-  ON_HOLD: <PauseCircleOutlined />,
-  COMPLETED: <CheckCircleOutlined />,
-  PLANNED: <ClockCircleOutlined />,
-  DROPPED: <StopOutlined />
-};
+/**
+ * Отрезок отчёта. Сервер отдаёт два года помесячно и все годы целиком, поэтому отрезки считаются
+ * здесь, а не запросом на каждое переключение.
+ */
+type PeriodKey = 'year' | 'half' | 'all' | 'compare';
 
-const MONTH_LABELS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+const PERIOD_OPTIONS: Array<{ label: string; value: PeriodKey }> = [
+  { label: 'Год', value: 'year' },
+  { label: 'Полгода', value: 'half' },
+  { label: 'Всё время', value: 'all' },
+  { label: 'Сравнить годы', value: 'compare' }
+];
 
-type DynamicsScale = 'months' | 'years';
+const HALF_YEAR = 6;
 
-type BreakdownKey = 'authors' | 'languages' | 'decades' | 'types' | 'sources';
+const MONTHS_IN_YEAR = 12;
 
-/** Больше шести строк — это уже справочник, а не «что в библиотеке»: карточка перестаёт читаться. */
+/** Больше шести строк — это уже справочник, а не разрез: карточка перестаёт читаться. */
 const BREAKDOWN_LIMIT = 6;
 
 /**
- * Подписываются только январь и июль: двадцать четыре подписи подряд не помещаются, а январь
- * с годом — единственное место, где видно границу лет. Прореживание «каждый третий» её теряло.
+ * Январь подписывается годом: на полугодии отрезок переходит через границу лет, и без этой
+ * подписи «янв» стоит там же, где «дек», без всякого признака, что год сменился.
  */
-const monthLabel = (period: string): string | undefined => {
+const monthLabel = (period: string): string => {
   const [year, month] = period.split('-');
   const index = Number(month) - 1;
-  if (index === 0) return year;
-  if (index === 6) return MONTH_LABELS[index];
-  return undefined;
+  return index === 0 ? year : MONTH_LABELS[index];
 };
 
-const number = (value: number) => value.toLocaleString('ru-RU');
+/** «—» вместо нуля: пустой темп и темп «ноль страниц в день» — разные утверждения. */
+const decimal = (value?: number) => (value == null ? '—' : value.toLocaleString('ru-RU'));
+
+const empty: PeriodStats = { period: '', finished: 0, pages: 0, minutes: 0 };
+
+const sum = (rows: PeriodStats[]): PeriodStats =>
+  rows.reduce(
+    (acc, row) => ({
+      period: '',
+      finished: acc.finished + row.finished,
+      pages: acc.pages + row.pages,
+      minutes: acc.minutes + row.minutes
+    }),
+    empty
+  );
+
+/**
+ * Прирост к сопоставимому отрезку. Ничего не считается, когда сравнивать не с чем: год назад
+ * в этот момент могло не быть ни одной записи, и «+100%» от нуля — не факт, а деление на ноль.
+ */
+const growth = (current: number, before?: number) => {
+  if (before === undefined || before === 0) return null;
+  return Math.round(((current - before) / before) * 100);
+};
+
+/**
+ * Числа во фразе набираются полужирным: вывод читается взглядом по числам, а сплошной абзац
+ * в 20 пунктов взгляду не за что зацепить. Разряды приходят из `formatNumber` неразрывным
+ * пробелом, дробная часть — запятой: и то и другое остаётся внутри числа, а точка в конце
+ * предложения — уже нет.
+ */
+const emphasizeNumbers = (text: string): React.ReactNode[] =>
+  text
+    .split(/(\d+(?:[\u00A0\u202F ]\d{3})*(?:,\d+)?%?)/)
+    .filter((part) => part !== '')
+    .map((part, index) =>
+      /^\d/.test(part) ? (
+        <strong key={index}>{part}</strong>
+      ) : (
+        <React.Fragment key={index}>{part}</React.Fragment>
+      )
+    );
 
 /**
  * Карточка раздела. Управление (переключатель, подпись) на широком экране стоит в шапке справа,
@@ -86,8 +117,10 @@ const number = (value: number) => value.toLocaleString('ru-RU');
 const SectionCard: React.FC<{
   title: string;
   controls?: React.ReactNode;
+  /** Тянуться ли до высоты соседа по ряду: разрезы выравниваются, календарь с темпом — нет. */
+  stretch?: boolean;
   children: React.ReactNode;
-}> = ({ title, controls, children }) => {
+}> = ({ title, controls, stretch = true, children }) => {
   const screens = Grid.useBreakpoint();
   const styles = useAnalyticsPageStyles();
   const inline = Boolean(screens.md);
@@ -96,7 +129,7 @@ const SectionCard: React.FC<{
     <Card
       title={title}
       extra={inline ? controls : undefined}
-      style={styles.card}
+      style={stretch ? styles.card : { ...styles.card, height: 'auto' }}
       styles={{ body: styles.cardBody }}
     >
       {!inline && controls && <div style={styles.controls}>{controls}</div>}
@@ -105,20 +138,34 @@ const SectionCard: React.FC<{
   );
 };
 
-/** «—» вместо нуля: пустой темп и темп «ноль страниц в день» — разные утверждения. */
-const decimal = (value?: number) => (value == null ? '—' : value.toLocaleString('ru-RU'));
+/** Разрез коллекции: полосы плюс выход к самим записям, если такой фильтр в библиотеке есть. */
+interface Cut {
+  key: string;
+  title: string;
+  items: BarListItem[];
+  /**
+   * Считать ли доли от всей библиотеки. Типы, языки, десятилетия и источники её делят — там
+   * процент осмыслен. Авторы её не делят: у одного автора в собрании из сотен записей выходит
+   * пара процентов, все полосы схлопываются в точку, и сравнить лидера со вторым уже нельзя.
+   */
+  relative?: boolean;
+  filter?: (item: BarListItem) => SavedFilter;
+}
 
 export const AnalyticsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { token } = theme.useToken();
   const styles = useAnalyticsPageStyles();
+  const screens = Grid.useBreakpoint();
   const { data, loading, error, reading, readingLoading, readingError, currentUserId } = useAppSelector(
     (state) => state.analytics
   );
   const { list: users, loaded: usersLoaded, loading: usersLoading } = useAppSelector((state) => state.users);
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = isAdminLike(user?.role);
+
+  const [period, setPeriod] = useState<PeriodKey>('year');
 
   useEffect(() => {
     dispatch(loadBookAnalytics(currentUserId));
@@ -132,7 +179,167 @@ export const AnalyticsPage: React.FC = () => {
   }, [dispatch, isAdmin, usersLoaded, usersLoading]);
 
   const total = data?.totalItems ?? 0;
-  const statusCount = (status: ReadingStatus) => data?.statusBreakdown?.[status] ?? 0;
+  const isEmpty = !loading && (!data || total === 0);
+  const readingSkeleton = readingLoading && !reading;
+
+  /** Разрез ведёт в библиотеку: у среза аналитики должен быть выход к самим записям. */
+  const openLibrary = (filter: SavedFilter) => {
+    dispatch(applySavedFilter(filter));
+    navigate('/');
+  };
+
+  /**
+   * Отчёт за выбранный отрезок: итог, с чем он сравнивается и что показывают столбцы.
+   *
+   * «Год» и «Сравнить годы» берут итог с сервера — тот считает оба отрезка «с 1 января по этот
+   * день», и только так числа сопоставимы. Полугодие складывается из помесячных сумм, и ему
+   * достаётся сравнение с теми же шестью месяцами год назад из того же окна в два года.
+   */
+  const report = useMemo(() => {
+    if (!reading) return undefined;
+
+    const currentYear = reading.currentYear.period;
+    const previousYear = reading.previousYear.period;
+    const months = reading.byMonth.filter((month) => month.period.startsWith(`${currentYear}-`));
+    const previousMonths = new Map(
+      reading.byMonth
+        .filter((month) => month.period.startsWith(`${previousYear}-`))
+        .map((month) => [month.period.slice(5), month])
+    );
+
+    const monthTooltip = (month: PeriodStats) =>
+      `${month.period}: ${pluralize(month.finished, ['запись', 'записи', 'записей'])}, ${pluralize(
+        month.pages,
+        ['страница', 'страницы', 'страниц']
+      )}, ${pluralize(month.minutes, ['минута', 'минуты', 'минут'])}`;
+
+    const monthColumn = (month: PeriodStats): ColumnChartItem => ({
+      key: month.period,
+      label: monthLabel(month.period),
+      value: month.finished,
+      tooltip: monthTooltip(month)
+    });
+
+    if (period === 'all') {
+      return {
+        scope: 'За всё время',
+        comparedTo: undefined,
+        totals: sum(reading.byYear),
+        previous: undefined,
+        paired: false,
+        columns: reading.byYear.map((year) => ({
+          key: year.period,
+          label: year.period,
+          value: year.finished,
+          tooltip: `${year.period}: ${pluralize(year.finished, ['запись', 'записи', 'записей'])}, ${pluralize(
+            year.pages,
+            ['страница', 'страницы', 'страниц']
+          )}`
+        }))
+      };
+    }
+
+    if (period === 'half') {
+      const last = reading.byMonth.slice(-HALF_YEAR);
+      // Те же месяцы год назад: окно в два года на это и рассчитано. Если их в окне нет,
+      // сравнения не будет — приписывать полугодию прошлогодний итог целиком нельзя.
+      const before = reading.byMonth.slice(-HALF_YEAR - MONTHS_IN_YEAR, -MONTHS_IN_YEAR);
+
+      return {
+        scope: 'За последние полгода',
+        comparedTo: 'за те же месяцы год назад',
+        totals: sum(last),
+        previous: before.length === HALF_YEAR ? sum(before) : undefined,
+        paired: false,
+        columns: last.map(monthColumn)
+      };
+    }
+
+    const paired = period === 'compare';
+
+    return {
+      scope: `За ${currentYear} год`,
+      comparedTo: 'за тот же отрезок прошлого года',
+      totals: reading.currentYear,
+      previous: reading.previousYear,
+      paired,
+      columns: months.map((month) => {
+        const before = previousMonths.get(month.period.slice(5));
+        return {
+          ...monthColumn(month),
+          compare: paired ? (before?.finished ?? 0) : undefined,
+          tooltip: paired ? (
+            <>
+              {monthTooltip(month)}
+              <br />
+              {before ? monthTooltip(before) : `${previousYear}: данных нет`}
+            </>
+          ) : (
+            monthTooltip(month)
+          )
+        };
+      })
+    };
+  }, [reading, period]);
+
+  /**
+   * Пять чисел под фразой. Три первых — за выбранный отрезок и с приростом, два последних —
+   * по всей библиотеке: оценка и брошенное не делятся по годам, и подпись об этом говорит,
+   * чтобы их не читали как итог периода.
+   */
+  const numbers = useMemo(() => {
+    const totals = report?.totals ?? empty;
+    const previous = report?.previous;
+    const hours = Math.round(totals.minutes / 60);
+
+    const delta = (current: number, before?: number) => {
+      const percent = growth(current, before);
+      if (percent === null) return undefined;
+      return {
+        text: `${percent >= 0 ? '+' : ''}${percent}%`,
+        color: percent >= 0 ? token.colorSuccess : token.colorWarning
+      };
+    };
+
+    return [
+      { key: 'finished', label: 'Дочитано', value: formatNumber(totals.finished), delta: delta(totals.finished, previous?.finished) },
+      { key: 'pages', label: 'Страниц', value: formatNumber(totals.pages), delta: delta(totals.pages, previous?.pages) },
+      {
+        key: 'hours',
+        label: 'Часов аудио',
+        value: formatNumber(hours),
+        delta: delta(totals.minutes, previous?.minutes)
+      },
+      {
+        key: 'rating',
+        label: 'Средняя оценка',
+        value: formatScore(data?.averageRating) ?? '—',
+        note: 'по библиотеке'
+      },
+      {
+        key: 'dropped',
+        label: 'Брошено',
+        value: formatNumber(data?.statusBreakdown?.DROPPED ?? 0),
+        note: 'за всё время'
+      }
+    ];
+  }, [report, data, token]);
+
+  const phrase = useMemo(
+    () =>
+      report
+        ? readingSummaryPhrase({
+            scope: report.scope,
+            finished: report.totals.finished,
+            pages: report.totals.pages,
+            minutes: report.totals.minutes,
+            averageRating: data?.averageRating,
+            finishedDelta: growth(report.totals.finished, report.previous?.finished),
+            comparedTo: report.comparedTo
+          })
+        : undefined,
+    [report, data]
+  );
 
   /** Виды в порядке убывания доли: широкие корешки слева, как на полке. */
   const kindShares = useMemo<SpineShare[]>(
@@ -144,140 +351,88 @@ export const AnalyticsPage: React.FC = () => {
     [data?.kindBreakdown]
   );
 
-  /** Разрез ведёт в библиотеку: у среза аналитики должен быть выход к самим записям. */
-  const openKind = (kind: MediaKind) => {
-    dispatch(setFilters({ kind, page: 0 }));
-    navigate('/');
-  };
-  const isEmpty = !loading && (!data || total === 0);
-  const readingSkeleton = readingLoading && !reading;
-
-  const [dynamicsScale, setDynamicsScale] = useState<DynamicsScale>('months');
-  const [breakdown, setBreakdown] = useState<BreakdownKey>('authors');
-
-  const monthColumns = useMemo(
-    () =>
-      (reading?.byMonth ?? []).map((month) => ({
-        key: month.period,
-        label: monthLabel(month.period),
-        value: month.finished,
-        tooltip: `${month.period}: ${pluralize(month.finished, ['запись', 'записи', 'записей'])}, ${pluralize(
-          month.pages,
-          ['страница', 'страницы', 'страниц']
-        )}, ${pluralize(month.minutes, ['минута', 'минуты', 'минут'])}`
-      })),
-    [reading]
-  );
-
-  const yearColumns = useMemo(
-    () =>
-      (reading?.byYear ?? []).map((year) => ({
-        key: year.period,
-        label: year.period,
-        value: year.finished,
-        tooltip: `${year.period}: ${pluralize(year.finished, ['запись', 'записи', 'записей'])}, ${pluralize(
-          year.pages,
-          ['страница', 'страницы', 'страниц']
-        )}`
-      })),
-    [reading]
-  );
-
   /**
-   * Сравнение с прошлым годом. Сервер отдаёт оба отрезка «с 1 января по этот день», поэтому цифры
-   * сопоставимы; дельта не считается, если год назад в этот момент ещё ничего не было.
+   * Разрезы стоят рядом карточками, а не прячутся друг за другом в переключателе: сравнивать
+   * авторов с типами приходится взглядом, а не по памяти. Пустой справочник карточку не получает.
    */
-  const yearComparison = useMemo(() => {
-    const metrics: Array<{ label: string; pick: (stats: PeriodStats) => number }> = [
-      { label: 'книг', pick: (stats) => stats.finished },
-      { label: 'страниц', pick: (stats) => stats.pages },
-      { label: 'минут', pick: (stats) => stats.minutes }
-    ];
-
-    return metrics.map(({ label, pick }) => {
-      const current = reading ? pick(reading.currentYear) : 0;
-      const before = reading ? pick(reading.previousYear) : 0;
-      const percent = before === 0 ? null : Math.round(((current - before) / before) * 100);
-      return {
-        label,
-        current,
-        delta: percent === null ? null : { percent, positive: percent >= 0 }
-      };
-    });
-  }, [reading]);
-
-  /**
-   * Все разбивки живут в одной карточке с переключателем: по отдельности это пять почти
-   * одинаковых списков подряд, и страница из них состояла больше, чем из графиков.
-   */
-  const breakdowns = useMemo<Record<BreakdownKey, { label: string; items: BarListItem[] }>>(
-    () => ({
-      authors: {
-        label: 'Авторы',
+  const cuts = useMemo<Cut[]>(() => {
+    const all: Cut[] = [
+      {
+        key: 'authors',
+        title: 'Авторы',
         items: (reading?.byAuthor ?? []).map((author) => ({
           key: author.authorId,
           label: author.authorName,
           value: author.count
-        }))
+        })),
+        filter: (item) => ({ authorId: item.key })
       },
-      languages: {
-        label: 'Языки',
-        items: (reading?.byLanguage ?? []).map((language) => ({
-          key: language.label,
-          label: language.label,
-          value: language.count,
-          color: token.colorSuccess
-        }))
+      {
+        key: 'types',
+        title: 'Типы',
+        items: (data?.topTypes ?? []).map((type) => ({
+          key: type.typeId,
+          label: type.typeName,
+          value: type.count
+        })),
+        relative: true,
+        filter: (item) => ({ typeId: item.key })
       },
-      decades: {
-        label: 'Десятилетия',
+      {
+        key: 'decades',
+        title: 'Десятилетия',
         items: (reading?.byDecade ?? []).map((decade) => ({
           key: decade.label,
           label: decade.label,
           value: decade.count,
           color: token.colorInfo
-        }))
+        })),
+        relative: true
       },
-      types: {
-        label: 'Типы',
-        items: (data?.topTypes ?? []).map((type) => ({
-          key: type.typeId,
-          label: type.typeName,
-          value: type.count
-        }))
+      {
+        key: 'languages',
+        title: 'Языки',
+        items: (reading?.byLanguage ?? []).map((language) => ({
+          key: language.label,
+          label: language.label,
+          value: language.count,
+          color: token.colorSuccess
+        })),
+        relative: true
       },
-      sources: {
-        label: 'Источники',
+      {
+        key: 'sources',
+        title: 'Источники',
         items: (data?.topSources ?? []).map((source) => ({
           key: source.sourceId,
           label: source.sourceName,
           value: source.count,
           color: token.colorInfo
-        }))
+        })),
+        relative: true
       }
-    }),
-    [reading, data, token]
-  );
+    ];
 
-  // Пустая вкладка — это пустая карточка с картинкой «нет данных»: справочники заполнены не у всех,
-  // и показывать их незаполненность отдельным блоком незачем.
-  const breakdownOptions = useMemo(
-    () =>
-      (Object.keys(breakdowns) as BreakdownKey[])
-        .filter((key) => breakdowns[key].items.length > 0)
-        .map((key) => ({ label: breakdowns[key].label, value: key })),
-    [breakdowns]
-  );
+    return all.filter((cut) => cut.items.length > 0);
+  }, [reading, data, token]);
 
-  useEffect(() => {
-    if (breakdownOptions.length > 0 && !breakdownOptions.some((option) => option.value === breakdown)) {
-      setBreakdown(breakdownOptions[0].value);
-    }
-  }, [breakdownOptions, breakdown]);
+  /**
+   * Чем год закончится, если ничего не менять. Вывод карточки темпа: список ниже отвечает
+   * «когда дочитаю эту книгу», а здесь — «сколько их будет к декабрю».
+   */
+  const projection = useMemo(() => {
+    const finished = reading?.currentYear.finished ?? 0;
+    if (finished === 0) return undefined;
 
-  const breakdownAll = breakdowns[breakdown]?.items ?? [];
-  const breakdownItems = breakdownAll.slice(0, BREAKDOWN_LIMIT);
-  const breakdownHidden = breakdownAll.length - breakdownItems.length;
+    const today = new Date();
+    const dayOfYear =
+      Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / 86_400_000) + 1;
+    // В первые дни января любой темп даёт трёхзначный прогноз: пары записей мало, чтобы
+    // говорить о годе.
+    if (dayOfYear < 30) return undefined;
+
+    return Math.round((finished / dayOfYear) * 365);
+  }, [reading]);
 
   const scopeLabel = currentUserId
     ? `Статистика пользователя ${users.find((u) => u.id === currentUserId)?.username ?? ''}`.trim()
@@ -285,53 +440,40 @@ export const AnalyticsPage: React.FC = () => {
       ? 'Сводная статистика по всем пользователям'
       : 'Статистика по вашей коллекции';
 
+  const periodSwitch = (
+    <Segmented
+      value={period}
+      onChange={(value) => setPeriod(value as PeriodKey)}
+      options={PERIOD_OPTIONS}
+    />
+  );
+
   return (
     <div>
       <PageHeader
         title="Аналитика"
         subtitle={scopeLabel}
         actions={
-          isAdmin && (
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder="Все пользователи"
-              style={{ minWidth: 220 }}
-              size="large"
-              loading={usersLoading}
-              value={currentUserId}
-              onChange={(value?: string) => dispatch(analyticsActions.setTargetUser(value))}
-              options={users.map((u) => ({ label: u.username, value: u.id }))}
-            />
-          )
+          <>
+            {isAdmin && (
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Все пользователи"
+                style={{ minWidth: 220 }}
+                loading={usersLoading}
+                value={currentUserId}
+                onChange={(value?: string) => dispatch(analyticsActions.setTargetUser(value))}
+                options={users.map((u) => ({ label: u.username, value: u.id }))}
+              />
+            )}
+            {!isEmpty && periodSwitch}
+          </>
         }
       />
 
       {error && <Alert type="error" showIcon message="Не удалось загрузить аналитику" description={error} style={styles.alert} />}
-
-      <div style={styles.stats}>
-        <StatTile label="Всего книг" value={total} icon={<BookOutlined />} loading={loading && !data} />
-        {statusOrder.map((status) => (
-          <StatTile
-            key={status}
-            label={statusMeta[status].label}
-            value={statusCount(status)}
-            hint={total ? `${Math.round((statusCount(status) / total) * 100)}%` : undefined}
-            icon={statusIcons[status]}
-            accent={statusMeta[status].accent}
-            loading={loading && !data}
-          />
-        ))}
-        <StatTile
-          label="Избранное"
-          value={data?.favoriteItems ?? 0}
-          hint={data?.averageRating ? `средняя оценка ${data.averageRating.toFixed(1)}` : 'оценок пока нет'}
-          icon={<StarOutlined />}
-          accent={token.colorWarning}
-          loading={loading && !data}
-        />
-      </div>
 
       {isEmpty ? (
         <Card style={styles.card} styles={{ body: styles.emptyBody }}>
@@ -359,59 +501,97 @@ export const AnalyticsPage: React.FC = () => {
             />
           )}
 
+          {/* Отчёт начинается с вывода фразой, а не с восьми одинаковых плиток: сначала
+              «что произошло», и только потом графики, по которым это видно. */}
+          <Card style={styles.summary} styles={{ body: styles.summaryBody }}>
+            {readingSkeleton ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : (
+              <>
+                <Typography.Paragraph data-testid="analytics-summary" style={styles.phrase}>
+                  {phrase ? emphasizeNumbers(phrase) : 'Динамика чтения пока не загрузилась'}
+                </Typography.Paragraph>
+                <div style={styles.numbers}>
+                  {numbers.map((item, index) => (
+                    <div
+                      key={item.key}
+                      style={index === 0 || !screens.md ? styles.numberCell : styles.numberCellDivided}
+                    >
+                      <Typography.Text type="secondary" style={styles.numberLabel}>
+                        {item.label}
+                      </Typography.Text>
+                      <div style={styles.numberValue}>
+                        <span className="brand-display" style={styles.number}>
+                          {item.value}
+                        </span>
+                        {item.delta && (
+                          <Typography.Text style={{ color: item.delta.color, fontWeight: 500 }}>
+                            {item.delta.text}
+                          </Typography.Text>
+                        )}
+                        {item.note && (
+                          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                            {item.note}
+                          </Typography.Text>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </Card>
+
           <Row gutter={[16, 16]}>
             <Col xs={24}>
               <SectionCard
                 title="Динамика чтения"
                 controls={
-                  <Segmented
-                    size="small"
-                    value={dynamicsScale}
-                    onChange={(value) => setDynamicsScale(value as DynamicsScale)}
-                    options={[
-                      { label: 'Месяцы', value: 'months' },
-                      { label: 'Годы', value: 'years' }
-                    ]}
-                  />
+                  report?.paired ? (
+                    <div style={styles.legend}>
+                      <Typography.Text type="secondary" style={styles.legendItem}>
+                        <span
+                          style={{
+                            ...styles.legendSwatch,
+                            background: token.colorFillSecondary,
+                            boxShadow: `inset 0 0 0 1px ${token.colorBorder}`
+                          }}
+                        />
+                        {reading?.previousYear.period}
+                      </Typography.Text>
+                      <Typography.Text type="secondary" style={styles.legendItem}>
+                        <span style={{ ...styles.legendSwatch, background: token.colorPrimary }} />
+                        {reading?.currentYear.period}
+                      </Typography.Text>
+                    </div>
+                  ) : (
+                    <Typography.Text type="secondary">дочитано за период</Typography.Text>
+                  )
                 }
               >
                 {readingSkeleton ? (
                   <Skeleton active paragraph={{ rows: 4 }} />
                 ) : (
-                  <>
-                    <ColumnChart
-                      items={dynamicsScale === 'months' ? monthColumns : yearColumns}
-                      emptyText="Дочитанного за этот период пока нет"
-                    />
-                    {reading && (
-                      <div style={styles.footnote}>
-                        <Typography.Text type="secondary">
-                          {reading.currentYear.period} против {reading.previousYear.period} за тот же
-                          отрезок года:
-                        </Typography.Text>
-                        {yearComparison.map((metric) => (
-                          <Typography.Text key={metric.label}>
-                            {metric.label}{' '}
-                            <Typography.Text strong>{number(metric.current)}</Typography.Text>
-                            {metric.delta && (
-                              <Typography.Text type={metric.delta.positive ? 'success' : 'warning'}>
-                                {' '}
-                                {metric.delta.positive ? '+' : ''}
-                                {metric.delta.percent}%
-                              </Typography.Text>
-                            )}
-                          </Typography.Text>
-                        ))}
-                      </div>
-                    )}
-                  </>
+                  <ColumnChart
+                    items={report?.columns ?? []}
+                    height={140}
+                    // Парному столбцу ширины нужно вдвое меньше: рядом стоит прошлый год.
+                    maxBarWidth={report?.paired ? 20 : 36}
+                    emptyText="Дочитанного за этот период пока нет"
+                  />
                 )}
               </SectionCard>
             </Col>
+          </Row>
 
-            <Col xs={24}>
+          {/* Календарь и темп ростом не равны и равняться не должны: тепловая карта заканчивается
+              там, где заканчивается год, и растягивать её до высоты соседа значило бы оставить
+              под ней пустое поле в треть экрана. */}
+          <Row gutter={[16, 16]} align="top" style={{ marginTop: 16 }}>
+            <Col xs={24} lg={15}>
               <SectionCard
                 title="Календарь активности"
+                stretch={false}
                 controls={
                   reading && (
                     <Typography.Text type="secondary">
@@ -428,9 +608,10 @@ export const AnalyticsPage: React.FC = () => {
               </SectionCard>
             </Col>
 
-            <Col xs={24}>
+            <Col xs={24} lg={9}>
               <SectionCard
                 title="Темп и прогноз"
+                stretch={false}
                 controls={
                   reading && (
                     <Typography.Text type="secondary">
@@ -440,128 +621,130 @@ export const AnalyticsPage: React.FC = () => {
                 }
               >
                 {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 3 }} />
+                  <Skeleton active paragraph={{ rows: 4 }} />
                 ) : (
-                  <Row gutter={[24, 16]}>
-                    <Col xs={24} lg={11}>
-                      <Space size={12} wrap>
-                        <StatTile label="Страниц в день" value={decimal(reading?.pace.pagesPerDay)} />
-                        <StatTile label="Минут в день" value={decimal(reading?.pace.minutesPerDay)} />
-                        <StatTile label="Страниц в час" value={decimal(reading?.pace.pagesPerHour)} />
-                      </Space>
-                      {/* Оговорка обязательна: темп делится на дни с чтением, и без неё «60 страниц
-                          в день» читается как обещание, которого никто не давал. */}
-                      <Typography.Paragraph type="secondary" style={styles.hint}>
-                        Считается по {pluralize(reading?.pace.activeDays ?? 0, ['дню', 'дням', 'дням'])} с
-                        чтением, а не по всем дням окна.
-                      </Typography.Paragraph>
-                    </Col>
+                  <>
+                    <MetricList
+                      items={[
+                        { key: 'pagesPerDay', label: 'Страниц в день', value: decimal(reading?.pace.pagesPerDay) },
+                        { key: 'minutesPerDay', label: 'Минут в день', value: decimal(reading?.pace.minutesPerDay) },
+                        { key: 'pagesPerHour', label: 'Страниц в час', value: decimal(reading?.pace.pagesPerHour) }
+                      ]}
+                    />
+                    {/* Оговорка обязательна: темп делится на дни с чтением, и без неё «60 страниц
+                        в день» читается как обещание, которого никто не давал. */}
+                    <Typography.Paragraph type="secondary" style={styles.hint}>
+                      Считается по {pluralize(reading?.pace.activeDays ?? 0, ['дню', 'дням', 'дням'])} с
+                      чтением, а не по всем дням окна.
+                    </Typography.Paragraph>
 
-                    <Col xs={24} lg={13}>
+                    {projection !== undefined && (
+                      <div style={styles.note}>
+                        При нынешнем темпе {reading?.currentYear.period} год закроется примерно на{' '}
+                        {pluralize(projection, ['книге', 'книгах', 'книгах'])}.
+                      </div>
+                    )}
+
+                    <div style={styles.divider}>
                       {(reading?.forecasts.length ?? 0) === 0 ? (
                         <Empty
                           image={Empty.PRESENTED_IMAGE_SIMPLE}
                           description="Нечего прогнозировать: у книг в чтении не заполнен прогресс"
                         />
                       ) : (
-                        <List
-                          size="small"
-                          header={<Typography.Text type="secondary">Когда дочитаете</Typography.Text>}
-                          dataSource={reading?.forecasts ?? []}
-                          renderItem={(forecast) => (
-                            <List.Item
-                              extra={
-                                forecast.expectedFinish ? (
-                                  <Typography.Text strong>{formatDate(forecast.expectedFinish)}</Typography.Text>
-                                ) : (
-                                  <Typography.Text type="secondary">темпа пока нет</Typography.Text>
-                                )
-                              }
-                            >
-                              <List.Item.Meta
-                                title={forecast.title}
-                                description={`осталось ${forecast.remaining} ${
-                                  forecast.unit ? progressUnitGenitive[forecast.unit] : ''
-                                }`.trim()}
-                              />
-                            </List.Item>
-                          )}
+                        <MetricList
+                          items={(reading?.forecasts ?? []).map((forecast) => ({
+                            key: forecast.itemId,
+                            label: (
+                              <>
+                                {forecast.title}
+                                <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                                  осталось {forecast.remaining}{' '}
+                                  {forecast.unit ? progressUnitGenitive[forecast.unit] : ''}
+                                </Typography.Text>
+                              </>
+                            ),
+                            value: forecast.expectedFinish ? (
+                              formatDate(forecast.expectedFinish)
+                            ) : (
+                              <Typography.Text type="secondary">темпа пока нет</Typography.Text>
+                            )
+                          }))}
                         />
                       )}
-                    </Col>
-                  </Row>
-                )}
-              </SectionCard>
-            </Col>
-
-            <Col xs={24} lg={14}>
-              <SectionCard
-                title="Что в библиотеке"
-                controls={
-                  breakdownOptions.length > 1 && (
-                    <Segmented
-                      size="small"
-                      value={breakdown}
-                      onChange={(value) => setBreakdown(value as BreakdownKey)}
-                      options={breakdownOptions}
-                    />
-                  )
-                }
-              >
-                {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 5 }} />
-                ) : (
-                  <>
-                    {/* Корешковая полоса: доли видов произведения одной строкой. Она же —
-                        фирменный приём, и нажатие на корешок открывает этот вид в библиотеке. */}
-                    {kindShares.length > 0 && (
-                      <div style={styles.spineStrip}>
-                        <SpineStrip shares={kindShares} onSelect={openKind} />
-                      </div>
-                    )}
-                    {/* База процентов — вся библиотека, а не лидер списка: иначе первый автор
-                        всегда «100%», и две разные величины выглядят одинаково. */}
-                    <BarList total={total} items={breakdownItems} emptyText="Данных для разбивки пока нет" />
-                    {breakdownHidden > 0 && (
-                      <Typography.Paragraph type="secondary" style={styles.hint}>
-                        и ещё {breakdownHidden} — хвост длинного списка ничего не добавляет к картине
-                      </Typography.Paragraph>
-                    )}
+                    </div>
                   </>
                 )}
               </SectionCard>
             </Col>
+          </Row>
 
-            <Col xs={24} lg={10}>
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            {cuts.map((cut) => (
+              <Col key={cut.key} xs={24} sm={12} lg={8}>
+                <SectionCard title={cut.title}>
+                  {readingSkeleton ? (
+                    <Skeleton active paragraph={{ rows: 4 }} />
+                  ) : (
+                    <>
+                      {/* База процентов — вся библиотека там, где разрез её делит: иначе лидер
+                          списка всегда «100%», и две разные величины выглядят одинаково. */}
+                      <BarList
+                        total={cut.relative ? total : undefined}
+                        items={cut.items.slice(0, BREAKDOWN_LIMIT)}
+                        onSelect={cut.filter ? (item) => openLibrary(cut.filter!(item)) : undefined}
+                        emptyText="Данных для разбивки пока нет"
+                      />
+                      {cut.items.length > BREAKDOWN_LIMIT && (
+                        <Typography.Paragraph type="secondary" style={styles.hint}>
+                          и ещё {cut.items.length - BREAKDOWN_LIMIT} — хвост длинного списка ничего не
+                          добавляет к картине
+                        </Typography.Paragraph>
+                      )}
+                    </>
+                  )}
+                </SectionCard>
+              </Col>
+            ))}
+
+            {kindShares.length > 0 && (
+              <Col xs={24} sm={12} lg={8}>
+                <SectionCard title="Виды">
+                  {/* Корешковая полоса: доли видов произведения одной строкой. Она же —
+                      фирменный приём, и нажатие на корешок открывает этот вид в библиотеке. */}
+                  <div style={styles.spineStrip}>
+                    <SpineStrip shares={kindShares} onSelect={(kind) => openLibrary({ kind })} />
+                  </div>
+                </SectionCard>
+              </Col>
+            )}
+
+            <Col xs={24} sm={12} lg={8}>
               <SectionCard title="Куплено и прочитано">
                 {readingSkeleton ? (
-                  <Skeleton active paragraph={{ rows: 3 }} />
+                  <Skeleton active paragraph={{ rows: 4 }} />
                 ) : (
                   <>
-                    <Space size={12} wrap>
-                      <StatTile
-                        label="Куплено"
-                        value={number(reading?.purchases.purchased ?? 0)}
-                        icon={<ShoppingOutlined />}
-                      />
-                      <StatTile
-                        label="Прочитано"
-                        value={number(reading?.purchases.finishedOfPurchased ?? 0)}
-                        hint={
-                          reading && reading.purchases.purchased > 0
-                            ? `${Math.round(
-                                (reading.purchases.finishedOfPurchased / reading.purchases.purchased) * 100
-                              )}% покупок`
-                            : undefined
+                    <MetricList
+                      items={[
+                        { key: 'purchased', label: 'Куплено', value: formatNumber(reading?.purchases.purchased ?? 0) },
+                        {
+                          key: 'finished',
+                          label: 'Прочитано из купленного',
+                          value:
+                            reading && reading.purchases.purchased > 0
+                              ? `${formatNumber(reading.purchases.finishedOfPurchased)} · ${Math.round(
+                                  (reading.purchases.finishedOfPurchased / reading.purchases.purchased) * 100
+                                )}% покупок`
+                              : formatNumber(reading?.purchases.finishedOfPurchased ?? 0)
+                        },
+                        {
+                          key: 'unread',
+                          label: 'Не начато',
+                          value: formatNumber(reading?.purchases.unreadPurchased ?? 0)
                         }
-                        accent={token.colorSuccess}
-                      />
-                      <StatTile
-                        label="Не начато"
-                        value={number(reading?.purchases.unreadPurchased ?? 0)}
-                        accent={token.colorWarning}
-                      />
-                    </Space>
+                      ]}
+                    />
                     <div style={styles.hint}>
                       {Object.keys(reading?.purchases.spentByCurrency ?? {}).length === 0 ? (
                         <Typography.Text type="secondary">Цены нигде не проставлены</Typography.Text>
@@ -572,7 +755,7 @@ export const AnalyticsPage: React.FC = () => {
                               рубли с евро значило бы его придумать. */}
                           {Object.entries(reading?.purchases.spentByCurrency ?? {}).map(([currency, amount]) => (
                             <Tag key={currency}>
-                              {number(amount)} {currency}
+                              {amount.toLocaleString('ru-RU')} {currency}
                             </Tag>
                           ))}
                         </Space>

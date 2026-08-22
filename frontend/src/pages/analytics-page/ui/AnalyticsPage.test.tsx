@@ -3,8 +3,8 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnalyticsPage } from './AnalyticsPage';
-import { renderWithStore } from '@/test/renderWithStore';
-import { BookAnalytics, ReadingAnalytics } from '@/shared/types/library';
+import { createTestStore, renderWithStore } from '@/test/renderWithStore';
+import { BookAnalytics, PeriodStats, ReadingAnalytics } from '@/shared/types/library';
 
 const fetchBookAnalytics = vi.fn();
 const fetchReadingAnalytics = vi.fn();
@@ -18,16 +18,29 @@ const books: BookAnalytics = {
   totalItems: 42,
   favoriteItems: 5,
   averageRating: 8.1,
-  statusBreakdown: { READING: 3, ON_HOLD: 1, COMPLETED: 30, PLANNED: 7, DROPPED: 1 },
+  statusBreakdown: { READING: 3, ON_HOLD: 1, COMPLETED: 30, PLANNED: 7, DROPPED: 4 },
   topTypes: [{ typeId: 't1', typeName: 'Роман', count: 20 }],
   topSources: [{ sourceId: 's1', sourceName: 'Бумага', count: 25 }]
 };
 
+/**
+ * Окно помесячной динамики целиком — 24 месяца, как их отдаёт сервер: без них не проверить ни
+ * полугодие, ни сравнение годов, а именно на них держатся отрезки отчёта.
+ */
+const monthsWindow = (): PeriodStats[] =>
+  Array.from({ length: 24 }, (_, index) => {
+    const month = new Date(2024, 8 + index, 1);
+    const year = month.getFullYear();
+    return {
+      period: `${year}-${String(month.getMonth() + 1).padStart(2, '0')}`,
+      finished: year === 2026 ? 2 : 1,
+      pages: 100,
+      minutes: 60
+    };
+  });
+
 const reading = (overrides: Partial<ReadingAnalytics> = {}): ReadingAnalytics => ({
-  byMonth: [
-    { period: '2026-07', finished: 1, pages: 300, minutes: 120 },
-    { period: '2026-08', finished: 4, pages: 1200, minutes: 480 }
-  ],
+  byMonth: monthsWindow(),
   byYear: [
     { period: '2025', finished: 10, pages: 3000, minutes: 1200 },
     { period: '2026', finished: 15, pages: 4500, minutes: 1500 }
@@ -54,6 +67,20 @@ const reading = (overrides: Partial<ReadingAnalytics> = {}): ReadingAnalytics =>
 
 const card = (title: string) => screen.getByText(title).closest('.ant-card') as HTMLElement;
 
+/** Вывод собран из полужирных чисел и обычного текста, поэтому сверяется целиком по узлу. */
+const summary = () => screen.getByTestId('analytics-summary');
+
+const summaryCard = () => summary().closest('.ant-card') as HTMLElement;
+
+/** Отчёт собран из двух запросов: до их ответа на странице нет ни вывода, ни разрезов. */
+const ready = () => screen.findByTestId('analytics-summary');
+
+const period = async (label: string) => {
+  const user = userEvent.setup();
+  // У Segmented кликабельна подпись: сам input перекрыт и не принимает указатель.
+  await user.click(screen.getByText(label));
+};
+
 describe('AnalyticsPage', () => {
   beforeEach(() => {
     fetchBookAnalytics.mockReset();
@@ -69,6 +96,89 @@ describe('AnalyticsPage', () => {
     expect(await screen.findByText('Динамика чтения')).toBeInTheDocument();
     expect(fetchBookAnalytics).toHaveBeenCalledTimes(1);
     expect(fetchReadingAnalytics).toHaveBeenCalledTimes(1);
+  });
+
+  /** Отчёт начинается с вывода фразой, а не с восьми одинаковых плиток. */
+  it('открывается выводом за год', async () => {
+    renderWithStore(<AnalyticsPage />);
+
+    expect(await screen.findByTestId('analytics-summary')).toHaveTextContent(
+      'За 2026 год дочитано 15 книг — на 50% больше, чем за тот же отрезок прошлого года.'
+    );
+    expect(summary()).toHaveTextContent('средняя оценка по библиотеке — 8,1');
+  });
+
+  it('под фразой считает прирост по каждой мере', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    const numbers = summaryCard();
+    // 15 против 10 книг, 4 500 против 3 600 страниц и ровно столько же минут, сколько год назад.
+    expect(within(numbers).getByText('+50%')).toBeInTheDocument();
+    expect(within(numbers).getByText('+25%')).toBeInTheDocument();
+    expect(within(numbers).getByText('+0%')).toBeInTheDocument();
+  });
+
+  /**
+   * Оценка и брошенное не делятся по годам: они стоят в том же ряду, но с подписью, чтобы их
+   * не читали как итог периода.
+   */
+  it('всебиблиотечные числа помечает подписью', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    const numbers = summaryCard();
+    expect(within(numbers).getByText('по библиотеке')).toBeInTheDocument();
+    expect(within(numbers).getByText('за всё время')).toBeInTheDocument();
+    // Брошенное берётся из сводки по библиотеке, а не из отрезка: 4 записи из 42.
+    expect(within(numbers).getByText('4')).toBeInTheDocument();
+  });
+
+  /** Год назад в этот момент могло не быть ничего — тогда процент не считается вовсе. */
+  it('без прошлогодних данных не показывает процент', async () => {
+    fetchReadingAnalytics.mockResolvedValue(
+      reading({ previousYear: { period: '2025', finished: 0, pages: 0, minutes: 0 } })
+    );
+    renderWithStore(<AnalyticsPage />);
+
+    expect(await screen.findByTestId('analytics-summary')).toHaveTextContent('За 2026 год дочитано 15 книг.');
+    expect(within(summaryCard()).queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  /** Полугодие сравнивается с теми же шестью месяцами, а не с прошлым годом целиком. */
+  it('на полугодии берёт те же месяцы год назад', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    await period('Полгода');
+
+    expect(summary()).toHaveTextContent(
+      'За последние полгода дочитано 12 книг — на 100% больше, чем за те же месяцы год назад.'
+    );
+  });
+
+  it('на всём времени складывает годы и никого ни с кем не сравнивает', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    await period('Всё время');
+
+    expect(summary()).toHaveTextContent('За всё время дочитано 25 книг.');
+    // Шкала становится годовой: столбцы подписаны годами, а не месяцами.
+    expect(within(card('Динамика чтения')).getByText('2025')).toBeInTheDocument();
+  });
+
+  /** Сравнение годов — единственный режим с двумя сериями, и легенда появляется вместе с ними. */
+  it('сравнение годов подписывает обе серии', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+    const dynamics = card('Динамика чтения');
+    expect(within(dynamics).queryByText('2025')).not.toBeInTheDocument();
+
+    await period('Сравнить годы');
+
+    // Прошлый год есть только в легенде: столбцы подписаны месяцами нынешнего.
+    expect(within(dynamics).getByText('2025')).toBeInTheDocument();
   });
 
   it('показывает темп и оговорку, по каким дням он посчитан', async () => {
@@ -92,79 +202,82 @@ describe('AnalyticsPage', () => {
     expect(within(forecasts).getByText('темпа пока нет')).toBeInTheDocument();
   });
 
+  /** Вывод карточки темпа — про год целиком: список ниже отвечает только про отдельные книги. */
+  it('считает, чем закончится год при нынешнем темпе', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    expect(
+      within(card('Темп и прогноз')).getByText(/2026 год закроется примерно на \d+ книгах/)
+    ).toBeInTheDocument();
+  });
+
   it('разносит потраченное по валютам', async () => {
     renderWithStore(<AnalyticsPage />);
 
     const purchases = card('Куплено и прочитано');
     expect(await within(purchases).findByText('3 400 RUB')).toBeInTheDocument();
     expect(within(purchases).getByText('25,5 EUR')).toBeInTheDocument();
-    expect(within(purchases).getByText('58% покупок')).toBeInTheDocument();
-  });
-
-  /** Сравниваются сопоставимые отрезки, и подпись должна об этом говорить, а не молчать. */
-  it('сравнивает год с тем же отрезком прошлого года', async () => {
-    renderWithStore(<AnalyticsPage />);
-
-    const dynamics = card('Динамика чтения');
-    expect(
-      await within(dynamics).findByText(/2026 против 2025 за тот же\s+отрезок года/)
-    ).toBeInTheDocument();
-    expect(within(dynamics).getByText('+50%')).toBeInTheDocument();
-    expect(within(dynamics).getByText('+25%')).toBeInTheDocument();
-    // Ровно столько же, сколько год назад, — это «+0%», а не пустая подпись.
-    expect(within(dynamics).getByText('+0%')).toBeInTheDocument();
-  });
-
-  /** Год назад в этот момент могло не быть ничего — тогда процент не считается вовсе. */
-  it('без прошлогодних данных не показывает процент', async () => {
-    fetchReadingAnalytics.mockResolvedValue(
-      reading({ previousYear: { period: '2025', finished: 0, pages: 0, minutes: 0 } })
-    );
-    renderWithStore(<AnalyticsPage />);
-
-    const dynamics = card('Динамика чтения');
-    expect(await within(dynamics).findByText('15')).toBeInTheDocument();
-    expect(within(dynamics).queryByText(/%$/)).not.toBeInTheDocument();
+    expect(within(purchases).getByText('7 · 58% покупок')).toBeInTheDocument();
   });
 
   /**
-   * Пять разбивок подряд и были главной причиной перегруженности: теперь это одна карточка
-   * с переключателем, и пустые справочники в него не попадают.
+   * Разрезы стоят рядом карточками: сравнивать авторов с типами приходится взглядом, а не
+   * по памяти, как было с переключателем.
    */
-  it('складывает разбивки в один переключатель и прячет пустые', async () => {
-    const user = userEvent.setup();
+  it('раскладывает разрезы отдельными карточками', async () => {
     renderWithStore(<AnalyticsPage />);
+    await ready();
 
-    const breakdown = card('Что в библиотеке');
-    expect(await within(breakdown).findByText('Фрэнк Герберт')).toBeInTheDocument();
-    expect(within(breakdown).getByRole('radio', { name: 'Языки' })).toBeInTheDocument();
-    expect(within(breakdown).queryByRole('radio', { name: 'Источники' })).toBeInTheDocument();
-
-    // У Segmented кликабельна подпись: сам input перекрыт и не принимает указатель.
-    await user.click(within(breakdown).getByText('Десятилетия'));
-    expect(await within(breakdown).findByText('1980-е')).toBeInTheDocument();
+    expect(within(card('Авторы')).getByText('Фрэнк Герберт')).toBeInTheDocument();
+    expect(within(card('Типы')).getByText('Роман')).toBeInTheDocument();
+    expect(within(card('Десятилетия')).getByText('1980-е')).toBeInTheDocument();
+    expect(within(card('Языки')).getByText('русский')).toBeInTheDocument();
+    expect(within(card('Источники')).getByText('Бумага')).toBeInTheDocument();
   });
 
-  it('не показывает разбивку по типам, если справочник пуст', async () => {
+  it('не показывает разрез, справочник которого пуст', async () => {
     fetchBookAnalytics.mockResolvedValue({ ...books, topTypes: [], topSources: [] });
     renderWithStore(<AnalyticsPage />);
+    await ready();
 
-    const breakdown = card('Что в библиотеке');
-    expect(await within(breakdown).findByText('Фрэнк Герберт')).toBeInTheDocument();
-    expect(within(breakdown).queryByRole('radio', { name: 'Типы' })).not.toBeInTheDocument();
-    expect(within(breakdown).queryByRole('radio', { name: 'Источники' })).not.toBeInTheDocument();
+    expect(within(card('Авторы')).getByText('Фрэнк Герберт')).toBeInTheDocument();
+    expect(screen.queryByText('Типы')).not.toBeInTheDocument();
+    expect(screen.queryByText('Источники')).not.toBeInTheDocument();
   });
 
   /**
-   * Проценты считаются от библиотеки, а не от лидера списка: иначе первый автор всегда «100%»,
-   * и два разных числа выглядят одинаково.
+   * Разрез, который делит библиотеку, считает доли от неё, а не от лидера списка: иначе первая
+   * строка всегда «100%», и два разных числа выглядят одинаково.
    */
-  it('считает доли разбивки от всей библиотеки', async () => {
+  it('считает доли разрезов от всей библиотеки', async () => {
     renderWithStore(<AnalyticsPage />);
+    await ready();
 
-    const breakdown = card('Что в библиотеке');
-    // 6 записей автора из 42 в библиотеке — это 14%, а не 100%.
-    expect(await within(breakdown).findByText('14%')).toBeInTheDocument();
+    // 20 записей типа из 42 в библиотеке — это 48%, а не 100%.
+    expect(within(card('Типы')).getByText('48%')).toBeInTheDocument();
+  });
+
+  /** У авторов такой базы нет: доля одного автора в собрании — доли процента, и полосы гаснут. */
+  it('у авторов процентов не показывает вовсе', async () => {
+    renderWithStore(<AnalyticsPage />);
+    await ready();
+
+    const authors = card('Авторы');
+    expect(within(authors).getByText('6')).toBeInTheDocument();
+    expect(within(authors).queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  /** У разреза должен быть выход к самим записям, иначе это тупик с числом. */
+  it('строка разреза открывает библиотеку с наложенным фильтром', async () => {
+    const user = userEvent.setup();
+    const store = createTestStore();
+    renderWithStore(<AnalyticsPage />, store);
+    await ready();
+
+    await user.click(within(card('Авторы')).getByRole('button', { name: /Фрэнк Герберт/ }));
+
+    expect(store.getState().bookFilters.authorId).toBe('a1');
   });
 
   /** Сводка и динамика грузятся раздельно: падение второй не должно уносить страницу целиком. */
@@ -173,7 +286,8 @@ describe('AnalyticsPage', () => {
     renderWithStore(<AnalyticsPage />);
 
     expect(await screen.findByText('Не удалось загрузить динамику чтения')).toBeInTheDocument();
-    // Сводка приходит отдельным запросом и остаётся на месте.
-    expect(screen.getByText('Всего книг')).toBeInTheDocument();
+    await ready();
+    // Сводка приходит отдельным запросом, и её числа остаются на месте.
+    expect(within(summaryCard()).getByText('8,1')).toBeInTheDocument();
   });
 });
