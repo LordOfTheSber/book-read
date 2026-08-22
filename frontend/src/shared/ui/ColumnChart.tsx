@@ -67,7 +67,20 @@ export const ColumnChart: React.FC<Props> = ({
   const share = (value: number) => `${Math.max(max > 0 ? (value / max) * 100 : 0, value > 0 ? 6 : 2)}%`;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: paired ? 8 : 4, overflowX: 'auto' }}>
+    /*
+     * Прокрутка только вбок. `overflow-x: auto` при `overflow-y: visible` браузер приводит к
+     * `auto` по обеим осям, и одного лишнего пикселя хватало, чтобы у графика появилась
+     * вертикальная полоса прокрутки.
+     */
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: paired ? 8 : 4,
+        overflowX: 'auto',
+        overflowY: 'hidden'
+      }}
+    >
       {items.map((item) => (
         <Tooltip key={item.key} title={item.tooltip ?? `${item.label ?? item.key}: ${item.value}`}>
           <div style={{ flex: '1 1 0', minWidth: paired ? 18 : 8, textAlign: 'center' }}>
@@ -104,10 +117,17 @@ export const ColumnChart: React.FC<Props> = ({
               />
             </div>
             {/* Высота задана явно: пустая подпись не должна схлопывать строку и ронять
-                выравнивание соседних столбцов. */}
+                выравнивание соседних столбцов. Интерлиньяж — под ту же высоту: у 11 пунктов он
+                по умолчанию 17,3, и строка вылезала из своей коробки. */}
             <Typography.Text
               type="secondary"
-              style={{ fontSize: 11, display: 'block', height: 16, whiteSpace: 'nowrap' }}
+              style={{
+                fontSize: 11,
+                display: 'block',
+                height: 16,
+                lineHeight: '16px',
+                whiteSpace: 'nowrap'
+              }}
             >
               {item.label}
             </Typography.Text>
