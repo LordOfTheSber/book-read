@@ -6,10 +6,13 @@ import com.library.tracker.repository.AuthorRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.web.dto.AuthorRequest;
 import com.library.tracker.web.dto.AuthorResponse;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -32,20 +36,57 @@ public class AuthorService {
     private final AuthorRepository authorRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final UserService userService;
+    private final ShowcaseAssembler showcaseAssembler;
 
     @Transactional( readOnly = true )
     public List<AuthorResponse> findAll( String query ) {
         List<Author> authors = StringUtils.hasText( query )
                 ? authorRepository.findByNameContainingIgnoreCaseOrderByNameAsc( query.trim() )
                 : authorRepository.findAllByOrderByNameAsc();
-        Map<UUID, Long> counts = itemCounts();
+        Map<UUID, LibraryItemRepository.AuthorCount> counts = itemCounts();
         return authors.stream().map( author -> toResponse( author, counts ) ).toList();
     }
 
     @Transactional( readOnly = true )
     public Optional<AuthorResponse> findById( UUID id ) {
-        Map<UUID, Long> counts = itemCounts();
+        Map<UUID, LibraryItemRepository.AuthorCount> counts = itemCounts();
         return authorRepository.findById( id ).map( author -> toResponse( author, counts ) );
+    }
+
+    /**
+     * Обложки для показанных карточек справочника. Идентификаторы присылает страница: витрина
+     * листается, и грузить обложки всех двухсот авторов ради восемнадцати видимых незачем.
+     */
+    @Transactional( readOnly = true )
+    public Map<UUID, List<ShowcaseItemResponse>> showcase( Collection<UUID> authorIds ) {
+        return showcaseAssembler.assemble( authorIds, libraryItemRepository::findShowcaseByAuthors );
+    }
+
+    /**
+     * Слияние дублей: «Лю Цысинь» и «Cixin Liu» заводятся сами, когда имя вписывают в карточку
+     * руками, и расходятся в два справочника. Записи уходящего автора переподвешиваются на
+     * остающегося, после чего уходящий удаляется.
+     */
+    public Optional<AuthorResponse> merge( UUID targetId, UUID sourceId ) {
+        if ( targetId.equals( sourceId ) ) {
+            throw new IllegalArgumentException( "Cannot merge author into itself" );
+        }
+        Optional<Author> target = authorRepository.findById( targetId );
+        Optional<Author> source = authorRepository.findById( sourceId );
+        if ( target.isEmpty() || source.isEmpty() ) {
+            return Optional.empty();
+        }
+        Author into = target.get();
+        Author from = source.get();
+        libraryItemRepository.findByAuthorId( from.getId() ).forEach( item -> {
+            item.getAuthors().remove( from );
+            item.getAuthors().add( into );
+        } );
+        // Записи держат связь на своей стороне, и до сохранения ссылка на уходящего ещё жива:
+        // без сброса удаление упало бы на внешнем ключе.
+        libraryItemRepository.flush();
+        authorRepository.delete( from );
+        return Optional.of( toResponse( into, itemCounts() ) );
     }
 
     public AuthorResponse create( AuthorRequest request ) {
@@ -104,12 +145,12 @@ public class AuthorService {
      * Считает произведения по авторам одним запросом. Обычный пользователь видит счётчики
      * по своей библиотеке, администратор — по всей.
      */
-    private Map<UUID, Long> itemCounts() {
+    private Map<UUID, LibraryItemRepository.AuthorCount> itemCounts() {
         User currentUser = userService.getCurrentUser();
         UUID scope = userService.isAdmin( currentUser ) ? null : currentUser.getId();
         return libraryItemRepository.countByAuthor( scope ).stream()
                                     .collect( Collectors.toMap( LibraryItemRepository.AuthorCount::getAuthorId,
-                                                                LibraryItemRepository.AuthorCount::getCount ) );
+                                                                Function.identity() ) );
     }
 
     private void applyRequest( Author author, AuthorRequest request ) {
@@ -117,15 +158,26 @@ public class AuthorService {
         author.setAltName( StringUtils.hasText( request.getAltName() ) ? request.getAltName().trim() : null );
     }
 
-    private AuthorResponse toResponse( Author author, Map<UUID, Long> counts ) {
+    private AuthorResponse toResponse( Author author, Map<UUID, LibraryItemRepository.AuthorCount> counts ) {
+        LibraryItemRepository.AuthorCount stats = counts.get( author.getId() );
         return AuthorResponse.builder()
                              .id( author.getId() )
                              .name( author.getName() )
                              .altName( author.getAltName() )
-                             .itemCount( counts.getOrDefault( author.getId(), 0L ) )
+                             .itemCount( stats != null ? stats.getCount() : 0L )
+                             .finishedCount( stats != null ? stats.getFinishedCount() : 0L )
+                             .avgRating( averageRating( stats ) )
                              .createdAt( toOffsetDateTime( author.getCreatedAt() ) )
                              .updatedAt( toOffsetDateTime( author.getUpdatedAt() ) )
                              .build();
+    }
+
+    /** Десятая доля: оценка выставляется с шагом 0,5, и «9,17» на карточке выглядит подсчётом. */
+    private BigDecimal averageRating( LibraryItemRepository.AuthorCount stats ) {
+        if ( stats == null || stats.getAvgRating() == null ) {
+            return null;
+        }
+        return BigDecimal.valueOf( stats.getAvgRating() ).setScale( 1, RoundingMode.HALF_UP );
     }
 
     private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {

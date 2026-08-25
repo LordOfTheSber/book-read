@@ -45,13 +45,14 @@ export const secondaryNav: NavGroup[] = [
   },
   {
     key: 'catalogues',
-    label: 'Справочники',
+    // Раньше группа звалась «Справочники» по своему содержимому; теперь так зовётся и страница
+    // внутри неё, и подпись группы совпадала бы с пунктом под ней.
+    label: 'Наборы и справочники',
     items: [
       { key: 'shelves', label: 'Полки и теги', path: '/shelves' },
-      { key: 'authors', label: 'Авторы', path: '/authors' },
-      { key: 'series', label: 'Серии', path: '/series' },
-      { key: 'types', label: 'Типы', path: '/types' },
-      { key: 'sources', label: 'Источники', path: '/sources' }
+      // Авторы, серии, типы и источники устроены одинаково и живут одной страницей: четыре
+      // равноправных пункта на то, что открывают раз в полгода, — четверть меню.
+      { key: 'catalog', label: 'Справочники', path: '/catalog' }
     ]
   },
   {
