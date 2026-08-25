@@ -21,6 +21,12 @@ export const updateTag = async (id: string, payload: TagPayload) => {
   return data;
 };
 
+/** Объединение дублей: пометки уходящего тега переезжают на остающийся. */
+export const mergeTags = async (targetId: string, sourceId: string) => {
+  const { data } = await httpClient.post<Tag>(`/tags/${targetId}/merge`, { sourceId });
+  return data;
+};
+
 export const deleteTag = async (id: string) => {
   await httpClient.delete(`/tags/${id}`);
 };

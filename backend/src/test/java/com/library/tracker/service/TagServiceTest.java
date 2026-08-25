@@ -1,10 +1,13 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
+import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.TagRepository;
 import com.library.tracker.web.dto.TagRequest;
+import com.library.tracker.web.dto.TagResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +36,9 @@ class TagServiceTest {
     private TagRepository tagRepository;
 
     @Mock
+    private LibraryItemRepository libraryItemRepository;
+
+    @Mock
     private UserService userService;
 
     private TagService service;
@@ -41,7 +47,7 @@ class TagServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TagService( tagRepository, userService );
+        service = new TagService( tagRepository, libraryItemRepository, userService );
         owner = user();
     }
 
@@ -106,6 +112,46 @@ class TagServiceTest {
         request.setName( "на лето" );
 
         assertThatThrownBy( () -> service.create( request ) ).isInstanceOf( IllegalArgumentException.class );
+    }
+
+    /**
+     * «сай-фай» и «фантастика» — одна пометка, разведённая по двум тегам вводом из карточки.
+     * Объединение переносит пометки и удаляет уходящий тег.
+     */
+    @Test
+    void mergeMovesMarksToTargetTag() {
+        Tag into = tag( "фантастика", owner );
+        Tag from = tag( "сай-фай", owner );
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.getTags().add( from );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findById( eq( into.getId() ) ) ).thenReturn( Optional.of( into ) );
+        when( tagRepository.findById( eq( from.getId() ) ) ).thenReturn( Optional.of( from ) );
+        when( libraryItemRepository.findByTagId( eq( from.getId() ) ) ).thenReturn( List.of( item ) );
+        when( tagRepository.countByTag( eq( owner.getId() ) ) ).thenReturn( List.of() );
+
+        TagResponse merged = service.merge( into.getId(), from.getId() ).orElseThrow();
+
+        assertThat( merged.getName() ).isEqualTo( "фантастика" );
+        assertThat( item.getTags() ).containsExactly( into );
+        verify( tagRepository ).delete( eq( from ) );
+    }
+
+    /** Тег личный: объединить чужой со своим — то же, что удалить чужой. */
+    @Test
+    void mergeRejectsForeignTag() {
+        Tag mine = tag( "фантастика", owner );
+        Tag foreign = tag( "сай-фай", user() );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findById( eq( mine.getId() ) ) ).thenReturn( Optional.of( mine ) );
+        when( tagRepository.findById( eq( foreign.getId() ) ) ).thenReturn( Optional.of( foreign ) );
+
+        assertThatThrownBy( () -> service.merge( mine.getId(), foreign.getId() ) )
+                .isInstanceOf( AccessDeniedException.class );
+        verify( tagRepository, never() ).delete( any( Tag.class ) );
     }
 
     private User user() {
