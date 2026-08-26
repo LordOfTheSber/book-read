@@ -168,4 +168,16 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('Учётная запись')).toBeInTheDocument();
     expect(screen.getByText(/Тема сохраняется в этом браузере/)).toBeInTheDocument();
   });
+
+  /**
+   * Ровно тот путь, которым в форму заходит сквозной сценарий: `/profile?tab=public` и поле
+   * по подписи. С переездом формы на вкладку он ломался — открывал первый экран и не находил её.
+   */
+  it('открывает форму публичной страницы прямо по адресу вкладки', async () => {
+    renderPage('/profile?tab=public');
+
+    await waitFor(() => expect(screen.getByLabelText('Имя для показа')).toHaveValue('Читатель'));
+    expect(screen.getByRole('switch')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Сохранить' })).toBeInTheDocument();
+  });
 });
