@@ -2,6 +2,7 @@ package com.library.tracker.service;
 
 import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
+import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.TagRepository;
 import com.library.tracker.web.dto.TagRequest;
 import com.library.tracker.web.dto.TagResponse;
@@ -35,6 +36,7 @@ import org.springframework.util.StringUtils;
 public class TagService {
 
     private final TagRepository tagRepository;
+    private final LibraryItemRepository libraryItemRepository;
     private final UserService userService;
 
     @Transactional( readOnly = true )
@@ -70,6 +72,36 @@ public class TagService {
             applyRequest( tag, request );
             return toResponse( tagRepository.save( tag ), itemCounts( currentUser.getId() ) );
         } );
+    }
+
+    /**
+     * Объединение дублей: «сай-фай» и «фантастика» заводятся сами из карточки и живут дальше
+     * двумя пометками об одном. Записи уходящего тега получают остающийся, уходящий удаляется.
+     * Пересечение не удваивается: пометка — множество, повторная выдача ничего не меняет.
+     */
+    public Optional<TagResponse> merge( UUID targetId, UUID sourceId ) {
+        if ( targetId.equals( sourceId ) ) {
+            throw new IllegalArgumentException( "Нельзя объединить тег с самим собой" );
+        }
+        User currentUser = userService.getCurrentUser();
+        Optional<Tag> target = tagRepository.findById( targetId );
+        Optional<Tag> source = tagRepository.findById( sourceId );
+        if ( target.isEmpty() || source.isEmpty() ) {
+            return Optional.empty();
+        }
+        Tag into = target.get();
+        Tag from = source.get();
+        requireOwner( into, currentUser );
+        requireOwner( from, currentUser );
+
+        libraryItemRepository.findByTagId( from.getId() ).forEach( item -> {
+            item.getTags().remove( from );
+            item.getTags().add( into );
+        } );
+        // Связь держит запись, и до сброса ссылка на уходящий тег ещё в базе.
+        libraryItemRepository.flush();
+        tagRepository.delete( from );
+        return Optional.of( toResponse( into, itemCounts( currentUser.getId() ) ) );
     }
 
     /**

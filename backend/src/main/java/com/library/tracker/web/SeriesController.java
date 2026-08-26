@@ -3,9 +3,11 @@ package com.library.tracker.web;
 import com.library.tracker.service.SeriesService;
 import com.library.tracker.web.dto.SeriesRequest;
 import com.library.tracker.web.dto.SeriesResponse;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,6 +33,12 @@ public class SeriesController {
     @GetMapping
     public List<SeriesResponse> list() {
         return seriesService.findAll();
+    }
+
+    /** Обложки для карточек цикла — тем же способом, что у авторов: по показанной странице. */
+    @GetMapping( "/showcase" )
+    public Map<UUID, List<ShowcaseItemResponse>> showcase( @RequestParam( "ids" ) List<UUID> ids ) {
+        return seriesService.showcase( ids );
     }
 
     @GetMapping( "/{id}" )

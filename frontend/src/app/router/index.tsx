@@ -4,10 +4,7 @@ import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-rou
 import { PageLayout } from '@/app/layouts/PageLayout';
 import { BooksPage } from '@/pages/books-page';
 import { RecordPage } from '@/pages/record-page';
-import { TypesPage } from '@/pages/types-page';
-import { SourcesPage } from '@/pages/sources-page';
-import { AuthorsPage } from '@/pages/authors-page';
-import { SeriesPage } from '@/pages/series-page';
+import { CatalogPage } from '@/pages/catalog-page';
 import { QuotesPage } from '@/pages/quotes-page';
 import { ShelvesPage } from '@/pages/shelves-page';
 import { ImportPage } from '@/pages/import-page';
@@ -73,10 +70,13 @@ const router = createBrowserRouter([
           { path: 'u/:username', element: <UserProfilePage /> },
           { path: 'feed', element: <FeedPage /> },
           { path: 'goals', element: <GoalsPage /> },
-          { path: 'types', element: <TypesPage /> },
-          { path: 'sources', element: <SourcesPage /> },
-          { path: 'authors', element: <AuthorsPage /> },
-          { path: 'series', element: <SeriesPage /> },
+          { path: 'catalog', element: <CatalogPage /> },
+          // Четыре справочника съехались на одну страницу, но их адреса разосланы и лежат
+          // в закладках: старый путь ведёт в тот же справочник, а не в «страница не найдена».
+          { path: 'authors', element: <Navigate to="/catalog" replace /> },
+          { path: 'series', element: <Navigate to="/catalog?entity=series" replace /> },
+          { path: 'types', element: <Navigate to="/catalog?entity=types" replace /> },
+          { path: 'sources', element: <Navigate to="/catalog?entity=sources" replace /> },
           { path: 'quotes', element: <QuotesPage /> },
           { path: 'shelves', element: <ShelvesPage /> },
           { path: 'import', element: <ImportPage /> },

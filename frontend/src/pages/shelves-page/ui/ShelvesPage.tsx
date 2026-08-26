@@ -1,34 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import {
-  App,
-  Button,
-  Card,
-  Col,
-  Dropdown,
-  Empty,
-  Form,
-  Input,
-  List,
-  Modal,
-  Row,
-  Skeleton,
-  Space,
-  Switch,
-  Tag,
-  Tooltip,
-  Typography,
-  theme
-} from 'antd';
-import {
-  CloseOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  EyeOutlined,
-  GlobalOutlined,
-  PlusOutlined,
-  TagsOutlined,
-  TeamOutlined
-} from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { App, Button, Empty, Form, Grid, Input, List, Modal, Skeleton, Switch, Typography, theme } from 'antd';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Shelf, ShelfItem, Tag as LibraryTag } from '@/shared/types/library';
@@ -41,12 +13,13 @@ import {
   removeShelfItemsThunk,
   updateShelfThunk
 } from '@/entities/shelf';
-import { deleteTagThunk, loadTags, updateTagThunk } from '@/entities/tag';
+import { deleteTagThunk, loadTags, mergeTagsThunk, updateTagThunk } from '@/entities/tag';
 import { applySavedFilter } from '@/features/book/set-book-filters';
-import { pluralize } from '@/shared/lib/plural';
+import { findDuplicates } from '@/shared/lib/duplicates';
 import { useRequestError } from '@/shared/lib/errors';
 import { ShelfMembersModal } from '@/widgets/shelf-members';
-import { shelfRoleMeta } from '@/shared/constants/social';
+import { ShelfRow } from './ShelfRow';
+import { TagRow } from './TagRow';
 
 interface ShelfFormValues {
   name: string;
@@ -54,14 +27,22 @@ interface ShelfFormValues {
   isPublic?: boolean;
 }
 
+/** Столько тегов видно сразу; остальные разворачиваются по «Показать все». */
+const TAGS_SHOWN = 10;
+
 /**
- * Полки и теги — два способа резать библиотеку, и живут они на одной странице: полка это набор,
- * собранный руками, тег — свободная пометка. Тип (жанр) остаётся в своём справочнике.
+ * Полки и теги — две разные сущности, и страница показывает это прямо: слева полки с признаком
+ * общей и участниками, справа теги с полосой веса и уборкой дублей.
+ *
+ * До этого полки были плитками в три ряда, а теги — облаком чипов внизу: полка занимала место
+ * карточки, ничего этим не показывая (обложек в ней нет), а тег терялся среди сорока таких же.
+ * Здесь всё видно без прокрутки, а вес тега читается полосой, а не числом в скобках.
  */
 export const ShelvesPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
   const shelves = useAppSelector((state) => state.shelves.list);
@@ -75,8 +56,11 @@ export const ShelvesPage: React.FC = () => {
   const [preview, setPreview] = useState<{ shelf: Shelf; items: ShelfItem[] } | null>(null);
   const [membersOf, setMembersOf] = useState<Shelf | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  /** Идентификатор тега, который сейчас переименовывают: чип на это время становится полем ввода. */
+  /** Идентификатор тега, который сейчас переименовывают: строка на это время становится полем. */
   const [renamingTag, setRenamingTag] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState(false);
+  /** Пары, от объединения которых отказались: подсказка не должна возвращаться на каждый вход. */
+  const [dismissed, setDismissed] = useState<string[]>([]);
 
   useEffect(() => {
     dispatch(loadShelves({ force: true }));
@@ -201,177 +185,208 @@ export const ShelvesPage: React.FC = () => {
     navigate('/');
   };
 
+  /**
+   * Дубли среди тегов: пометка заводится из карточки, и «манга» с «Манга» расходятся в две.
+   * Объединение переносит пометки на остающийся тег — пересечение при этом не удваивается.
+   */
+  const duplicate = useMemo(
+    () =>
+      findDuplicates(tags.map((tag) => ({ id: tag.id, name: tag.name, itemCount: tag.itemCount }))).find(
+        (pair) => !dismissed.includes(`${pair.target.id}:${pair.source.id}`)
+      ),
+    [tags, dismissed]
+  );
+
+  const mergeTags = async (targetId: string, sourceId: string) => {
+    try {
+      await dispatch(mergeTagsThunk({ targetId, sourceId })).unwrap();
+      message.success('Теги объединены');
+    } catch (error) {
+      showRequestError(error, 'Не удалось объединить теги');
+    }
+  };
+
+  const maxCount = tags.reduce((max, tag) => Math.max(max, tag.itemCount), 0);
+  const sortedTags = useMemo(() => [...tags].sort((a, b) => b.itemCount - a.itemCount), [tags]);
+  const shownTags = allTags ? sortedTags : sortedTags.slice(0, TAGS_SHOWN);
+
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    color: token.colorTextTertiary
+  };
+
+  const card: React.CSSProperties = {
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    borderRadius: token.borderRadiusLG
+  };
+
   return (
-    <Space direction="vertical" size={20} style={{ display: 'flex' }}>
+    <div>
       <PageHeader
         title="Полки и теги"
         subtitle="Полка — набор, собранный руками; тег — свободная пометка в дополнение к типу"
-        actions={
-          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
-            Новая полка
-          </Button>
-        }
       />
 
-      {loading && shelves.length === 0 ? (
-        <Skeleton active paragraph={{ rows: 4 }} />
-      ) : shelves.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Полок пока нет — соберите первую: «подарить», «книжный клуб», «на дачу»"
-        >
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            Новая полка
-          </Button>
-        </Empty>
-      ) : (
-        <Row gutter={[16, 16]}>
-          {shelves.map((shelf) => (
-            <Col key={shelf.id} xs={24} sm={12} xl={8}>
-              <Card
-                title={
-                  <Space size={8}>
-                    <Typography.Text strong ellipsis>
-                      {shelf.name}
-                    </Typography.Text>
-                    {shelf.isPublic && (
-                      <Tooltip title="Полку видно другим пользователям по ссылке">
-                        <GlobalOutlined style={{ color: token.colorPrimary }} />
-                      </Tooltip>
-                    )}
-                    {/* Совместная полка нужна участнику там же, где своя, — но перепутать их нельзя. */}
-                    {!shelf.owned && shelf.myRole && (
-                      <Tag color={shelfRoleMeta[shelf.myRole].color} bordered={false}>
-                        {shelfRoleMeta[shelf.myRole].label}
-                      </Tag>
-                    )}
-                  </Space>
-                }
-                extra={
-                  <Space size={0}>
-                    <Tooltip title="Показать состав">
-                      <Button type="text" icon={<EyeOutlined />} onClick={() => openPreview(shelf)} aria-label="Показать состав" />
-                    </Tooltip>
-                    <Tooltip title="Участники">
-                      <Button
-                        type="text"
-                        icon={<TeamOutlined />}
-                        onClick={() => setMembersOf(shelf)}
-                        aria-label="Участники"
-                      />
-                    </Tooltip>
-                    {shelf.canCurate && (
-                      <Tooltip title="Переименовать">
-                        <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(shelf)} aria-label="Переименовать" />
-                      </Tooltip>
-                    )}
-                    {shelf.owned && (
-                      <Tooltip title="Удалить">
-                        <Button
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => confirmDeleteShelf(shelf)}
-                          aria-label="Удалить"
-                        />
-                      </Tooltip>
-                    )}
-                  </Space>
-                }
-              >
-                <Space direction="vertical" size={8} style={{ display: 'flex' }}>
-                  <Typography.Text type="secondary">
-                    {pluralize(shelf.itemCount, ['запись', 'записи', 'записей'])}
-                    {shelf.memberCount > 0 &&
-                      ` · ${pluralize(shelf.memberCount, ['участник', 'участника', 'участников'])}`}
-                    {!shelf.owned && shelf.ownerUsername ? ` · полка @${shelf.ownerUsername}` : ''}
-                  </Typography.Text>
-                  {shelf.description && (
-                    <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
-                      {shelf.description}
-                    </Typography.Paragraph>
-                  )}
-                  <Button type="link" style={{ paddingInline: 0 }} onClick={() => showInLibrary(shelf.id, undefined)}>
-                    Показать в библиотеке
-                  </Button>
-                </Space>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-
-      <Card
-        title={
-          <Space size={8}>
-            <TagsOutlined />
-            <span>Теги</span>
-          </Space>
-        }
+      <div
+        style={{
+          display: 'grid',
+          // Полки шире тегов: у полки есть описание и участники, у тега — слово и число.
+          gridTemplateColumns: screens.lg ? 'minmax(0, 1.35fr) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+          gap: token.margin,
+          alignItems: 'start'
+        }}
       >
-        {tags.length === 0 ? (
-          <Typography.Text type="secondary">
-            Тегов пока нет — их проще всего завести прямо в карточке произведения: поле «Теги».
-          </Typography.Text>
-        ) : (
-          <Space size={[8, 8]} wrap>
-            {/*
-              Действий у тега три, и вешать их на один чип нельзя: клик по нему уводил на список,
-              поэтому двойной клик для переименования не мог сработать в принципе — первый клик
-              успевал увести со страницы. Клик фильтрует, остальное — в явном меню.
-            */}
-            {tags.map((tag) =>
-              renamingTag === tag.id ? (
-                <Input
-                  key={tag.id}
-                  size="small"
-                  autoFocus
-                  defaultValue={tag.name}
-                  maxLength={64}
-                  style={{ width: 180 }}
-                  onBlur={(event) => renameTag(tag, event.target.value)}
-                  onPressEnter={(event) => renameTag(tag, (event.target as HTMLInputElement).value)}
+        <section aria-label="Полки">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+              gap: 12
+            }}
+          >
+            <span style={sectionLabel}>{`Полки · ${shelves.length}`}</span>
+            <Button type="link" style={{ paddingInline: 0 }} icon={<PlusOutlined />} onClick={openCreate}>
+              Новая полка
+            </Button>
+          </div>
+
+          {loading && shelves.length === 0 ? (
+            <Skeleton active paragraph={{ rows: 5 }} />
+          ) : shelves.length === 0 ? (
+            <div style={{ ...card, padding: token.paddingLG }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Полок пока нет — соберите первую: «подарить», «книжный клуб», «на дачу»"
+              >
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                  Новая полка
+                </Button>
+              </Empty>
+            </div>
+          ) : (
+            <div style={{ ...card, overflow: 'hidden' }}>
+              {shelves.map((shelf, index) => (
+                <ShelfRow
+                  key={shelf.id}
+                  shelf={shelf}
+                  last={index === shelves.length - 1}
+                  index={index}
+                  onOpenLibrary={() => showInLibrary(shelf.id, undefined)}
+                  onPreview={() => openPreview(shelf)}
+                  onMembers={() => setMembersOf(shelf)}
+                  onEdit={shelf.canCurate ? () => openEdit(shelf) : undefined}
+                  onDelete={shelf.owned ? () => confirmDeleteShelf(shelf) : undefined}
                 />
-              ) : (
-                <Dropdown
-                  key={tag.id}
-                  trigger={['contextMenu']}
-                  menu={{
-                    items: [
-                      { key: 'rename', label: 'Переименовать', onClick: () => setRenamingTag(tag.id) },
-                      { key: 'delete', label: 'Удалить', danger: true, onClick: () => confirmDeleteTag(tag) }
-                    ]
-                  }}
-                >
-                  <Tag
-                    color={tag.color ?? undefined}
-                    style={{ borderRadius: 999, paddingInline: 12, paddingBlock: 4, cursor: 'pointer', margin: 0 }}
-                    onClick={() => showInLibrary(undefined, tag.id)}
-                  >
-                    <Space size={6}>
-                      <span>{`${tag.name} · ${tag.itemCount}`}</span>
-                      <EditOutlined
-                        aria-label={`Переименовать «${tag.name}»`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setRenamingTag(tag.id);
-                        }}
-                      />
-                      <CloseOutlined
-                        aria-label={`Удалить «${tag.name}»`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          confirmDeleteTag(tag);
-                        }}
-                      />
-                    </Space>
-                  </Tag>
-                </Dropdown>
-              )
+              ))}
+            </div>
+          )}
+
+          {/* Умные полки живут в рельсе над списком: искать их здесь — первое, что делают. */}
+          <div
+            style={{
+              marginTop: 14,
+              padding: `14px ${token.padding}px`,
+              borderRadius: token.borderRadiusLG,
+              background: token.colorPrimaryBg,
+              color: token.colorPrimaryText,
+              fontSize: 13,
+              lineHeight: 1.6
+            }}
+          >
+            Умные полки — сохранённые фильтры библиотеки — живут отдельно, в панели над списком.
+            Здесь только те, что собраны руками.
+          </div>
+        </section>
+
+        <section aria-label="Теги">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+              gap: 12
+            }}
+          >
+            <span style={sectionLabel}>{`Теги · ${tags.length}`}</span>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              по числу записей
+            </Typography.Text>
+          </div>
+
+          <div style={{ ...card, padding: `8px ${token.paddingSM}px` }}>
+            {tags.length === 0 ? (
+              <Typography.Paragraph type="secondary" style={{ margin: '12px 8px' }}>
+                Тегов пока нет — их проще всего завести прямо в карточке произведения: поле «Теги».
+              </Typography.Paragraph>
+            ) : (
+              <>
+                {shownTags.map((tag, index) => (
+                  <TagRow
+                    key={tag.id}
+                    tag={tag}
+                    maxCount={maxCount}
+                    last={index === shownTags.length - 1}
+                    renaming={renamingTag === tag.id}
+                    onOpenLibrary={() => showInLibrary(undefined, tag.id)}
+                    onStartRename={() => setRenamingTag(tag.id)}
+                    onRename={(name) => renameTag(tag, name)}
+                    onDelete={() => confirmDeleteTag(tag)}
+                  />
+                ))}
+                {sortedTags.length > TAGS_SHOWN && (
+                  <Button type="link" style={{ paddingInline: 8 }} onClick={() => setAllTags((value) => !value)}>
+                    {allTags ? 'Свернуть' : `Показать все ${sortedTags.length}`}
+                  </Button>
+                )}
+              </>
             )}
-          </Space>
-        )}
-      </Card>
+          </div>
+
+          {duplicate && (
+            <div style={{ ...card, marginTop: 14, padding: `14px ${token.padding}px` }}>
+              <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                Уборка
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 13, lineHeight: 1.6 }}>
+                {`Похоже, что «${duplicate.source.name}» и «${duplicate.target.name}» — одно и то же: `}
+                {`${duplicate.source.itemCount} и ${duplicate.target.itemCount} записей.`}
+              </Typography.Text>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    modal.confirm({
+                      title: 'Объединить теги?',
+                      content: `Пометка «${duplicate.source.name}» заменится на «${duplicate.target.name}» на всех записях, после чего «${duplicate.source.name}» будет удалена. Отменить это нельзя.`,
+                      okText: 'Объединить',
+                      cancelText: 'Отмена',
+                      onOk: () => mergeTags(duplicate.target.id, duplicate.source.id)
+                    })
+                  }
+                >
+                  Объединить
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() =>
+                    setDismissed((current) => [...current, `${duplicate.target.id}:${duplicate.source.id}`])
+                  }
+                >
+                  Оставить как есть
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
 
       <Modal
         title={editing ? 'Полка' : 'Новая полка'}
@@ -446,10 +461,7 @@ export const ShelvesPage: React.FC = () => {
                     : undefined
                 }
               >
-                <List.Item.Meta
-                  title={item.title}
-                  description={item.authorNames.join(', ') || 'Автор не указан'}
-                />
+                <List.Item.Meta title={item.title} description={item.authorNames.join(', ') || 'Автор не указан'} />
                 {item.rating !== undefined && item.rating !== null && (
                   <Typography.Text type="secondary">{item.rating}</Typography.Text>
                 )}
@@ -460,6 +472,6 @@ export const ShelvesPage: React.FC = () => {
       </Modal>
 
       <ShelfMembersModal shelf={membersOf} onClose={() => setMembersOf(null)} />
-    </Space>
+    </div>
   );
 };

@@ -10,6 +10,8 @@ const createShelf = vi.fn();
 const updateShelf = vi.fn();
 const fetchShelves = vi.fn();
 const updateTag = vi.fn();
+const fetchTags = vi.fn();
+const mergeTags = vi.fn();
 
 vi.mock('@/entities/shelf/api/shelfApi', () => ({
   fetchShelves: (...args: unknown[]) => fetchShelves(...args),
@@ -26,13 +28,15 @@ vi.mock('@/entities/shelf/api/shelfApi', () => ({
 }));
 
 vi.mock('@/entities/tag/api/tagApi', () => ({
-  fetchTags: vi.fn().mockResolvedValue([
-    { id: 'tg-1', name: 'на лето', color: null, itemCount: 3 } as unknown as LibraryTag
-  ]),
+  fetchTags: (...args: unknown[]) => fetchTags(...args),
   createTag: vi.fn(),
   updateTag: (...args: unknown[]) => updateTag(...args),
+  mergeTags: (...args: unknown[]) => mergeTags(...args),
   deleteTag: vi.fn()
 }));
+
+const tag = (id: string, name: string, itemCount: number): LibraryTag =>
+  ({ id, name, color: null, itemCount }) as unknown as LibraryTag;
 
 const shelf = (overrides: Partial<Shelf> = {}): Shelf =>
   ({
@@ -57,6 +61,8 @@ describe('ShelvesPage', () => {
     createShelf.mockReset().mockResolvedValue(shelf({ id: 's-2', name: 'Новая' }));
     updateShelf.mockReset().mockResolvedValue(shelf());
     updateTag.mockReset().mockResolvedValue({ id: 'tg-1', name: 'на осень', itemCount: 3 });
+    fetchTags.mockReset().mockResolvedValue([tag('tg-1', 'на лето', 3)]);
+    mergeTags.mockReset().mockResolvedValue(tag('tg-1', 'манга', 31));
     fetchShelves.mockReset().mockResolvedValue([shelf()]);
   });
 
@@ -114,7 +120,39 @@ describe('ShelvesPage', () => {
     expect(createShelf).not.toHaveBeenCalled();
   });
 
-  /** Тег переименовывается прямо в чипе, но цвет при этом терять нельзя. */
+  /** Полка стала строкой: название, признаки и счётчик читаются, не открывая её. */
+  it('показывает полку строкой со счётчиком и признаком общей', async () => {
+    fetchShelves.mockResolvedValue([shelf({ isPublic: true, memberCount: 2, itemCount: 12 })]);
+    renderPage();
+
+    expect(await screen.findByText('Книжный клуб')).toBeInTheDocument();
+    expect(screen.getByText('общая')).toBeInTheDocument();
+    expect(screen.getByText('2 участника')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+  });
+
+  /** Умные полки ищут здесь первым делом — страница должна сказать, где они. */
+  it('объясняет, где живут умные полки', async () => {
+    renderPage();
+
+    expect(await screen.findByText(/Умные полки/)).toBeInTheDocument();
+  });
+
+  /** Пометка заводится из карточки, и «манга» с «Манга» расходятся в две. */
+  it('предлагает объединить теги, записанные дважды', async () => {
+    fetchTags.mockResolvedValue([tag('tg-1', 'манга', 28), tag('tg-2', 'Манга', 3)]);
+    renderPage();
+
+    expect(await screen.findByText('Уборка')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Объединить' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Объединить' }));
+
+    await waitFor(() => expect(mergeTags).toHaveBeenCalledWith('tg-1', 'tg-2'));
+  });
+
+  /** Тег переименовывается прямо в строке, но цвет при этом терять нельзя. */
   it('переименовывает тег, сохраняя его цвет', async () => {
     renderPage();
 

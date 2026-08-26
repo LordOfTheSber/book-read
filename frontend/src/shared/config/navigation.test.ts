@@ -11,6 +11,14 @@ describe('реестр разделов', () => {
     expect(findSection('/')?.key).toBe('books');
   });
 
+  /** Четыре справочника съехались на одну страницу, и в меню от них остаётся один пункт. */
+  it('справочники стоят в меню одним пунктом', () => {
+    const catalogues = visibleGroups(false).find((group) => group.key === 'catalogues');
+
+    expect(catalogues?.items.map((item) => item.key)).toEqual(['shelves', 'catalog']);
+    expect(findSection('/catalog')?.label).toBe('Справочники');
+  });
+
   /** Иначе «Библиотека» подсвечивалась бы на профиле и на чужой странице — раздела, которого нет. */
   it('у профиля и чужой страницы своего пункта меню нет', () => {
     expect(findSection('/profile')).toBeUndefined();

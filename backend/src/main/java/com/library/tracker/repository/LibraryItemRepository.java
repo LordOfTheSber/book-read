@@ -153,15 +153,79 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
     /**
      * Счётчики для списка авторов одним запросом: по строке на автора вместо запроса на каждого.
      * {@code userId = null} — режим администратора, считаем по всей базе.
+     *
+     * Кроме общего числа берутся дочитанные и средняя оценка: карточка автора в справочнике
+     * отвечает на вопрос «что у меня этого автора есть и как я его оцениваю», а считать это
+     * запросом на карточку — двести запросов на страницу.
      */
     @Query( """
-            select a.id as authorId, count(li) as count
+            select a.id as authorId,
+                   count(li) as count,
+                   sum(case when li.status = com.library.tracker.domain.ReadingStatus.COMPLETED then 1 else 0 end)
+                       as finishedCount,
+                   avg(li.rating) as avgRating
             from LibraryItem li
             join li.authors a
             where (:userId is null or li.createdBy.id = :userId)
             group by a.id
             """ )
     List<AuthorCount> countByAuthor( UUID userId );
+
+    /**
+     * Обложки для карточек авторов: до четырёх на автора, но обрезает уже сервис — вытащить
+     * «первые четыре в каждой группе» одним JPQL нельзя. Запрос идёт по показанной странице
+     * справочника, а не по всем авторам сразу.
+     */
+    @Query( """
+            select a.id as ownerId,
+                   li.id as itemId,
+                   li.title as title,
+                   li.kind as kind,
+                   li.status as status,
+                   li.rating as rating,
+                   li.coverKey as coverKey
+            from LibraryItem li
+            join li.authors a
+            where a.id in :authorIds
+              and (:userId is null or li.createdBy.id = :userId)
+            order by li.updatedAt desc
+            """ )
+    List<ShowcaseRow> findShowcaseByAuthors( Collection<UUID> authorIds, UUID userId );
+
+    /** То же для серий, но порядок — по номеру тома: у цикла карточка показывает его начало. */
+    @Query( """
+            select s.id as ownerId,
+                   li.id as itemId,
+                   li.title as title,
+                   li.kind as kind,
+                   li.status as status,
+                   li.rating as rating,
+                   li.coverKey as coverKey
+            from LibraryItem li
+            join li.series s
+            where s.id in :seriesIds
+              and (:userId is null or li.createdBy.id = :userId)
+            order by case when li.orderInSeries is null then 1 else 0 end, li.orderInSeries, li.title
+            """ )
+    List<ShowcaseRow> findShowcaseBySeries( Collection<UUID> seriesIds, UUID userId );
+
+    /** Произведения автора — для слияния дублей: у одного из двух авторов их надо переподвесить. */
+    @Query( """
+            select li
+            from LibraryItem li
+            join li.authors a
+            where a.id = :authorId
+            """ )
+    List<LibraryItem> findByAuthorId( UUID authorId );
+
+    /** То же для тегов: объединение дублей переносит пометки с одного тега на другой. */
+    @Query( """
+            select li
+            from LibraryItem li
+            join li.tags t
+            where t.id = :tagId
+            """ )
+    List<LibraryItem> findByTagId( UUID tagId );
 
     @Query( """
             select s.id as seriesId,
@@ -425,6 +489,30 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
         UUID getAuthorId();
 
         long getCount();
+
+        /** Дочитанных из них; {@code null} не бывает — сумма по группе. */
+        long getFinishedCount();
+
+        /** Средняя оценка по выставленным; {@code null}, если не оценено ничего. */
+        Double getAvgRating();
+    }
+
+    /** Строка витрины справочника: произведение, привязанное к автору или серии. */
+    interface ShowcaseRow {
+
+        UUID getOwnerId();
+
+        UUID getItemId();
+
+        String getTitle();
+
+        MediaKind getKind();
+
+        ReadingStatus getStatus();
+
+        BigDecimal getRating();
+
+        String getCoverKey();
     }
 
     interface NamedAuthorCount {
