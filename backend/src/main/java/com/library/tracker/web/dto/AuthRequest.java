@@ -19,7 +19,7 @@ import lombok.Data;
  * бессмысленных запросов.
  */
 @Data
-public class AuthRequest {
+public class AuthRequest implements DeviceEnrollmentRequest {
 
     @NotBlank
     @Size( max = 32 )
@@ -28,4 +28,21 @@ public class AuthRequest {
     @NotBlank
     @Size( max = 64 )
     private String password;
+
+    /**
+     * Запомнить это устройство и впредь пускать без пароля. Решение всегда явное: молча
+     * запоминать того, кто просто вошёл, значит оставлять ключ в чужом браузере.
+     */
+    private boolean rememberDevice;
+
+    /**
+     * Отпечаток устройства, посчитанный браузером. Без него запоминать нечего: секрет из куки
+     * один, а подтвердить, что им пользуются с того же устройства, больше нечем.
+     */
+    @Size( max = 128 )
+    private String deviceFingerprint;
+
+    /** Как назвать устройство в списке. Пусто — подпись соберётся из User-Agent. */
+    @Size( max = 64 )
+    private String deviceName;
 }

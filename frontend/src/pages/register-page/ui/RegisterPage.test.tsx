@@ -88,7 +88,11 @@ describe('RegisterPage', () => {
     await userEvent.type(screen.getByLabelText('Повторите пароль'), 'biblioteka1');
     await userEvent.click(screen.getByRole('button', { name: 'Создать аккаунт' }));
 
-    await waitFor(() => expect(registerCall).toHaveBeenCalledWith({ username: 'sber', password: 'biblioteka1' }));
+    await waitFor(() =>
+      expect(registerCall).toHaveBeenCalledWith(
+        expect.objectContaining({ username: 'sber', password: 'biblioteka1', rememberDevice: true })
+      )
+    );
   });
 
   /**

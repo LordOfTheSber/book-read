@@ -1,6 +1,12 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '@/shared/types/library';
-import { clearAuthSession, isAuthSessionActive, markAuthSessionActive } from '@/shared/api/authSession';
+import {
+  allowQuickLogin,
+  clearAuthSession,
+  isAuthSessionActive,
+  markAuthSessionActive,
+  suppressQuickLogin
+} from '@/shared/api/authSession';
 import { fetchMe, AuthResponse, logout, uploadAvatar } from '../api/authApi';
 
 export interface AuthState {
@@ -26,8 +32,15 @@ export const uploadAvatarThunk = createAsyncThunk<User, File>('auth/uploadAvatar
   return uploadAvatar(file);
 });
 
-/** Сначала гасит серверную сессию, затем сбрасывает локальное состояние. */
+/**
+ * Сначала гасит серверную сессию, затем сбрасывает локальное состояние.
+ *
+ * Доверие устройства при этом остаётся: «выйти» и «забыть это устройство» — разные решения,
+ * и второе делается кнопкой на экране входа или в профиле. Чтобы выход всё же состоялся, а не
+ * был отменён быстрым входом на следующем же экране, ставится отметка на эту вкладку.
+ */
 export const logoutThunk = createAsyncThunk<void>('auth/logout', async () => {
+  suppressQuickLogin();
   await logout();
 });
 
@@ -45,6 +58,8 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.authenticated = true;
       markAuthSessionActive();
+      // Вход состоялся — отметка про «только что вышел» своё отработала.
+      allowQuickLogin();
     },
     logout: clearSession
   },

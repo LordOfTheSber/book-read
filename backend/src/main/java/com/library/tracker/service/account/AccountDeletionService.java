@@ -2,6 +2,7 @@ package com.library.tracker.service.account;
 
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SessionRepository;
+import com.library.tracker.repository.TrustedDeviceRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
@@ -36,6 +37,7 @@ public class AccountDeletionService {
     private final UserRepository userRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final SessionRepository sessionRepository;
+    private final TrustedDeviceRepository trustedDeviceRepository;
     private final ObjectStorage objectStorage;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -69,6 +71,7 @@ public class AccountDeletionService {
         // Сессии и библиотеку уносит каскад из V18; явное удаление сессий здесь — не дубль,
         // а гарантия, что живых ключей не останется, даже если каскад однажды снимут.
         sessionRepository.deleteAllByUserId( user.getId() );
+        trustedDeviceRepository.deleteAllByUserId( user.getId() );
         userRepository.delete( user );
 
         // У UserService свой кеш на полминуты: без сброса удалённый пользователь ещё столько же
