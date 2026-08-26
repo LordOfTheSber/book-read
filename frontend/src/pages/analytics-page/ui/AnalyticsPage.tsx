@@ -441,11 +441,17 @@ export const AnalyticsPage: React.FC = () => {
       : 'Статистика по вашей коллекции';
 
   const periodSwitch = (
-    <Segmented
-      value={period}
-      onChange={(value) => setPeriod(value as PeriodKey)}
-      options={PERIOD_OPTIONS}
-    />
+    <Segmented value={period} onChange={(value) => setPeriod(value as PeriodKey)} options={PERIOD_OPTIONS} />
+  );
+
+  /*
+   * На телефоне переключатель периода стоит своей строкой под заголовком, а не в его действиях:
+   * четыре подписи вместе со «Сравнить годы» занимают 331 пиксель, не сжимаются и не переносятся,
+   * и рядом с заголовком уносили за собой всю страницу. Строка прокручивается внутри себя —
+   * так же, как вкладки.
+   */
+  const periodRow = !isEmpty && !screens.md && (
+    <div style={{ overflowX: 'auto', marginBottom: token.margin }}>{periodSwitch}</div>
   );
 
   return (
@@ -468,10 +474,12 @@ export const AnalyticsPage: React.FC = () => {
                 options={users.map((u) => ({ label: u.username, value: u.id }))}
               />
             )}
-            {!isEmpty && periodSwitch}
+            {!isEmpty && screens.md && periodSwitch}
           </>
         }
       />
+
+      {periodRow}
 
       {error && <Alert type="error" showIcon message="Не удалось загрузить аналитику" description={error} style={styles.alert} />}
 

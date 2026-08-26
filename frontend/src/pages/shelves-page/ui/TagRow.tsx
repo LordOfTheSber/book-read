@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Input, Tooltip, Typography, theme } from 'antd';
+import { Button, Grid, Input, Tooltip, Typography, theme } from 'antd';
 import { CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { Tag as LibraryTag } from '@/shared/types/library';
 
@@ -33,6 +33,7 @@ export const TagRow: React.FC<Props> = ({
   onDelete
 }) => {
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const percent = maxCount > 0 ? Math.max(2, Math.round((tag.itemCount / maxCount) * 100)) : 0;
 
   if (renaming) {
@@ -73,10 +74,14 @@ export const TagRow: React.FC<Props> = ({
         {tag.name}
       </Typography.Text>
 
+      {/*
+        Полоса веса уступает имени: на телефоне сто двадцать пикселей под неё оставляли тегу
+        сто, и «фантастика» превращалась в «фантаст…». Имя тега — то, по чему его узнают.
+      */}
       <span
         aria-hidden
         style={{
-          width: 120,
+          width: screens.md ? 120 : 56,
           height: 6,
           borderRadius: 999,
           background: token.colorFillSecondary,

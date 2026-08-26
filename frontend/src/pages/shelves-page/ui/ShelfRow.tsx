@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Tag, Tooltip, Typography, theme } from 'antd';
+import { Button, Grid, Tag, Tooltip, Typography, theme } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, GlobalOutlined, TeamOutlined } from '@ant-design/icons';
 import { MediaKind, Shelf } from '@/shared/types/library';
 import { shelfRoleMeta } from '@/shared/constants/social';
@@ -39,6 +39,7 @@ export const ShelfRow: React.FC<Props> = ({
   onDelete
 }) => {
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   // Тот же расчёт, что у чипа вида: в тёмной теме заливка и тон считаются от одного значения.
   const tint = kindChipColors(tints[index % tints.length], isDarkSurface(token.colorBgContainer));
 
@@ -49,16 +50,51 @@ export const ShelfRow: React.FC<Props> = ({
     .filter(Boolean)
     .join(' · ');
 
+  const counter = (
+    <Typography.Text
+      type="secondary"
+      strong
+      style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}
+    >
+      {shelf.itemCount}
+    </Typography.Text>
+  );
+
+  const actions = (
+    <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+      <Tooltip title="Показать состав">
+        <Button type="text" size="small" icon={<EyeOutlined />} onClick={onPreview} aria-label="Показать состав" />
+      </Tooltip>
+      <Tooltip title="Участники">
+        <Button type="text" size="small" icon={<TeamOutlined />} onClick={onMembers} aria-label="Участники" />
+      </Tooltip>
+      {onEdit && (
+        <Tooltip title="Переименовать">
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={onEdit} aria-label="Переименовать" />
+        </Tooltip>
+      )}
+      {onDelete && (
+        <Tooltip title="Удалить">
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={onDelete} aria-label="Удалить" />
+        </Tooltip>
+      )}
+    </span>
+  );
+
   return (
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: 14,
+        // На телефоне счётчик и четыре действия встают своей строкой под названием: в один ряд
+        // с ним они оставляли названию треть ширины, и признаки полки лезли в три этажа.
+        alignItems: screens.md ? 'center' : 'flex-start',
+        flexDirection: screens.md ? 'row' : 'column',
+        gap: screens.md ? 14 : 8,
         padding: `13px ${token.padding}px`,
         borderBottom: last ? undefined : `1px solid ${token.colorSplit}`
       }}
     >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', minWidth: 0 }}>
       <span
         aria-hidden
         style={{
@@ -119,39 +155,16 @@ export const ShelfRow: React.FC<Props> = ({
         )}
       </span>
 
-      <Typography.Text
-        type="secondary"
-        strong
-        style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}
-      >
-        {shelf.itemCount}
-      </Typography.Text>
+      {screens.md && counter}
+      {screens.md && actions}
+      </div>
 
-      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-        <Tooltip title="Показать состав">
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={onPreview} aria-label="Показать состав" />
-        </Tooltip>
-        <Tooltip title="Участники">
-          <Button type="text" size="small" icon={<TeamOutlined />} onClick={onMembers} aria-label="Участники" />
-        </Tooltip>
-        {onEdit && (
-          <Tooltip title="Переименовать">
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={onEdit} aria-label="Переименовать" />
-          </Tooltip>
-        )}
-        {onDelete && (
-          <Tooltip title="Удалить">
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={onDelete}
-              aria-label="Удалить"
-            />
-          </Tooltip>
-        )}
-      </span>
+      {!screens.md && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, alignSelf: 'stretch', justifyContent: 'flex-end' }}>
+          {counter}
+          {actions}
+        </div>
+      )}
     </div>
   );
 };

@@ -30,6 +30,14 @@ export const formatDate = (value?: string | null) =>
 export const formatDateTime = (value?: string | null) =>
   format(value, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+/**
+ * 10 янв — день и месяц без года и времени.
+ *
+ * Для узких мест: в строке ленты на телефоне полная дата со временем занимала половину ширины,
+ * и подпись события переносилась в три строки. Год у свежих событий и так подразумевается.
+ */
+export const formatDayMonth = (value?: string | null) => format(value, { day: 'numeric', month: 'short' });
+
 /** 12:30:45 */
 export const formatTime = (value?: string | null) =>
   format(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });

@@ -332,15 +332,26 @@ interface CollapsedLabelProps {
   filled: boolean;
 }
 
+/**
+ * Подпись свёрнутого блока. Ширину она берёт у себя, а не у родителя: заголовок складки в
+ * Ant Design — элемент flex без `min-width: 0`, и строка в одну линию заставляла его вырасти
+ * по длине текста. На телефоне «Цена, валюта и ссылка на магазин…» вместе с чипом уносила
+ * страницу на 527 пикселей вправо. Пояснение переносится, и минимальная ширина становится
+ * длиной самого длинного слова.
+ */
 const CollapsedLabel: React.FC<CollapsedLabelProps> = ({ title, summary, badge, filled }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
     <div style={{ minWidth: 0, flex: 1 }}>
       <Typography.Text strong style={{ display: 'block' }}>
         {title}
       </Typography.Text>
-      <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 12 }}>
+      <Typography.Paragraph
+        type="secondary"
+        ellipsis={{ rows: 2 }}
+        style={{ display: 'block', fontSize: 12, marginBottom: 0 }}
+      >
         {summary}
-      </Typography.Text>
+      </Typography.Paragraph>
     </div>
     <Tag bordered={false} color={filled ? 'blue' : undefined} style={{ flexShrink: 0, marginInlineEnd: 0 }}>
       {badge}
