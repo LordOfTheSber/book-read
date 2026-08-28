@@ -1,10 +1,12 @@
 package com.library.tracker.service;
 
 import com.library.tracker.domain.Author;
+import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.AuthorRepository;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.web.dto.AuthorResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +120,46 @@ class AuthorServiceTest {
         service.findAll( null );
 
         verify( libraryItemRepository ).countByAuthor( eq( null ) );
+    }
+
+    /**
+     * Слияние дублей: книги переезжают к выбранному автору, дубль исчезает. Проверяется главное —
+     * ни одна запись не теряет автора по дороге.
+     */
+    @Test
+    void mergeMovesItemsToTargetAndRemovesDuplicate() {
+        Author source = author( "Cixin Liu" );
+        Author target = author( "Лю Цысинь" );
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.getAuthors().add( source );
+
+        User currentUser = user( Role.ADMIN );
+        when( userService.getCurrentUser() ).thenReturn( currentUser );
+        when( userService.isAdmin( eq( currentUser ) ) ).thenReturn( true );
+        when( libraryItemRepository.countByAuthor( eq( null ) ) ).thenReturn( List.of() );
+        when( authorRepository.findById( eq( source.getId() ) ) ).thenReturn( Optional.of( source ) );
+        when( authorRepository.findById( eq( target.getId() ) ) ).thenReturn( Optional.of( target ) );
+        when( libraryItemRepository.findAllByAuthorId( eq( source.getId() ) ) ).thenReturn( List.of( item ) );
+        when( authorRepository.save( eq( target ) ) ).thenReturn( target );
+
+        AuthorResponse merged = service.merge( source.getId(), target.getId() );
+
+        assertThat( item.getAuthors() ).containsExactly( target );
+        assertThat( merged.getName() ).isEqualTo( "Лю Цысинь" );
+        // Имя дубля не пропадает: человек искал автора и по нему тоже.
+        assertThat( merged.getAltName() ).isEqualTo( "Cixin Liu" );
+        verify( libraryItemRepository ).saveAll( eq( List.of( item ) ) );
+        verify( authorRepository ).delete( eq( source ) );
+    }
+
+    @Test
+    void mergeRejectsAuthorMergedIntoItself() {
+        UUID id = UUID.randomUUID();
+
+        assertThatThrownBy( () -> service.merge( id, id ) )
+                .isInstanceOf( IllegalArgumentException.class );
+        verify( authorRepository, never() ).delete( any( Author.class ) );
     }
 
     private Author author( String name ) {

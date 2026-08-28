@@ -108,6 +108,7 @@ public class SeriesService {
                              .description( series.getDescription() )
                              .itemCount( count != null ? count.getCount() : 0 )
                              .completedCount( count != null ? count.getCompletedCount() : 0 )
+                             .averageRating( count != null ? count.getAverageRating() : null )
                              .createdAt( toOffsetDateTime( series.getCreatedAt() ) )
                              .updatedAt( toOffsetDateTime( series.getUpdatedAt() ) )
                              .build();

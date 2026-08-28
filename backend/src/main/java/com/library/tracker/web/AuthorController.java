@@ -1,6 +1,7 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.AuthorService;
+import com.library.tracker.web.dto.AuthorMergeRequest;
 import com.library.tracker.web.dto.AuthorRequest;
 import com.library.tracker.web.dto.AuthorResponse;
 import jakarta.validation.Valid;
@@ -50,6 +51,17 @@ public class AuthorController {
         return authorService.update( id, request )
                             .map( ResponseEntity::ok )
                             .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    /**
+     * Объединение дублей: справочник заводит автора сам, когда имя вписывают в карточку, поэтому
+     * одно и то же лицо оказывается в нём дважды. Права те же, что у правки: это переименование
+     * по сути, а не удаление данных — произведения дубля не пропадают, а переезжают.
+     */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
+    @PostMapping( "/{id}/merge" )
+    public ResponseEntity<AuthorResponse> merge( @PathVariable UUID id, @Valid @RequestBody AuthorMergeRequest request ) {
+        return ResponseEntity.ok( authorService.merge( id, request.getTargetId() ) );
     }
 
     @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )

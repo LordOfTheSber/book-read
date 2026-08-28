@@ -67,6 +67,10 @@ export interface Author {
   name: string;
   altName?: string;
   itemCount: number;
+  /** Из них дочитано: карточка справочника показывает состояние чтения, а не одно имя. */
+  finishedCount: number;
+  /** Средняя оценка по оценённым произведениям автора. */
+  averageRating?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +88,8 @@ export interface Series {
   description?: string;
   itemCount: number;
   completedCount: number;
+  /** Средняя оценка по оценённым частям цикла. */
+  averageRating?: number;
   createdAt: string;
   updatedAt: string;
 }

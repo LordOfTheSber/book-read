@@ -128,11 +128,12 @@ test('введённый в карточке автор заводится и п
   // В списке автор идёт подписью под названием.
   await expect(page.getByText(author).first()).toBeVisible();
 
-  // Справочники свёрнуты под «Ещё»: одиннадцать равноправных вкладок в шапке не помещались.
+  // Справочники свёрнуты под «Ещё» и собраны в одну страницу с переключателем сущности.
   await page.getByRole('button', { name: /Ещё/ }).click();
-  await page.getByRole('menuitem', { name: 'Авторы' }).click();
+  await page.getByRole('menuitem', { name: 'Справочники' }).click();
   await expect(page.getByText(author)).toBeVisible();
-  await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
+  // Карточка автора говорит не только имя: сколько книг есть и сколько из них дочитано.
+  await expect(page.getByText('1 книга · ничего не дочитано')).toBeVisible();
 });
 
 /**

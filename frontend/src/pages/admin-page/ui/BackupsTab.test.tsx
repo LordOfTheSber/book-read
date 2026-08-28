@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackupsTab } from './BackupsTab';
@@ -52,8 +52,26 @@ describe('BackupsTab', () => {
     await userEvent.upload(input, file);
 
     await waitFor(() => expect(uploadExport).toHaveBeenCalledWith(file));
-    // Список перечитывается: загруженная копия должна быть видна там же, где снятые здесь.
+    // Список перечитывается: принесённая копия должна быть видна там же, где снятые здесь.
     await waitFor(() => expect(listExports).toHaveBeenCalledTimes(2));
+  });
+
+  /**
+   * Восстановление затирает базу всех пользователей и не отменяется ничем: одного нажатия
+   * для него мало, поэтому кнопка оживает только после набранного слова.
+   */
+  it('не разворачивает копию, пока слово не набрано целиком', async () => {
+    renderWithStore(<BackupsTab />);
+    await screen.findByText('export-2025-01-01_02-00-00.json');
+
+    await userEvent.click(screen.getByLabelText('Восстановить'));
+
+    const confirm = await screen.findByLabelText('Подтверждение восстановления');
+    expect(screen.getByRole('button', { name: 'Развернуть' })).toBeDisabled();
+
+    await userEvent.type(confirm, 'ВОССТАНО');
+    expect(screen.getByRole('button', { name: 'Развернуть' })).toBeDisabled();
+    expect(restoreExport).not.toHaveBeenCalled();
   });
 
   /** Разделов в копии два десятка, и сводка должна называть их, а не три знакомых числа. */
@@ -74,13 +92,28 @@ describe('BackupsTab', () => {
     await screen.findByText('export-2025-01-01_02-00-00.json');
 
     await userEvent.click(screen.getByLabelText('Восстановить'));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Восстановить' }));
+    await userEvent.type(await screen.findByLabelText('Подтверждение восстановления'), 'ВОССТАНОВИТЬ');
+    await userEvent.click(screen.getByRole('button', { name: 'Развернуть' }));
 
     await waitFor(() =>
       expect(screen.getByText('Восстановлено: пользователей 2, произведений 3, выписок 5')).toBeInTheDocument()
     );
     // Пустой раздел в сводку не попадает: перечислять нули — значит прятать в них непустые.
     expect(screen.queryByText(/источников/)).not.toBeInTheDocument();
+  });
+
+  /** Ночная копия отличается от снятой руками только временем — и это видно в списке. */
+  it('помечает, откуда взялась копия', async () => {
+    listExports.mockResolvedValue([
+      { fileName: 'export-2025-01-01_02-00-00.json', sizeBytes: 2048, lastModifiedAt: '2025-01-01T02:00:00Z' },
+      { fileName: 'export-2025-01-02_18-12-00.json', sizeBytes: 2048, lastModifiedAt: '2025-01-02T18:12:00Z' },
+      { fileName: 'before-import.json', sizeBytes: 1024, lastModifiedAt: '2025-01-03T09:30:00Z' }
+    ]);
+
+    renderWithStore(<BackupsTab />);
+
+    expect(await screen.findByText('ночная')).toBeInTheDocument();
+    expect(screen.getByText('вручную')).toBeInTheDocument();
+    expect(screen.getByText('принесена')).toBeInTheDocument();
   });
 });

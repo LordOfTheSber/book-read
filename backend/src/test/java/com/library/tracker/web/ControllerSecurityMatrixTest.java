@@ -410,6 +410,7 @@ class ControllerSecurityMatrixTest {
                 Endpoint.get( "/api/v1/authors/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.post( "/api/v1/authors", "{\"name\":\"Лю Цысинь\"}", SUPER_ADMIN, ADMIN, EDITOR ),
                 Endpoint.put( "/api/v1/authors/" + ID, "{\"name\":\"Лю Цысинь\"}", SUPER_ADMIN, ADMIN, EDITOR ),
+                Endpoint.post( "/api/v1/authors/" + ID + "/merge", "{\"targetId\":\"" + ID + "\"}", SUPER_ADMIN, ADMIN, EDITOR ),
                 Endpoint.delete( "/api/v1/authors/" + ID, SUPER_ADMIN, ADMIN ),
                 Endpoint.get( "/api/v1/series", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.get( "/api/v1/series/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),

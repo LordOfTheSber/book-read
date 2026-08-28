@@ -153,9 +153,17 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
     /**
      * Счётчики для списка авторов одним запросом: по строке на автора вместо запроса на каждого.
      * {@code userId = null} — режим администратора, считаем по всей базе.
+     *
+     * Кроме числа произведений строка несёт дочитанное и среднюю оценку: карточка справочника
+     * отвечает на вопрос «что у меня есть этого автора и как я его оцениваю», а считать это
+     * запросом на каждого автора — двести запросов на открытие страницы.
      */
     @Query( """
-            select a.id as authorId, count(li) as count
+            select a.id as authorId,
+                   count(li) as count,
+                   sum(case when li.status = com.library.tracker.domain.ReadingStatus.COMPLETED then 1 else 0 end)
+                       as completedCount,
+                   avg(li.rating) as averageRating
             from LibraryItem li
             join li.authors a
             where (:userId is null or li.createdBy.id = :userId)
@@ -167,13 +175,28 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             select s.id as seriesId,
                    count(li) as count,
                    sum(case when li.status = com.library.tracker.domain.ReadingStatus.COMPLETED then 1 else 0 end)
-                       as completedCount
+                       as completedCount,
+                   avg(li.rating) as averageRating
             from LibraryItem li
             join li.series s
             where (:userId is null or li.createdBy.id = :userId)
             group by s.id
             """ )
     List<SeriesCount> countBySeries( UUID userId );
+
+    /**
+     * Все произведения одного автора вместе с набором авторов: объединение дублей переписывает
+     * этот набор у каждой записи, и без {@code join fetch} на каждую строку уходил бы отдельный
+     * запрос за авторами.
+     */
+    @Query( """
+            select distinct li
+            from LibraryItem li
+            join li.authors a
+            left join fetch li.authors
+            where a.id = :authorId
+            """ )
+    List<LibraryItem> findAllByAuthorId( UUID authorId );
 
     boolean existsBySeriesId( UUID seriesId );
 
@@ -425,6 +448,11 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
         UUID getAuthorId();
 
         long getCount();
+
+        long getCompletedCount();
+
+        /** {@code null}, пока ни одной оценки автору не поставлено. */
+        Double getAverageRating();
     }
 
     interface NamedAuthorCount {
@@ -483,6 +511,9 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
         long getCount();
 
         long getCompletedCount();
+
+        /** {@code null}, пока ни одной части цикла не оценили. */
+        Double getAverageRating();
     }
 
     interface StatusCount {

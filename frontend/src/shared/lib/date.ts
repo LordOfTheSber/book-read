@@ -1,3 +1,5 @@
+import { pluralize } from './plural';
+
 /**
  * Дата в том же виде, в каком её присылает сервер. Через `toISOString` нельзя: он переводит
  * в UTC, и у всех западнее Гринвича календарные сетки съезжали бы на день относительно
@@ -33,3 +35,25 @@ export const formatDateTime = (value?: string | null) =>
 /** 12:30:45 */
 export const formatTime = (value?: string | null) =>
   format(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+/**
+ * «3 часа назад», «вчера», «5 дней назад» — для показателей состояния, где важна не точная дата,
+ * а свежесть: администратор смотрит, не устарела ли последняя копия, а не когда именно её сняли.
+ */
+export const formatRelative = (value?: string | null) => {
+  const date = parseServerDate(value);
+  if (!date || Number.isNaN(date.getTime())) return EMPTY;
+
+  const minutes = Math.round((Date.now() - date.getTime()) / 60_000);
+  if (minutes < 1) return 'только что';
+  if (minutes < 60) return `${pluralize(minutes, ['минуту', 'минуты', 'минут'])} назад`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${pluralize(hours, ['час', 'часа', 'часов'])} назад`;
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'вчера';
+  if (days < 30) return `${pluralize(days, ['день', 'дня', 'дней'])} назад`;
+
+  return formatDate(value);
+};

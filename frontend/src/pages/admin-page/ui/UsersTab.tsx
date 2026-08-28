@@ -22,12 +22,10 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import {
-  LockOutlined,
   MoreOutlined,
   SearchOutlined,
   SettingOutlined,
   StopOutlined,
-  TeamOutlined,
   UnlockOutlined,
   UserOutlined
 } from '@ant-design/icons';
@@ -45,8 +43,8 @@ import { roleMeta, roleOptions } from '@/shared/constants/roles';
 import { useRequestError } from '@/shared/lib/errors';
 import { formatDateTime } from '@/shared/lib/date';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
-import { StatTile } from '@/shared/ui/StatTile';
-import { useUsersPageStyles } from './UsersPage.styles';
+import { useAdminStyles } from './AdminPage.styles';
+import { humanDuration } from './SessionsTab';
 
 interface Props {
   sessionSettings: SessionSettings | null;
@@ -70,7 +68,7 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
   const isAdmin = isAdminLike(currentUser?.role);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const styles = useUsersPageStyles();
+  const styles = useAdminStyles();
   const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
 
@@ -91,16 +89,6 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
     const term = debouncedSearch.trim();
     dispatch(loadUsers({ force: true, username: term || undefined }));
   };
-
-  const stats = useMemo(
-    () => ({
-      total: list.length,
-      blocked: list.filter((user) => user.blocked).length,
-      admins: list.filter((user) => isAdminLike(user.role)).length,
-      overrides: list.filter(hasOverride).length
-    }),
-    [list]
-  );
 
   const openModal = (user: User) => {
     setEditing(user);
@@ -205,35 +193,28 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
     </Tag>
   );
 
+  /**
+   * Сроки сессии словами, а не в минутах: «480 / 43 200 мин» не отвечает на вопрос, когда
+   * человека выкинет, а «8 часов · до 30 дней» отвечает.
+   */
   const renderSession = (user: User) => {
-    if (hasOverride(user)) {
-      return (
-        <Tooltip title="Персональные настройки сессии">
-          <Space direction="vertical" size={0}>
-            <Typography.Text style={styles.tabularNumbers}>
-              {user.sessionTtlOverrideMinutes ?? sessionSettings?.sessionTtlMinutes ?? '—'} /{' '}
-              {user.maxSessionLifetimeOverrideMinutes ?? sessionSettings?.maxSessionLifetimeMinutes ?? '—'} мин
-            </Typography.Text>
-            <Typography.Text type="secondary" style={styles.hint}>
-              персональные
-            </Typography.Text>
-          </Space>
-        </Tooltip>
-      );
-    }
-    if (sessionSettings) {
-      return (
-        <Space direction="vertical" size={0}>
-          <Typography.Text type="secondary" style={styles.tabularNumbers}>
-            {sessionSettings.sessionTtlMinutes} / {sessionSettings.maxSessionLifetimeMinutes} мин
-          </Typography.Text>
-          <Typography.Text type="secondary" style={styles.hint}>
-            по умолчанию
-          </Typography.Text>
-        </Space>
-      );
-    }
-    return <Typography.Text type="secondary">—</Typography.Text>;
+    const personal = hasOverride(user);
+    const ttl = user.sessionTtlOverrideMinutes ?? sessionSettings?.sessionTtlMinutes;
+    const lifetime = user.maxSessionLifetimeOverrideMinutes ?? sessionSettings?.maxSessionLifetimeMinutes;
+    if (!ttl && !lifetime) return <Typography.Text type="secondary">—</Typography.Text>;
+
+    const value = (
+      <Space direction="vertical" size={0}>
+        <Typography.Text type={personal ? undefined : 'secondary'}>
+          {humanDuration(ttl)} · до {humanDuration(lifetime)}
+        </Typography.Text>
+        <Typography.Text type="secondary" style={styles.hint}>
+          {personal ? 'своё' : 'как у всех'}
+        </Typography.Text>
+      </Space>
+    );
+
+    return personal ? <Tooltip title="Персональные настройки сессии">{value}</Tooltip> : value;
   };
 
   const buildMenu = (user: User): MenuProps => ({
@@ -289,14 +270,14 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
         dataIndex: 'username',
         render: (_: string, user) => (
           <Space size={10}>
-            {renderAvatar(user, 32)}
+            {renderAvatar(user, 34)}
             <Space direction="vertical" size={0}>
               <Typography.Text strong>{user.username}</Typography.Text>
-              {user.id === currentUser?.id && (
-                <Typography.Text type="secondary" style={styles.hint}>
-                  это вы
-                </Typography.Text>
-              )}
+              {/* Дата заведения ушла под имя: отдельный столбец «Создан» стоил ширины,
+                  которой не хватало сессии — а её здесь как раз и правят. */}
+              <Typography.Text type="secondary" style={styles.hint}>
+                {user.id === currentUser?.id ? 'это вы · ' : ''}с {formatDateTime(user.createdAt)}
+              </Typography.Text>
             </Space>
           </Space>
         )
@@ -308,14 +289,7 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
         width: 140,
         render: (blocked: boolean) => renderStatus(blocked)
       },
-      { title: 'Сессия', key: 'session', width: 170, render: (_: unknown, user) => renderSession(user) },
-      {
-        title: 'Создан',
-        dataIndex: 'createdAt',
-        width: 170,
-        responsive: ['xl'],
-        render: (value?: string) => <Typography.Text type="secondary">{formatDateTime(value)}</Typography.Text>
-      },
+      { title: 'Сессия', key: 'session', width: 190, render: (_: unknown, user) => renderSession(user) },
       ...(isAdmin
         ? [
             {
@@ -348,30 +322,6 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
 
   return (
     <>
-      <div style={styles.stats}>
-        <StatTile label="Всего" value={stats.total} icon={<TeamOutlined />} loading={loading && !list.length} />
-        <StatTile
-          label="Админы"
-          value={stats.admins}
-          icon={<LockOutlined />}
-          loading={loading && !list.length}
-        />
-        <StatTile
-          label="Блокировки"
-          value={stats.blocked}
-          icon={<StopOutlined />}
-          accent={styles.accents.blocked}
-          loading={loading && !list.length}
-        />
-        <StatTile
-          label="Свои сессии"
-          value={stats.overrides}
-          icon={<SettingOutlined />}
-          accent={styles.accents.overrides}
-          loading={loading && !list.length}
-        />
-      </div>
-
       <div style={styles.toolbar}>
         <Input
           allowClear
@@ -388,7 +338,7 @@ export const UsersTab: React.FC<Props> = ({ sessionSettings }) => {
       {isMobile ? (
         <Space direction="vertical" size={12} style={styles.mobileList}>
           {list.length === 0 && !loading ? (
-            <div style={styles.emptyWrapper}>{emptyState}</div>
+            <div style={styles.empty}>{emptyState}</div>
           ) : (
             list.map((user) => (
               <div key={user.id} style={styles.mobileCard}>

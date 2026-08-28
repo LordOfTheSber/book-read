@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Author } from '@/shared/types/library';
-import { createAuthor, deleteAuthor, fetchAuthors, updateAuthor } from '../api/authorApi';
+import { createAuthor, deleteAuthor, fetchAuthors, mergeAuthors, updateAuthor } from '../api/authorApi';
 
 export interface AuthorState {
   list: Author[];
@@ -34,6 +34,18 @@ export const updateAuthorThunk = createAsyncThunk(
   'authors/update',
   async ({ id, payload }: { id: string; payload: Partial<Author> }) => updateAuthor(id, payload)
 );
+/**
+ * Слияние возвращает автора-цель и идентификатор исчезнувшего дубля: список правится на месте,
+ * без перечитывания справочника целиком.
+ */
+export const mergeAuthorsThunk = createAsyncThunk(
+  'authors/merge',
+  async ({ sourceId, targetId }: { sourceId: string; targetId: string }) => ({
+    sourceId,
+    target: await mergeAuthors(sourceId, targetId)
+  })
+);
+
 export const deleteAuthorThunk = createAsyncThunk('authors/delete', async (id: string) => {
   await deleteAuthor(id);
   return id;
@@ -62,6 +74,11 @@ const authorSlice = createSlice({
       })
       .addCase(updateAuthorThunk.fulfilled, (state, action: PayloadAction<Author>) => {
         state.list = state.list.map((author) => (author.id === action.payload.id ? action.payload : author));
+      })
+      .addCase(mergeAuthorsThunk.fulfilled, (state, action) => {
+        state.list = state.list
+          .filter((author) => author.id !== action.payload.sourceId)
+          .map((author) => (author.id === action.payload.target.id ? action.payload.target : author));
       })
       .addCase(deleteAuthorThunk.fulfilled, (state, action: PayloadAction<string>) => {
         state.list = state.list.filter((author) => author.id !== action.payload);

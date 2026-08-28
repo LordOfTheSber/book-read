@@ -16,6 +16,15 @@ export const updateAuthor = async (id: string, payload: Partial<Author>) => {
   return data;
 };
 
+/**
+ * Слияние дублей: произведения автора-дубля переезжают к выбранному автору, дубль удаляется.
+ * Считать это переименованием нельзя — за одним запросом стоит правка всех связанных записей.
+ */
+export const mergeAuthors = async (sourceId: string, targetId: string) => {
+  const { data } = await httpClient.post<Author>(`/authors/${sourceId}/merge`, { targetId });
+  return data;
+};
+
 export const deleteAuthor = async (id: string) => {
   await httpClient.delete(`/authors/${id}`);
 };

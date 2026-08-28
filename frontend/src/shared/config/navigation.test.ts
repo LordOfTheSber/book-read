@@ -7,8 +7,16 @@ describe('реестр разделов', () => {
   });
 
   it('вложенный адрес принадлежит своему разделу, а не корню', () => {
-    expect(findSection('/nodes/42')?.key).toBe('nodes');
+    expect(findSection('/shelves/42')?.key).toBe('shelves');
+    // Корень отвечает только за самого себя, иначе он подсвечивался бы на любой странице.
     expect(findSection('/')?.key).toBe('books');
+    expect(findSection('/library/42')).toBeUndefined();
+  });
+
+  /** Четыре справочника стали одной страницей: сущность выбирается на ней, а не в меню. */
+  it('справочники — один пункт меню', () => {
+    expect(findSection('/catalog')?.key).toBe('catalog');
+    expect(findSection('/catalog')?.label).toBe('Справочники');
   });
 
   /** Иначе «Библиотека» подсвечивалась бы на профиле и на чужой странице — раздела, которого нет. */
@@ -17,6 +25,8 @@ describe('реестр разделов', () => {
     expect(findSection('/u/sber')).toBeUndefined();
     expect(sectionTitle('/profile')).toBe('Профиль');
     expect(sectionTitle('/u/sber')).toBe('Страница читателя');
+    // Страница узла открывается с обзора администрирования — имя ей всё равно нужно.
+    expect(sectionTitle('/nodes/42')).toBe('Узел');
   });
 
   it('администраторские разделы видны только администратору, пустой группы не остаётся', () => {
@@ -25,9 +35,8 @@ describe('реестр разделов', () => {
 
     expect(forUser.map((group) => group.key)).not.toContain('admin');
     expect(forAdmin.find((group) => group.key === 'admin')?.items.map((item) => item.key)).toEqual([
-      'users',
-      'nodes'
+      'admin'
     ]);
-    expect(findSection('/users', false)).toBeUndefined();
+    expect(findSection('/admin', false)).toBeUndefined();
   });
 });

@@ -1,6 +1,7 @@
 package com.library.tracker.service;
 
 import com.library.tracker.domain.Author;
+import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.AuthorRepository;
 import com.library.tracker.repository.LibraryItemRepository;
@@ -38,13 +39,13 @@ public class AuthorService {
         List<Author> authors = StringUtils.hasText( query )
                 ? authorRepository.findByNameContainingIgnoreCaseOrderByNameAsc( query.trim() )
                 : authorRepository.findAllByOrderByNameAsc();
-        Map<UUID, Long> counts = itemCounts();
+        Map<UUID, LibraryItemRepository.AuthorCount> counts = itemCounts();
         return authors.stream().map( author -> toResponse( author, counts ) ).toList();
     }
 
     @Transactional( readOnly = true )
     public Optional<AuthorResponse> findById( UUID id ) {
-        Map<UUID, Long> counts = itemCounts();
+        Map<UUID, LibraryItemRepository.AuthorCount> counts = itemCounts();
         return authorRepository.findById( id ).map( author -> toResponse( author, counts ) );
     }
 
@@ -66,6 +67,36 @@ public class AuthorService {
             applyRequest( existing, request );
             return toResponse( authorRepository.save( existing ), itemCounts() );
         } );
+    }
+
+    /**
+     * Слияние дублей: справочник авторов пополняется сам, когда имя вписывают в карточку, —
+     * «Лю Цысинь» и «Cixin Liu» так становятся двумя авторами с одними и теми же книгами.
+     * Произведения дубля переезжают к выбранному автору, сам дубль исчезает. Имя, которое
+     * человек видел на дубле, не пропадает: если у цели нет второго имени, оно встаёт туда.
+     */
+    public AuthorResponse merge( UUID sourceId, UUID targetId ) {
+        if ( sourceId.equals( targetId ) ) {
+            throw new IllegalArgumentException( "Cannot merge author into itself" );
+        }
+        Author source = authorRepository.findById( sourceId )
+                                        .orElseThrow( () -> new IllegalArgumentException( "Author not found" ) );
+        Author target = authorRepository.findById( targetId )
+                                        .orElseThrow( () -> new IllegalArgumentException( "Author not found" ) );
+
+        List<LibraryItem> items = libraryItemRepository.findAllByAuthorId( sourceId );
+        for ( LibraryItem item : items ) {
+            item.getAuthors().remove( source );
+            item.getAuthors().add( target );
+        }
+        libraryItemRepository.saveAll( items );
+
+        if ( !StringUtils.hasText( target.getAltName() ) && !target.getName().equalsIgnoreCase( source.getName() ) ) {
+            target.setAltName( source.getName() );
+        }
+        Author saved = authorRepository.save( target );
+        authorRepository.delete( source );
+        return toResponse( saved, itemCounts() );
     }
 
     public void delete( UUID id ) {
@@ -104,12 +135,12 @@ public class AuthorService {
      * Считает произведения по авторам одним запросом. Обычный пользователь видит счётчики
      * по своей библиотеке, администратор — по всей.
      */
-    private Map<UUID, Long> itemCounts() {
+    private Map<UUID, LibraryItemRepository.AuthorCount> itemCounts() {
         User currentUser = userService.getCurrentUser();
         UUID scope = userService.isAdmin( currentUser ) ? null : currentUser.getId();
         return libraryItemRepository.countByAuthor( scope ).stream()
                                     .collect( Collectors.toMap( LibraryItemRepository.AuthorCount::getAuthorId,
-                                                                LibraryItemRepository.AuthorCount::getCount ) );
+                                                                count -> count ) );
     }
 
     private void applyRequest( Author author, AuthorRequest request ) {
@@ -117,12 +148,15 @@ public class AuthorService {
         author.setAltName( StringUtils.hasText( request.getAltName() ) ? request.getAltName().trim() : null );
     }
 
-    private AuthorResponse toResponse( Author author, Map<UUID, Long> counts ) {
+    private AuthorResponse toResponse( Author author, Map<UUID, LibraryItemRepository.AuthorCount> counts ) {
+        LibraryItemRepository.AuthorCount count = counts.get( author.getId() );
         return AuthorResponse.builder()
                              .id( author.getId() )
                              .name( author.getName() )
                              .altName( author.getAltName() )
-                             .itemCount( counts.getOrDefault( author.getId(), 0L ) )
+                             .itemCount( count != null ? count.getCount() : 0 )
+                             .finishedCount( count != null ? count.getCompletedCount() : 0 )
+                             .averageRating( count != null ? count.getAverageRating() : null )
                              .createdAt( toOffsetDateTime( author.getCreatedAt() ) )
                              .updatedAt( toOffsetDateTime( author.getUpdatedAt() ) )
                              .build();

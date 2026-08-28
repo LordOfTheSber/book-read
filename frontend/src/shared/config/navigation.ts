@@ -45,29 +45,29 @@ export const secondaryNav: NavGroup[] = [
   },
   {
     key: 'catalogues',
-    label: 'Справочники',
+    // Группа и пункт не могут называться одинаково: «Справочники» внутри «Справочников»
+    // читаются как ошибка вёрстки.
+    label: 'Устройство библиотеки',
     items: [
       { key: 'shelves', label: 'Полки и теги', path: '/shelves' },
-      { key: 'authors', label: 'Авторы', path: '/authors' },
-      { key: 'series', label: 'Серии', path: '/series' },
-      { key: 'types', label: 'Типы', path: '/types' },
-      { key: 'sources', label: 'Источники', path: '/sources' }
+      // Авторы, серии, типы и источники устроены одинаково и собраны в одну страницу
+      // с переключателем: четыре пункта меню на них не тратятся.
+      { key: 'catalog', label: 'Справочники', path: '/catalog' }
     ]
   },
   {
     key: 'admin',
-    label: 'Администрирование',
-    items: [
-      { key: 'users', label: 'Пользователи', path: '/users', adminOnly: true },
-      { key: 'nodes', label: 'Узлы', path: '/nodes', adminOnly: true }
-    ]
+    label: 'Служебное',
+    items: [{ key: 'admin', label: 'Администрирование', path: '/admin', adminOnly: true }]
   }
 ];
 
 /** Разделы без пункта меню: имя нужно заголовку экрана на телефоне. */
 const extraTitles: Array<{ path: string; label: string }> = [
   { path: '/profile', label: 'Профиль' },
-  { path: '/u/', label: 'Страница читателя' }
+  { path: '/u/', label: 'Страница читателя' },
+  // Страница узла открывается с обзора администрирования, своего пункта меню у неё нет.
+  { path: '/nodes/', label: 'Узел' }
 ];
 
 export const allSections: NavSection[] = [
