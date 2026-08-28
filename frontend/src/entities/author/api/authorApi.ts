@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { Author } from '@/shared/types/library';
+import { Author, Showcase } from '@/shared/types/library';
 
 export const fetchAuthors = async (query?: string) => {
   const { data } = await httpClient.get<Author[]>('/authors', { params: query ? { q: query } : undefined });
@@ -17,11 +17,18 @@ export const updateAuthor = async (id: string, payload: Partial<Author>) => {
 };
 
 /**
- * Слияние дублей: произведения автора-дубля переезжают к выбранному автору, дубль удаляется.
- * Считать это переименованием нельзя — за одним запросом стоит правка всех связанных записей.
+ * Обложки для показанных карточек. Идентификаторы перечисляет страница: справочник листается,
+ * и грузить обложки всех двухсот авторов ради восемнадцати видимых незачем.
  */
-export const mergeAuthors = async (sourceId: string, targetId: string) => {
-  const { data } = await httpClient.post<Author>(`/authors/${sourceId}/merge`, { targetId });
+export const fetchAuthorShowcase = async (ids: string[]) => {
+  if (ids.length === 0) return {};
+  const { data } = await httpClient.get<Showcase>('/authors/showcase', { params: { ids: ids.join(',') } });
+  return data;
+};
+
+/** Слияние дублей: произведения уходящего автора переходят к остающемуся. */
+export const mergeAuthors = async (targetId: string, sourceId: string) => {
+  const { data } = await httpClient.post<Author>(`/authors/${targetId}/merge`, { sourceId });
   return data;
 };
 

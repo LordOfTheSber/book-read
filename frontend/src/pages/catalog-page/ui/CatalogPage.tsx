@@ -1,426 +1,378 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { App, Button, Empty, Grid, Input, Segmented, Select, Space, Spin, Typography } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { App, Button, Empty, Form, Grid, Input, Modal, Select, Typography, theme } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { useRequestError } from '@/shared/lib/errors';
 import { canEditContent, isAdminLike } from '@/shared/lib/roles';
-import { pluralize } from '@/shared/lib/plural';
-import {
-  createAuthorThunk,
-  deleteAuthorThunk,
-  loadAuthors,
-  mergeAuthorsThunk,
-  updateAuthorThunk
-} from '@/entities/author';
-import { createSeriesThunk, deleteSeriesThunk, loadSeries, updateSeriesThunk } from '@/entities/series';
-import {
-  createBookTypeThunk,
-  deleteBookTypeThunk,
-  loadBookTypes,
-  updateBookTypeThunk
-} from '@/entities/book-type';
-import { createSourceThunk, deleteSourceThunk, loadSources, updateSourceThunk } from '@/entities/source';
-import { loadBookAnalytics } from '@/entities/analytics';
+import { findDuplicates } from '@/shared/lib/duplicates';
 import { setFilters } from '@/features/book/set-book-filters';
-import {
-  authorRow,
-  catalogMeta,
-  catalogSortOptions,
-  CATALOG_ENTITIES,
-  findDuplicatePairs,
-  isCatalogEntity,
-  searchMatches,
-  seriesRow,
-  sortRows,
-  sourceRow,
-  typeRow,
-  useCatalogCovers,
-  type CatalogEntityKey,
-  type CatalogRow,
-  type CatalogSort
-} from '../model';
-import { CatalogCards } from './CatalogCards';
-import { CatalogRows } from './CatalogRows';
-import { CatalogFormModal } from './CatalogFormModal';
+import { fetchAuthorShowcase, mergeAuthorsThunk } from '@/entities/author';
+import { fetchSeriesShowcase } from '@/entities/series';
+import { CatalogShowcase } from '@/widgets/catalog-showcase';
+import { CatalogTable } from '@/widgets/catalog-table';
 import { DuplicateNotice } from './DuplicateNotice';
-import { useCatalogStyles } from './CatalogPage.styles';
+import {
+  CatalogEntityKey,
+  CatalogRow,
+  catalogEntities,
+  catalogEntityKeys,
+  resolveEntityKey
+} from '../model/catalogEntities';
 
-/** Карточки показываются порциями: на каждую уходит запрос за обложками. */
-const CARDS_STEP = 12;
+type SortKey = 'name' | 'count' | 'finished';
+
+const sortOptions: Array<{ value: SortKey; label: string }> = [
+  { value: 'count', label: 'Сначала частые' },
+  { value: 'name', label: 'По алфавиту' },
+  { value: 'finished', label: 'Сначала прочитанные' }
+];
 
 /**
- * Четыре справочника одной страницей (макеты `Catalog1` и `Catalog2`).
+ * Справочники — одна страница вместо четырёх.
  *
- * Раньше это были четыре одинаковые страницы в меню — «Авторы», «Серии», «Типы», «Источники», —
- * собранные из общего компонента и занимавшие четыре пункта из одиннадцати. Здесь они стали
- * одной страницей с переключателем слева. Варианты макета не спорят, а делят справочники между
- * собой: у авторов и серий есть книги, и они показываются карточками с обложками; у типов и
- * источников показывать нечего, им остаётся строка с правкой на месте.
+ * «Авторы», «Серии», «Типы» и «Источники» занимали четыре пункта меню и были устроены одинаково:
+ * заголовок, поиск, таблица, окно правки. Здесь они собраны переключателем слева, а показываются
+ * по-разному: у авторов и циклов обложки складываются в ответ «что из этого у меня есть», типам
+ * и источникам показывать нечего — им остаётся строка с правкой на месте.
  */
 export const CatalogPage: React.FC = () => {
+  const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
+  const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { message, modal } = App.useApp();
   const showRequestError = useRequestError();
-  const styles = useCatalogStyles();
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
-
-  const [params, setParams] = useSearchParams();
-  const raw = params.get('entity');
-  const entity: CatalogEntityKey = isCatalogEntity(raw) ? raw : 'authors';
-  const meta = catalogMeta(entity);
-
+  const [searchParams, setSearchParams] = useSearchParams();
   const role = useAppSelector((state) => state.auth.user?.role);
+
+  const entityKey = resolveEntityKey(searchParams.get('entity'));
+  const entity = catalogEntities[entityKey];
   const canEdit = canEditContent(role);
   const canDelete = isAdminLike(role);
 
-  const authors = useAppSelector((state) => state.authors);
-  const series = useAppSelector((state) => state.series);
-  const bookTypes = useAppSelector((state) => state.bookTypes);
-  const sources = useAppSelector((state) => state.sources);
-  const analytics = useAppSelector((state) => state.analytics.data);
-
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<CatalogSort>(catalogSortOptions(meta.view)[0].value);
-  const [visibleCount, setVisibleCount] = useState(CARDS_STEP);
-  const [formOpen, setFormOpen] = useState(false);
+  const [sort, setSort] = useState<SortKey>('count');
+  const [form] = Form.useForm();
   const [editing, setEditing] = useState<CatalogRow | null>(null);
-  const [merging, setMerging] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  /** Пары, от объединения которых отказались: подсказка не должна возвращаться на каждый вход. */
+  const [dismissed, setDismissed] = useState<string[]>([]);
 
+  // Счётчики в рельсе показывают все четыре справочника, поэтому грузятся все четыре.
   useEffect(() => {
-    // Справочник всегда перечитывается: он пополняется из карточки книги, и кэш здесь —
-    // это вчерашний справочник.
-    if (entity === 'authors') dispatch(loadAuthors({ force: true }));
-    if (entity === 'series') dispatch(loadSeries({ force: true }));
-    if (entity === 'types') dispatch(loadBookTypes());
-    if (entity === 'sources') dispatch(loadSources());
-  }, [dispatch, entity]);
-
-  useEffect(() => {
-    // Счётчики в рельсе показывают все четыре справочника сразу, поэтому списки нужны все.
-    dispatch(loadAuthors());
-    dispatch(loadSeries());
-    dispatch(loadBookTypes());
-    dispatch(loadSources());
-    // Числа записей по типам и источникам живут в аналитике: своих счётчиков у них нет.
-    dispatch(loadBookAnalytics(undefined));
+    catalogEntityKeys.forEach((key) => dispatch(catalogEntities[key].load({ force: true })));
   }, [dispatch]);
 
+  // Поиск и сортировка живут внутри справочника: перейдя к источникам, искать автора незачем.
   useEffect(() => {
     setQuery('');
-    setSort(catalogSortOptions(catalogMeta(entity).view)[0].value);
-    setVisibleCount(CARDS_STEP);
-  }, [entity]);
+  }, [entityKey]);
 
-  const typeCounts = useMemo(
-    () => new Map((analytics?.topTypes ?? []).map((type) => [type.typeId, type.count])),
-    [analytics]
-  );
-  const sourceCounts = useMemo(
-    () => new Map((analytics?.topSources ?? []).map((source) => [source.sourceId, source.count])),
-    [analytics]
-  );
-
-  const rows = useMemo<CatalogRow[]>(() => {
-    switch (entity) {
-      case 'series':
-        return series.list.map(seriesRow);
-      case 'types':
-        return bookTypes.list.map((type) => typeRow(type, typeCounts.get(type.id) ?? 0));
-      case 'sources':
-        return sources.list.map((source) => sourceRow(source, sourceCounts.get(source.id) ?? 0));
-      default:
-        return authors.list.map(authorRow);
-    }
-  }, [entity, authors.list, series.list, bookTypes.list, sources.list, typeCounts, sourceCounts]);
-
-  const loading =
-    (entity === 'authors' && authors.loading) ||
-    (entity === 'series' && series.loading) ||
-    (entity === 'types' && bookTypes.loading) ||
-    (entity === 'sources' && sources.loading);
-
-  const visible = useMemo(
-    () => sortRows(rows.filter((row) => searchMatches(row, query)), sort),
-    [rows, query, sort]
-  );
-  const shown = meta.view === 'cards' ? visible.slice(0, visibleCount) : visible;
-  const covers = useCatalogCovers(entity, meta.view === 'cards' ? shown.map((row) => row.id) : []);
-
-  /** Подсказка про дубли есть только у авторов: они одни заводятся сами из карточки книги. */
-  const duplicate = useMemo(
-    () => (entity === 'authors' ? findDuplicatePairs(authors.list)[0] : undefined),
-    [entity, authors.list]
-  );
-
+  // По селектору на справочник: один, собирающий объект, отдавал бы новую ссылку на каждый
+  // рендер, и react-redux перерисовывал бы рельс без причины.
   const counts: Record<CatalogEntityKey, number> = {
-    authors: authors.list.length,
-    series: series.list.length,
-    types: bookTypes.list.length,
-    sources: sources.list.length
+    authors: useAppSelector((state) => state.authors.list.length),
+    series: useAppSelector((state) => state.series.list.length),
+    types: useAppSelector((state) => state.bookTypes.list.length),
+    sources: useAppSelector((state) => state.sources.list.length)
   };
 
+  const slice = useAppSelector(entity.select);
+  const rows = useMemo(() => (slice.list as never[]).map((item) => entity.toRow(item)), [slice.list, entity]);
+  /**
+   * Исходные записи по идентификатору. Строка витрины приведена к общему виду и части полей
+   * формы не знает: у источника в ней нет ни описания, ни адреса — сохранив её, правка имени
+   * стёрла бы и то и другое.
+   */
+  const byId = useMemo(() => {
+    const map = new Map<string, never>();
+    (slice.list as never[]).forEach((item) => map.set(entity.toRow(item).id, item));
+    return map;
+  }, [slice.list, entity]);
+
+  const visible = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    const matched = trimmed
+      ? rows.filter(
+          (row) =>
+            row.name.toLowerCase().includes(trimmed) ||
+            Boolean(row.secondary?.toLowerCase().includes(trimmed))
+        )
+      : rows;
+
+    const sorted = [...matched];
+    if (sort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'count') sorted.sort((a, b) => (b.itemCount ?? 0) - (a.itemCount ?? 0) || a.name.localeCompare(b.name));
+    if (sort === 'finished') {
+      sorted.sort((a, b) => (b.finishedCount ?? 0) - (a.finishedCount ?? 0) || a.name.localeCompare(b.name));
+    }
+    return sorted;
+  }, [rows, query, sort]);
+
+  /**
+   * Дубли заводятся сами: имя вписывают руками в карточке, и справочник расходится на две строки.
+   * Подсказка ищется только у авторов — только у них есть второе написание того же имени, и
+   * только их объединение переносит произведения.
+   */
+  const duplicate = useMemo(() => {
+    if (entityKey !== 'authors' || !canDelete) return undefined;
+    return findDuplicates(
+      rows.map((row) => ({ id: row.id, name: row.name, altName: row.altName, itemCount: row.itemCount ?? 0 }))
+    ).find((pair) => !dismissed.includes(`${pair.target.id}:${pair.source.id}`));
+  }, [entityKey, canDelete, rows, dismissed]);
+
   const openLibrary = (row: CatalogRow) => {
-    if (!row.libraryFilter) return;
-    dispatch(setFilters({ ...row.libraryFilter, page: 0 }));
+    dispatch(setFilters(entityKey === 'authors' ? { authorId: row.id, page: 0 } : { seriesId: row.id, page: 0 }));
     navigate('/');
   };
 
-  const save = async (row: CatalogRow | null, values: Record<string, string>) => {
-    const payload = {
-      name: values.name?.trim(),
-      altName: values.altName?.trim() || undefined,
-      description: values.description?.trim() || undefined,
-      url: values.url?.trim()
-    };
+  const openForm = (row?: CatalogRow) => {
+    setEditing(row ?? null);
+    setFormOpen(true);
+  };
 
+  const save = async () => {
+    const values = await form.validateFields().catch(() => undefined);
+    if (!values) return;
+    setSaving(true);
     try {
-      switch (entity) {
-        case 'authors':
-          await (row
-            ? dispatch(updateAuthorThunk({ id: row.id, payload })).unwrap()
-            : dispatch(createAuthorThunk(payload)).unwrap());
-          break;
-        case 'series':
-          await (row
-            ? dispatch(updateSeriesThunk({ id: row.id, payload })).unwrap()
-            : dispatch(createSeriesThunk(payload)).unwrap());
-          break;
-        case 'types':
-          await (row
-            ? dispatch(updateBookTypeThunk({ id: row.id, payload })).unwrap()
-            : dispatch(createBookTypeThunk(payload)).unwrap());
-          break;
-        default:
-          await (row
-            ? dispatch(updateSourceThunk({ id: row.id, payload })).unwrap()
-            : dispatch(createSourceThunk(payload)).unwrap());
+      if (editing) {
+        await dispatch(entity.update(editing.id, values)).unwrap();
+        message.success(entity.labels.updated);
+      } else {
+        await dispatch(entity.create(values)).unwrap();
+        message.success(entity.labels.created);
       }
-      message.success(row ? 'Запись обновлена' : 'Запись добавлена');
       setFormOpen(false);
-      setEditing(null);
     } catch (error) {
-      showRequestError(error, 'Не удалось сохранить запись справочника');
+      showRequestError(error, entity.labels.saveError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const rename = async (row: CatalogRow, name: string) => {
+    try {
+      const original = byId.get(row.id);
+      await dispatch(entity.update(row.id, { ...(original ? entity.toFormValues(original) : {}), name })).unwrap();
+      message.success(entity.labels.updated);
+    } catch (error) {
+      showRequestError(error, entity.labels.saveError);
       throw error;
     }
   };
 
-  const remove = (row: CatalogRow) => {
+  const confirmDelete = (row: CatalogRow) => {
     modal.confirm({
-      title: `Удалить «${row.name}»?`,
-      content:
-        row.itemCount > 0
-          ? `Записей с этой ссылкой: ${row.itemCount}. Удалить можно только то, чем ничего не пользуется.`
-          : 'Запись справочника будет удалена.',
+      title: entity.labels.deleteTitle,
+      content: entity.labels.deleteContent(row),
       okText: 'Удалить',
       okButtonProps: { danger: true },
       cancelText: 'Отмена',
       onOk: async () => {
         try {
-          switch (entity) {
-            case 'authors':
-              await dispatch(deleteAuthorThunk(row.id)).unwrap();
-              break;
-            case 'series':
-              await dispatch(deleteSeriesThunk(row.id)).unwrap();
-              break;
-            case 'types':
-              await dispatch(deleteBookTypeThunk(row.id)).unwrap();
-              break;
-            default:
-              await dispatch(deleteSourceThunk(row.id)).unwrap();
-          }
-          message.success('Запись удалена');
+          await dispatch(entity.remove(row.id)).unwrap();
+          message.success(entity.labels.deleted);
         } catch (error) {
-          showRequestError(error, 'Не удалось удалить запись справочника');
+          showRequestError(error, entity.labels.deleteError);
         }
       }
     });
   };
 
-  const mergeDuplicate = () => {
-    if (!duplicate) return;
-    modal.confirm({
-      title: 'Объединить авторов?',
-      content: `Книги автора «${duplicate.merge.name}» перейдут к «${duplicate.keep.name}», а сам он исчезнет из справочника. Книги при этом не пропадут.`,
-      okText: 'Объединить',
-      cancelText: 'Отмена',
-      onOk: async () => {
-        setMerging(true);
-        try {
-          await dispatch(
-            mergeAuthorsThunk({ sourceId: duplicate.merge.id, targetId: duplicate.keep.id })
-          ).unwrap();
-          message.success('Авторы объединены');
-        } catch (error) {
-          showRequestError(error, 'Не удалось объединить авторов');
-        } finally {
-          setMerging(false);
-        }
-      }
-    });
+  const mergeAuthors = async (targetId: string, sourceId: string) => {
+    try {
+      await dispatch(mergeAuthorsThunk({ targetId, sourceId })).unwrap();
+      message.success('Авторы объединены');
+    } catch (error) {
+      showRequestError(error, 'Не удалось объединить авторов');
+    }
   };
 
-  const switcher = isMobile ? (
-    <Segmented
-      block
-      value={entity}
-      onChange={(value) => setParams({ entity: String(value) })}
-      options={CATALOG_ENTITIES.map((item) => ({ label: item.label, value: item.key }))}
-      style={{ marginBottom: 14 }}
-    />
-  ) : (
-    <div style={styles.rail}>
-      {CATALOG_ENTITIES.map((item) => {
-        const active = item.key === entity;
-        return (
-          <button
-            key={item.key}
-            type="button"
-            style={styles.railItem(active)}
-            aria-current={active ? 'page' : undefined}
-            onClick={() => setParams({ entity: item.key })}
-          >
-            <span style={{ flex: 1 }}>{item.label}</span>
-            <span style={styles.railCount(active)}>{counts[item.key]}</span>
-          </button>
-        );
-      })}
-    </div>
+  /** Витрина просит обложки по показанным идентификаторам — у авторов и циклов свой запрос. */
+  const fetchShowcase = useCallback(
+    (ids: string[]) => (entityKey === 'authors' ? fetchAuthorShowcase(ids) : fetchSeriesShowcase(ids)),
+    [entityKey]
   );
 
-  const content = (
-    <div>
-      <div style={styles.toolbar}>
-        <Input
-          allowClear
-          size="large"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          prefix={<SearchOutlined style={styles.muted} />}
-          placeholder={meta.searchPlaceholder}
-          style={{ flex: 1, minWidth: 200 }}
-        />
-        <Select
-          size="large"
-          value={sort}
-          onChange={setSort}
-          options={catalogSortOptions(meta.view)}
-          style={{ width: 200 }}
-          aria-label="Порядок"
-        />
-        {canEdit && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            {isMobile ? 'Добавить' : meta.addButton}
-          </Button>
-        )}
-      </div>
-
-      {duplicate && (
-        <DuplicateNotice
-          pair={duplicate}
-          canMerge={canEdit}
-          merging={merging}
-          onShow={() => setQuery(duplicate.merge.name)}
-          onMerge={mergeDuplicate}
-        />
+  const isFiltered = Boolean(query.trim());
+  const empty = (
+    <Empty
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      description={
+        <span>
+          <Typography.Text strong style={{ display: 'block' }}>
+            {isFiltered ? 'Ничего не найдено' : entity.labels.emptyTitle}
+          </Typography.Text>
+          {!isFiltered && <Typography.Text type="secondary">{entity.labels.emptyHint}</Typography.Text>}
+        </span>
+      }
+    >
+      {!isFiltered && canEdit && (
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>
+          {entity.labels.addButton}
+        </Button>
       )}
-
-      {loading && rows.length === 0 ? (
-        <div style={{ ...styles.empty, textAlign: 'center' }}>
-          <Spin />
-        </div>
-      ) : shown.length === 0 ? (
-        <div style={styles.empty}>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <Space direction="vertical" size={4}>
-                <Typography.Text strong>
-                  {query.trim() ? 'Ничего не найдено' : meta.emptyTitle}
-                </Typography.Text>
-                {!query.trim() && <Typography.Text type="secondary">{meta.emptyHint}</Typography.Text>}
-              </Space>
-            }
-          />
-        </div>
-      ) : meta.view === 'cards' ? (
-        <>
-          <CatalogCards
-            entity={entity}
-            rows={shown}
-            covers={covers}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            onEdit={(row) => {
-              setEditing(row);
-              setFormOpen(true);
-            }}
-            onDelete={remove}
-            onOpenLibrary={openLibrary}
-          />
-          {visible.length > shown.length && (
-            <div style={styles.more}>
-              <Button onClick={() => setVisibleCount((count) => count + CARDS_STEP)}>
-                Показать ещё ({visible.length - shown.length})
-              </Button>
-            </div>
-          )}
-        </>
-      ) : (
-        <CatalogRows
-          meta={meta}
-          rows={shown}
-          canEdit={canEdit}
-          canDelete={canDelete}
-          onSave={(row, values) => save(row, values)}
-          onDelete={remove}
-          onOpenLibrary={openLibrary}
-        />
-      )}
-    </div>
+    </Empty>
   );
 
   return (
     <div>
       <PageHeader
         title="Справочники"
-        subtitle={`${meta.label} · ${pluralize(counts[entity], meta.words)} в справочнике`}
+        documentTitle={`Справочники · ${entity.labels.label}`}
+        subtitle="Авторы, серии, типы и источники — четыре страницы, устроенные одинаково, собраны в одну"
       />
 
-      {isMobile ? (
-        <>
-          {switcher}
-          {content}
-        </>
-      ) : (
-        <div style={styles.layout(true)}>
-          {switcher}
-          {content}
-        </div>
-      )}
-
-      <CatalogFormModal
-        meta={meta}
-        open={formOpen}
-        editing={editing}
-        onSubmit={(values) => save(editing, values)}
-        onCancel={() => {
-          setFormOpen(false);
-          setEditing(null);
+      <div
+        style={{
+          display: 'grid',
+          // На широком экране рельс стоит слева колонкой, на узком ложится строкой над списком:
+          // четыре пункта в ряд занимают меньше, чем четверть экрана телефона под колонку.
+          gridTemplateColumns: screens.lg ? '240px minmax(0, 1fr)' : 'minmax(0, 1fr)',
+          gap: token.margin,
+          alignItems: 'start'
         }}
-      />
+      >
+        <nav
+          aria-label="Справочники"
+          style={{
+            display: 'flex',
+            flexDirection: screens.lg ? 'column' : 'row',
+            flexWrap: 'wrap',
+            gap: 4,
+            background: token.colorBgContainer,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: token.borderRadiusLG,
+            padding: 8
+          }}
+        >
+          {catalogEntityKeys.map((key) => {
+            const active = key === entityKey;
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-current={active ? 'page' : undefined}
+                onClick={() => setSearchParams(key === 'authors' ? {} : { entity: key })}
+                style={{
+                  font: 'inherit',
+                  cursor: 'pointer',
+                  flex: '1 1 auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  height: 40,
+                  padding: '0 12px',
+                  borderRadius: token.borderRadius,
+                  border: 'none',
+                  background: active ? token.colorPrimaryBg : 'transparent',
+                  color: active ? token.colorPrimaryText : token.colorText,
+                  fontWeight: active ? 600 : 400
+                }}
+              >
+                <span>{catalogEntities[key].labels.label}</span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: active ? token.colorPrimaryText : token.colorTextTertiary
+                  }}
+                >
+                  {counts[key]}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: token.marginSM, flexWrap: 'wrap' }}>
+            <Input
+              allowClear
+              size="large"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+              placeholder={entity.labels.searchPlaceholder}
+              style={{ flex: '1 1 240px', minWidth: 0 }}
+            />
+            {entity.view === 'showcase' && (
+              <Select<SortKey>
+                size="large"
+                value={sort}
+                onChange={setSort}
+                options={sortOptions}
+                style={{ width: 200 }}
+                aria-label="Порядок"
+              />
+            )}
+            {canEdit && (
+              <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => openForm()}>
+                {entity.labels.addButton}
+              </Button>
+            )}
+          </div>
+
+          {duplicate && (
+            <DuplicateNotice
+              pair={duplicate}
+              onMerge={() => mergeAuthors(duplicate.target.id, duplicate.source.id)}
+              onDismiss={() => setDismissed((current) => [...current, `${duplicate.target.id}:${duplicate.source.id}`])}
+            />
+          )}
+
+          {entity.view === 'showcase' ? (
+            <CatalogShowcase
+              rows={visible}
+              loading={slice.loading}
+              empty={empty}
+              fetchShowcase={fetchShowcase}
+              onOpenLibrary={openLibrary}
+              onEdit={canEdit ? openForm : undefined}
+              onDelete={canDelete ? confirmDelete : undefined}
+            />
+          ) : (
+            <CatalogTable
+              rows={visible}
+              loading={slice.loading}
+              empty={empty}
+              secondColumn={entityKey === 'sources' ? 'url' : 'updatedAt'}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              onRename={rename}
+              onEditAll={openForm}
+              onDelete={confirmDelete}
+            />
+          )}
+        </div>
+      </div>
+
+      <Modal
+        open={formOpen}
+        onCancel={() => setFormOpen(false)}
+        onOk={save}
+        confirmLoading={saving}
+        okText="Сохранить"
+        cancelText="Отмена"
+        title={editing ? entity.labels.editTitle : entity.labels.createTitle}
+        destroyOnHidden
+      >
+        {/* destroyOnHidden пересоздаёт форму на каждое открытие: начальные значения подставляются
+            без ручного setFieldsValue. */}
+        <Form
+          layout="vertical"
+          form={form}
+          initialValues={editing ? entity.toFormValues(byId.get(editing.id) as never) : undefined}
+          style={{ paddingTop: 8 }}
+        >
+          {entity.formFields}
+        </Form>
+      </Modal>
     </div>
   );
 };

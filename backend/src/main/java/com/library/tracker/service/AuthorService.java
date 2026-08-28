@@ -1,16 +1,18 @@
 package com.library.tracker.service;
 
 import com.library.tracker.domain.Author;
-import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.AuthorRepository;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.web.dto.AuthorRequest;
 import com.library.tracker.web.dto.AuthorResponse;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class AuthorService {
     private final AuthorRepository authorRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final UserService userService;
+    private final ShowcaseAssembler showcaseAssembler;
 
     @Transactional( readOnly = true )
     public List<AuthorResponse> findAll( String query ) {
@@ -47,6 +51,42 @@ public class AuthorService {
     public Optional<AuthorResponse> findById( UUID id ) {
         Map<UUID, LibraryItemRepository.AuthorCount> counts = itemCounts();
         return authorRepository.findById( id ).map( author -> toResponse( author, counts ) );
+    }
+
+    /**
+     * Обложки для показанных карточек справочника. Идентификаторы присылает страница: витрина
+     * листается, и грузить обложки всех двухсот авторов ради восемнадцати видимых незачем.
+     */
+    @Transactional( readOnly = true )
+    public Map<UUID, List<ShowcaseItemResponse>> showcase( Collection<UUID> authorIds ) {
+        return showcaseAssembler.assemble( authorIds, libraryItemRepository::findShowcaseByAuthors );
+    }
+
+    /**
+     * Слияние дублей: «Лю Цысинь» и «Cixin Liu» заводятся сами, когда имя вписывают в карточку
+     * руками, и расходятся в два справочника. Записи уходящего автора переподвешиваются на
+     * остающегося, после чего уходящий удаляется.
+     */
+    public Optional<AuthorResponse> merge( UUID targetId, UUID sourceId ) {
+        if ( targetId.equals( sourceId ) ) {
+            throw new IllegalArgumentException( "Cannot merge author into itself" );
+        }
+        Optional<Author> target = authorRepository.findById( targetId );
+        Optional<Author> source = authorRepository.findById( sourceId );
+        if ( target.isEmpty() || source.isEmpty() ) {
+            return Optional.empty();
+        }
+        Author into = target.get();
+        Author from = source.get();
+        libraryItemRepository.findByAuthorId( from.getId() ).forEach( item -> {
+            item.getAuthors().remove( from );
+            item.getAuthors().add( into );
+        } );
+        // Записи держат связь на своей стороне, и до сохранения ссылка на уходящего ещё жива:
+        // без сброса удаление упало бы на внешнем ключе.
+        libraryItemRepository.flush();
+        authorRepository.delete( from );
+        return Optional.of( toResponse( into, itemCounts() ) );
     }
 
     public AuthorResponse create( AuthorRequest request ) {
@@ -67,36 +107,6 @@ public class AuthorService {
             applyRequest( existing, request );
             return toResponse( authorRepository.save( existing ), itemCounts() );
         } );
-    }
-
-    /**
-     * Слияние дублей: справочник авторов пополняется сам, когда имя вписывают в карточку, —
-     * «Лю Цысинь» и «Cixin Liu» так становятся двумя авторами с одними и теми же книгами.
-     * Произведения дубля переезжают к выбранному автору, сам дубль исчезает. Имя, которое
-     * человек видел на дубле, не пропадает: если у цели нет второго имени, оно встаёт туда.
-     */
-    public AuthorResponse merge( UUID sourceId, UUID targetId ) {
-        if ( sourceId.equals( targetId ) ) {
-            throw new IllegalArgumentException( "Cannot merge author into itself" );
-        }
-        Author source = authorRepository.findById( sourceId )
-                                        .orElseThrow( () -> new IllegalArgumentException( "Author not found" ) );
-        Author target = authorRepository.findById( targetId )
-                                        .orElseThrow( () -> new IllegalArgumentException( "Author not found" ) );
-
-        List<LibraryItem> items = libraryItemRepository.findAllByAuthorId( sourceId );
-        for ( LibraryItem item : items ) {
-            item.getAuthors().remove( source );
-            item.getAuthors().add( target );
-        }
-        libraryItemRepository.saveAll( items );
-
-        if ( !StringUtils.hasText( target.getAltName() ) && !target.getName().equalsIgnoreCase( source.getName() ) ) {
-            target.setAltName( source.getName() );
-        }
-        Author saved = authorRepository.save( target );
-        authorRepository.delete( source );
-        return toResponse( saved, itemCounts() );
     }
 
     public void delete( UUID id ) {
@@ -140,7 +150,7 @@ public class AuthorService {
         UUID scope = userService.isAdmin( currentUser ) ? null : currentUser.getId();
         return libraryItemRepository.countByAuthor( scope ).stream()
                                     .collect( Collectors.toMap( LibraryItemRepository.AuthorCount::getAuthorId,
-                                                                count -> count ) );
+                                                                Function.identity() ) );
     }
 
     private void applyRequest( Author author, AuthorRequest request ) {
@@ -149,17 +159,25 @@ public class AuthorService {
     }
 
     private AuthorResponse toResponse( Author author, Map<UUID, LibraryItemRepository.AuthorCount> counts ) {
-        LibraryItemRepository.AuthorCount count = counts.get( author.getId() );
+        LibraryItemRepository.AuthorCount stats = counts.get( author.getId() );
         return AuthorResponse.builder()
                              .id( author.getId() )
                              .name( author.getName() )
                              .altName( author.getAltName() )
-                             .itemCount( count != null ? count.getCount() : 0 )
-                             .finishedCount( count != null ? count.getCompletedCount() : 0 )
-                             .averageRating( count != null ? count.getAverageRating() : null )
+                             .itemCount( stats != null ? stats.getCount() : 0L )
+                             .finishedCount( stats != null ? stats.getFinishedCount() : 0L )
+                             .avgRating( averageRating( stats ) )
                              .createdAt( toOffsetDateTime( author.getCreatedAt() ) )
                              .updatedAt( toOffsetDateTime( author.getUpdatedAt() ) )
                              .build();
+    }
+
+    /** Десятая доля: оценка выставляется с шагом 0,5, и «9,17» на карточке выглядит подсчётом. */
+    private BigDecimal averageRating( LibraryItemRepository.AuthorCount stats ) {
+        if ( stats == null || stats.getAvgRating() == null ) {
+            return null;
+        }
+        return BigDecimal.valueOf( stats.getAvgRating() ).setScale( 1, RoundingMode.HALF_UP );
     }
 
     private OffsetDateTime toOffsetDateTime( LocalDateTime dateTime ) {

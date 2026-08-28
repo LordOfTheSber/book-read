@@ -1,12 +1,14 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.AuthorService;
-import com.library.tracker.web.dto.AuthorMergeRequest;
 import com.library.tracker.web.dto.AuthorRequest;
 import com.library.tracker.web.dto.AuthorResponse;
+import com.library.tracker.web.dto.MergeRequest;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,15 @@ public class AuthorController {
         return authorService.findAll( query );
     }
 
+    /**
+     * Обложки для карточек справочника. Идентификаторы перечисляет страница: витрина листается,
+     * и грузить обложки всех авторов ради показанных восемнадцати незачем.
+     */
+    @GetMapping( "/showcase" )
+    public Map<UUID, List<ShowcaseItemResponse>> showcase( @RequestParam( "ids" ) List<UUID> ids ) {
+        return authorService.showcase( ids );
+    }
+
     @GetMapping( "/{id}" )
     public ResponseEntity<AuthorResponse> getById( @PathVariable UUID id ) {
         return authorService.findById( id ).map( ResponseEntity::ok ).orElseGet( () -> ResponseEntity.notFound().build() );
@@ -53,15 +64,13 @@ public class AuthorController {
                             .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
-    /**
-     * Объединение дублей: справочник заводит автора сам, когда имя вписывают в карточку, поэтому
-     * одно и то же лицо оказывается в нём дважды. Права те же, что у правки: это переименование
-     * по сути, а не удаление данных — произведения дубля не пропадают, а переезжают.
-     */
-    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR')" )
+    /** Объединение дублей удаляет автора, поэтому спрашивается наравне с удалением. */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )
     @PostMapping( "/{id}/merge" )
-    public ResponseEntity<AuthorResponse> merge( @PathVariable UUID id, @Valid @RequestBody AuthorMergeRequest request ) {
-        return ResponseEntity.ok( authorService.merge( id, request.getTargetId() ) );
+    public ResponseEntity<AuthorResponse> merge( @PathVariable UUID id, @Valid @RequestBody MergeRequest request ) {
+        return authorService.merge( id, request.getSourceId() )
+                            .map( ResponseEntity::ok )
+                            .orElseGet( () -> ResponseEntity.notFound().build() );
     }
 
     @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN')" )

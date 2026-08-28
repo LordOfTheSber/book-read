@@ -35,14 +35,14 @@ export const updateAuthorThunk = createAsyncThunk(
   async ({ id, payload }: { id: string; payload: Partial<Author> }) => updateAuthor(id, payload)
 );
 /**
- * Слияние возвращает автора-цель и идентификатор исчезнувшего дубля: список правится на месте,
- * без перечитывания справочника целиком.
+ * Слияние дублей возвращает обоих: остающийся заменяется в списке новым счётчиком, уходящий
+ * из списка убирается. Перечитывать справочник ради двух строк — лишний запрос.
  */
 export const mergeAuthorsThunk = createAsyncThunk(
   'authors/merge',
-  async ({ sourceId, targetId }: { sourceId: string; targetId: string }) => ({
-    sourceId,
-    target: await mergeAuthors(sourceId, targetId)
+  async ({ targetId, sourceId }: { targetId: string; sourceId: string }) => ({
+    target: await mergeAuthors(targetId, sourceId),
+    sourceId
   })
 );
 
@@ -75,11 +75,14 @@ const authorSlice = createSlice({
       .addCase(updateAuthorThunk.fulfilled, (state, action: PayloadAction<Author>) => {
         state.list = state.list.map((author) => (author.id === action.payload.id ? action.payload : author));
       })
-      .addCase(mergeAuthorsThunk.fulfilled, (state, action) => {
-        state.list = state.list
-          .filter((author) => author.id !== action.payload.sourceId)
-          .map((author) => (author.id === action.payload.target.id ? action.payload.target : author));
-      })
+      .addCase(
+        mergeAuthorsThunk.fulfilled,
+        (state, action: PayloadAction<{ target: Author; sourceId: string }>) => {
+          state.list = state.list
+            .filter((author) => author.id !== action.payload.sourceId)
+            .map((author) => (author.id === action.payload.target.id ? action.payload.target : author));
+        }
+      )
       .addCase(deleteAuthorThunk.fulfilled, (state, action: PayloadAction<string>) => {
         state.list = state.list.filter((author) => author.id !== action.payload);
       });

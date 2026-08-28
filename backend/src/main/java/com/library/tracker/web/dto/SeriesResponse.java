@@ -16,8 +16,6 @@ public class SeriesResponse {
     /** Сколько частей цикла есть в библиотеке и сколько из них прочитано. */
     long itemCount;
     long completedCount;
-    /** Средняя оценка по оценённым частям цикла; {@code null}, если оценок нет. */
-    Double averageRating;
     OffsetDateTime createdAt;
     OffsetDateTime updatedAt;
 }

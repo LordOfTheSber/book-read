@@ -15,12 +15,18 @@ const initialState: BookTypeState = {
   loaded: false
 };
 
-export const loadBookTypes = createAsyncThunk('bookTypes/load', async () => fetchBookTypes(), {
-  condition: (_, { getState }) => {
-    const state = getState() as { bookTypes: BookTypeState };
-    return !state.bookTypes.loaded && !state.bookTypes.loading;
+/** `force` — когда справочник мог пополниться мимо этого списка: из карточки или соседней страницы. */
+export const loadBookTypes = createAsyncThunk<BookType[], { force?: boolean } | undefined>(
+  'bookTypes/load',
+  async () => fetchBookTypes(),
+  {
+    condition: (payload, { getState }) => {
+      const state = getState() as { bookTypes: BookTypeState };
+      if (payload?.force) return true;
+      return !state.bookTypes.loaded && !state.bookTypes.loading;
+    }
   }
-});
+);
 export const createBookTypeThunk = createAsyncThunk('bookTypes/create', async (payload: Partial<BookType>) => createBookType(payload));
 export const updateBookTypeThunk = createAsyncThunk('bookTypes/update', async ({ id, payload }: { id: string; payload: Partial<BookType> }) =>
   updateBookType(id, payload)

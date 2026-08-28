@@ -13,9 +13,11 @@ describe('реестр разделов', () => {
     expect(findSection('/library/42')).toBeUndefined();
   });
 
-  /** Четыре справочника стали одной страницей: сущность выбирается на ней, а не в меню. */
-  it('справочники — один пункт меню', () => {
-    expect(findSection('/catalog')?.key).toBe('catalog');
+  /** Четыре справочника съехались на одну страницу, и в меню от них остаётся один пункт. */
+  it('справочники стоят в меню одним пунктом', () => {
+    const catalogues = visibleGroups(false).find((group) => group.key === 'catalogues');
+
+    expect(catalogues?.items.map((item) => item.key)).toEqual(['shelves', 'catalog']);
     expect(findSection('/catalog')?.label).toBe('Справочники');
   });
 

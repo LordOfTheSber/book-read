@@ -15,12 +15,18 @@ const initialState: SourceState = {
   loaded: false
 };
 
-export const loadSources = createAsyncThunk('sources/load', async () => fetchSources(), {
-  condition: (_, { getState }) => {
-    const state = getState() as { sources: SourceState };
-    return !state.sources.loaded && !state.sources.loading;
+/** `force` — когда справочник мог пополниться мимо этого списка: из карточки или соседней страницы. */
+export const loadSources = createAsyncThunk<Source[], { force?: boolean } | undefined>(
+  'sources/load',
+  async () => fetchSources(),
+  {
+    condition: (payload, { getState }) => {
+      const state = getState() as { sources: SourceState };
+      if (payload?.force) return true;
+      return !state.sources.loaded && !state.sources.loading;
+    }
   }
-});
+);
 export const createSourceThunk = createAsyncThunk('sources/create', async (payload: Partial<Source>) => createSource(payload));
 export const updateSourceThunk = createAsyncThunk(
   'sources/update',

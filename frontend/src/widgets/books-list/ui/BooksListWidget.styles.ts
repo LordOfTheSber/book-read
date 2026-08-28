@@ -152,7 +152,12 @@ export const useBooksListStyles = () => {
       progressBar: { margin: 0, lineHeight: 1 } as CSSProperties,
       progressMeta: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } as CSSProperties,
       progressText: { fontSize: 12, fontVariantNumeric: 'tabular-nums' } as CSSProperties,
-      advanceButton: { padding: 0, height: 'auto', fontSize: 12 } as CSSProperties,
+      /*
+       * «+10» — то, ради чего список открывают чаще всего, и на телефоне это была цель
+       * 22×16 пикселей. Отступы дают палец, вид ссылки остаётся: на мыши кнопка выглядит
+       * так же, просто с полями вокруг.
+       */
+      advanceButton: { padding: '0 10px', height: 40, marginBlock: -8, fontSize: 13 } as CSSProperties,
 
       cardTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } as CSSProperties,
       cardTitle: { margin: '8px 0 0', fontSize: 16, lineHeight: 1.35 } as CSSProperties,

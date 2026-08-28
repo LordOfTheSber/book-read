@@ -1,11 +1,8 @@
-/** Формы слова для 1, 2 и 5 — их держат рядом с сущностью, а не по месту вызова. */
-export type PluralForms = [string, string, string];
-
 /**
  * Русская форма слова по числу: plural(2, ['тип', 'типа', 'типов']) → 'типа'.
  * Формы задаются для 1, 2 и 5.
  */
-export const plural = (count: number, forms: PluralForms) => {
+export const plural = (count: number, forms: [string, string, string]) => {
   const abs = Math.abs(count) % 100;
   const tail = abs % 10;
 
@@ -16,4 +13,4 @@ export const plural = (count: number, forms: PluralForms) => {
   return forms[2];
 };
 
-export const pluralize = (count: number, forms: PluralForms) => `${count} ${plural(count, forms)}`;
+export const pluralize = (count: number, forms: [string, string, string]) => `${count} ${plural(count, forms)}`;

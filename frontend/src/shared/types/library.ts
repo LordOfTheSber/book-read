@@ -67,10 +67,10 @@ export interface Author {
   name: string;
   altName?: string;
   itemCount: number;
-  /** Из них дочитано: карточка справочника показывает состояние чтения, а не одно имя. */
+  /** Из них дочитано: карточка справочника отвечает, что этого автора осталось прочесть. */
   finishedCount: number;
-  /** Средняя оценка по оценённым произведениям автора. */
-  averageRating?: number;
+  /** Средняя оценка по выставленным; без оценок поля нет. */
+  avgRating?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,8 +88,6 @@ export interface Series {
   description?: string;
   itemCount: number;
   completedCount: number;
-  /** Средняя оценка по оценённым частям цикла. */
-  averageRating?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -155,6 +153,22 @@ export interface ShelfItem {
   status: ReadingStatus;
   review?: string;
 }
+
+/**
+ * Произведение в витрине справочника — обложка на карточке автора или цикла. Полей ровно
+ * столько, сколько рисует карточка: полная выдача на семьдесят две записи стоила бы страницы.
+ */
+export interface ShowcaseItem {
+  id: string;
+  title: string;
+  kind: MediaKind;
+  status: ReadingStatus;
+  rating?: number;
+  hasCover: boolean;
+}
+
+/** Обложки, разложенные по идентификаторам авторов или циклов. */
+export type Showcase = Record<string, ShowcaseItem[]>;
 
 /** Сохранённый фильтр умной полки: повторяет параметры выдачи, кроме страницы и размера. */
 export interface SavedFilter {

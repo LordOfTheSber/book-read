@@ -1,6 +1,7 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.TagService;
+import com.library.tracker.web.dto.MergeRequest;
 import com.library.tracker.web.dto.TagRequest;
 import com.library.tracker.web.dto.TagResponse;
 import jakarta.validation.Valid;
@@ -46,6 +47,15 @@ public class TagController {
     @PutMapping( "/{id}" )
     public ResponseEntity<TagResponse> update( @PathVariable UUID id, @Valid @RequestBody TagRequest request ) {
         return tagService.update( id, request )
+                         .map( ResponseEntity::ok )
+                         .orElseGet( () -> ResponseEntity.notFound().build() );
+    }
+
+    /** Объединение дублей: пометки уходящего тега переезжают на остающийся. */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PostMapping( "/{id}/merge" )
+    public ResponseEntity<TagResponse> merge( @PathVariable UUID id, @Valid @RequestBody MergeRequest request ) {
+        return tagService.merge( id, request.getSourceId() )
                          .map( ResponseEntity::ok )
                          .orElseGet( () -> ResponseEntity.notFound().build() );
     }

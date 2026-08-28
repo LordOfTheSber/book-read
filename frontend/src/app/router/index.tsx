@@ -69,10 +69,10 @@ const router = createBrowserRouter([
           { path: 'u/:username', element: <UserProfilePage /> },
           { path: 'feed', element: <FeedPage /> },
           { path: 'goals', element: <GoalsPage /> },
-          // Четыре справочника живут одной страницей с переключателем; старые адреса
-          // остаются рабочими: на них ссылались закладки и привычка «Ещё → Авторы».
           { path: 'catalog', element: <CatalogPage /> },
-          { path: 'authors', element: <Navigate to="/catalog?entity=authors" replace /> },
+          // Четыре справочника съехались на одну страницу, но их адреса разосланы и лежат
+          // в закладках: старый путь ведёт в тот же справочник, а не в «страница не найдена».
+          { path: 'authors', element: <Navigate to="/catalog" replace /> },
           { path: 'series', element: <Navigate to="/catalog?entity=series" replace /> },
           { path: 'types', element: <Navigate to="/catalog?entity=types" replace /> },
           { path: 'sources', element: <Navigate to="/catalog?entity=sources" replace /> },
