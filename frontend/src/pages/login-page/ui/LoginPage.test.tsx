@@ -29,6 +29,14 @@ vi.mock('@/entities/auth/api/authApi', () => ({
 
 const user = { id: 'u1', username: 'sber', role: 'USER', blocked: false };
 
+/**
+ * Отпечаток считается асинхронно, и до его готовности галочка выключена: обещать быстрый вход,
+ * не зная, будет ли чем опознать устройство, нельзя. Клик по выключенной галочке не проходит,
+ * поэтому тесты про неё ждут готовности, а не полагаются на скорость машины.
+ */
+const waitForFingerprint = () =>
+  waitFor(() => expect(screen.getByRole('checkbox', { name: /Запомнить устройство/ })).toBeEnabled());
+
 const renderPage = () =>
   renderWithStore(
     <ThemeProvider>
@@ -60,6 +68,7 @@ describe('LoginPage', () => {
 
   it('входит с введёнными логином и паролем', async () => {
     renderPage();
+    await waitForFingerprint();
 
     await userEvent.type(screen.getByLabelText('Логин'), 'sber');
     await userEvent.type(screen.getByLabelText('Пароль'), 'biblioteka1');
@@ -75,6 +84,7 @@ describe('LoginPage', () => {
   /** Снятая галочка — единственное, что отделяет чужой компьютер от входа без пароля. */
   it('не запоминает устройство со снятой галочкой', async () => {
     renderPage();
+    await waitForFingerprint();
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Запомнить устройство/ }));
     await userEvent.type(screen.getByLabelText('Логин'), 'sber');

@@ -83,6 +83,11 @@ describe('RegisterPage', () => {
       </ThemeProvider>
     );
 
+    // Отпечаток считается асинхронно: до его готовности устройство запомнить не просят.
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: /Запомнить устройство/ })).toBeEnabled()
+    );
+
     await userEvent.type(screen.getByLabelText('Логин'), 'sber');
     await userEvent.type(screen.getByLabelText('Пароль'), 'biblioteka1');
     await userEvent.type(screen.getByLabelText('Повторите пароль'), 'biblioteka1');
