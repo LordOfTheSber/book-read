@@ -3,13 +3,15 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShelvesPage } from './ShelvesPage';
-import { Shelf, Tag as LibraryTag } from '@/shared/types/library';
+import { Shelf, TagDuplicate, Tag as LibraryTag } from '@/shared/types/library';
 import { renderWithStore } from '@/test/renderWithStore';
 
 const createShelf = vi.fn();
 const updateShelf = vi.fn();
 const fetchShelves = vi.fn();
 const updateTag = vi.fn();
+const fetchTagDuplicates = vi.fn();
+const mergeTags = vi.fn();
 
 vi.mock('@/entities/shelf/api/shelfApi', () => ({
   fetchShelves: (...args: unknown[]) => fetchShelves(...args),
@@ -27,12 +29,24 @@ vi.mock('@/entities/shelf/api/shelfApi', () => ({
 
 vi.mock('@/entities/tag/api/tagApi', () => ({
   fetchTags: vi.fn().mockResolvedValue([
-    { id: 'tg-1', name: 'на лето', color: null, itemCount: 3 } as unknown as LibraryTag
+    { id: 'tg-1', name: 'на лето', color: null, itemCount: 3 } as unknown as LibraryTag,
+    { id: 'tg-2', name: 'фантастика', color: null, itemCount: 12 } as unknown as LibraryTag
   ]),
   createTag: vi.fn(),
   updateTag: (...args: unknown[]) => updateTag(...args),
-  deleteTag: vi.fn()
+  deleteTag: vi.fn(),
+  fetchTagDuplicates: (...args: unknown[]) => fetchTagDuplicates(...args),
+  mergeTags: (...args: unknown[]) => mergeTags(...args)
 }));
+
+const tag = (id: string, name: string, itemCount: number) =>
+  ({ id, name, itemCount, createdAt: '', updatedAt: '' }) as LibraryTag;
+
+const duplicate: TagDuplicate = {
+  source: tag('tg-1', 'сай-фай', 9),
+  target: tag('tg-2', 'фантастика', 64),
+  overlap: 7
+};
 
 const shelf = (overrides: Partial<Shelf> = {}): Shelf =>
   ({
@@ -58,6 +72,8 @@ describe('ShelvesPage', () => {
     updateShelf.mockReset().mockResolvedValue(shelf());
     updateTag.mockReset().mockResolvedValue({ id: 'tg-1', name: 'на осень', itemCount: 3 });
     fetchShelves.mockReset().mockResolvedValue([shelf()]);
+    fetchTagDuplicates.mockReset().mockResolvedValue([]);
+    mergeTags.mockReset().mockResolvedValue(tag('tg-2', 'фантастика', 73));
   });
 
   it('создаёт полку со всеми полями формы', async () => {
@@ -84,7 +100,7 @@ describe('ShelvesPage', () => {
   it('сохраняет полку целиком, когда правят только название', async () => {
     renderPage();
 
-    await userEvent.click(await screen.findByLabelText('Переименовать'));
+    await userEvent.click(await screen.findByLabelText('Переименовать полку «Книжный клуб»'));
 
     const dialog = await screen.findByRole('dialog');
     const name = within(dialog).getByLabelText('Название');
@@ -114,7 +130,7 @@ describe('ShelvesPage', () => {
     expect(createShelf).not.toHaveBeenCalled();
   });
 
-  /** Тег переименовывается прямо в чипе, но цвет при этом терять нельзя. */
+  /** Тег переименовывается прямо в строке, но цвет при этом терять нельзя. */
   it('переименовывает тег, сохраняя его цвет', async () => {
     renderPage();
 
@@ -124,5 +140,35 @@ describe('ShelvesPage', () => {
     await userEvent.type(input, 'на осень{enter}');
 
     await waitFor(() => expect(updateTag).toHaveBeenCalledWith('tg-1', { name: 'на осень', color: null }));
+  });
+
+  /**
+   * Дубли не видно ни по именам, ни по счётчикам: «сай-фай» и «фантастика» стоят на одних
+   * и тех же книгах, и заметить это можно только по пересечению.
+   */
+  it('предлагает объединить теги, стоящие на одних записях', async () => {
+    fetchTagDuplicates.mockResolvedValue([duplicate]);
+    renderPage();
+
+    expect(await screen.findByText(/«сай-фай» и «фантастика» — одно и то же/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Объединить/ }));
+
+    // Последствия называются числами до нажатия: объединение необратимо.
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/снимется с 9 записей/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Объединить' }));
+
+    await waitFor(() => expect(mergeTags).toHaveBeenCalledWith('tg-1', 'tg-2'));
+  });
+
+  it('убирает подсказку по «Оставить как есть»', async () => {
+    fetchTagDuplicates.mockResolvedValue([duplicate]);
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Оставить как есть' }));
+
+    expect(screen.queryByText(/одно и то же/)).not.toBeInTheDocument();
+    expect(mergeTags).not.toHaveBeenCalled();
   });
 });
