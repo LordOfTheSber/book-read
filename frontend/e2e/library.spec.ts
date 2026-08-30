@@ -172,6 +172,39 @@ test('цель года заводится и показывает прогре�
   await expect(page.getByText('Такими темпами')).toBeVisible();
 });
 
+/**
+ * Быстрый вход по устройству: пароль спрашивают один раз, дальше устройство узнают само.
+ *
+ * Проверяется на живом стеке, потому что весь механизм держится на том, чего нет ни в юнит-тестах,
+ * ни в MockMvc: httpOnly-куке, которую браузер сам приносит на нужный путь, и отпечатке, который
+ * считает страница.
+ */
+test('запомненное устройство входит без пароля', async ({ page, context }) => {
+  const username = await registerNewUser(page);
+
+  // Кука устройства не должна быть доступна странице и ездить в каждый запрос.
+  const deviceCookie = (await context.cookies()).find((cookie) => cookie.name === 'DEVICE_TOKEN');
+  expect(deviceCookie?.httpOnly).toBe(true);
+  expect(deviceCookie?.path).toBe('/api/v1/auth');
+
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await page.getByRole('button', { name: 'Выйти' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+
+  // После своего выхода экран входа ждёт нажатия, а не входит сам.
+  await page.getByRole('button', { name: `Продолжить как ${username}` }).click();
+  await expect(page.getByRole('button', { name: 'Добавить запись' }).first()).toBeVisible();
+
+  // В новой вкладке отметки «только что вышел» нет — там вход происходит сам собой.
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await page.getByRole('button', { name: 'Выйти' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.evaluate(() => window.sessionStorage.clear());
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: 'Добавить запись' }).first()).toBeVisible();
+});
+
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {
   const username = await registerNewUser(page);
 

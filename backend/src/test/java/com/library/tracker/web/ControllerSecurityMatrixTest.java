@@ -2,6 +2,7 @@ package com.library.tracker.web;
 
 import com.library.tracker.config.SecurityConfig;
 import com.library.tracker.security.AccessTokenCookieService;
+import com.library.tracker.security.DeviceTokenCookieService;
 import com.library.tracker.security.JwtAuthenticationFilter;
 import com.library.tracker.security.JwtService;
 import com.library.tracker.service.AuthorService;
@@ -22,6 +23,7 @@ import com.library.tracker.service.ShelfService;
 import com.library.tracker.service.SmartShelfService;
 import com.library.tracker.service.SourceService;
 import com.library.tracker.service.TagService;
+import com.library.tracker.service.TrustedDeviceService;
 import com.library.tracker.service.UserService;
 import com.library.tracker.service.analytics.AnalyticsService;
 import com.library.tracker.service.account.AccountDeletionService;
@@ -87,6 +89,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         QuoteController.class,
         ExportController.class,
         AccountController.class,
+        TrustedDeviceController.class,
         TagController.class,
         ShelfController.class,
         SmartShelfController.class,
@@ -123,6 +126,13 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private AccountDeletionService accountDeletionService;
+
+    @MockBean
+    private TrustedDeviceService trustedDeviceService;
+
+    /** Отключение доверенного устройства гасит его куку тем же способом, что и выход. */
+    @MockBean
+    private DeviceTokenCookieService deviceTokenCookieService;
 
     @MockBean
     private BookTypeService bookTypeService;
@@ -444,6 +454,11 @@ class ControllerSecurityMatrixTest {
                 // который лежит под соседним префиксом и остаётся только у супер-администратора.
                 Endpoint.get( "/api/v1/account/export", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/account", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                // Доверенные устройства — тоже «свои данные»: список и отключение доступны каждому,
+                // а видит человек только собственные устройства (владелец сверяется в сервисе).
+                Endpoint.get( "/api/v1/account/devices", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/account/devices/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.delete( "/api/v1/account/devices", SUPER_ADMIN, ADMIN, EDITOR, USER ),
 
                 // Эксплуатация: узлы и мониторинг администраторам, логи и настройки — супер-администратору.
                 Endpoint.get( "/api/v1/nodes", SUPER_ADMIN, ADMIN ),
