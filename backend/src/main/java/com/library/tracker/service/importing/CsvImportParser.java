@@ -96,6 +96,38 @@ public class CsvImportParser {
     private static final List<String> SERIES_KEYS = List.of( "series", "серия", "цикл" );
     private static final List<String> TAG_KEYS = List.of( "bookshelves", "tags", "теги", "метки" );
 
+    /**
+     * Куда попадает колонка файла. До этого разбор молчал о том, что понял: колонки
+     * «распознавались автоматически», а нераспознанные пропадали без следа — человек узнавал
+     * о потере, только не найдя в библиотеке своих заметок.
+     */
+    private static final Map<String, String> COLUMN_TARGETS = columnTargets();
+
+    private static Map<String, String> columnTargets() {
+        Map<String, String> targets = new java.util.LinkedHashMap<>();
+        putAll( targets, TITLE_KEYS, "Название" );
+        putAll( targets, AUTHOR_KEYS, "Авторы" );
+        putAll( targets, EXTRA_AUTHOR_KEYS, "Авторы" );
+        putAll( targets, ISBN_KEYS, "ISBN" );
+        putAll( targets, YEAR_KEYS, "Год издания" );
+        putAll( targets, PAGES_KEYS, "Объём" );
+        putAll( targets, RATING_KEYS, "Оценка" );
+        putAll( targets, STATUS_KEYS, "Статус" );
+        putAll( targets, FINISHED_KEYS, "Завершено" );
+        putAll( targets, STARTED_KEYS, "Начато" );
+        putAll( targets, REVIEW_KEYS, "Отзыв" );
+        putAll( targets, NOTE_KEYS, "Заметка" );
+        putAll( targets, SERIES_KEYS, "Серия" );
+        putAll( targets, TAG_KEYS, "Теги" );
+        return Map.copyOf( targets );
+    }
+
+    private static void putAll( Map<String, String> targets, List<String> keys, String target ) {
+        // Первое назначение выигрывает: «dateadded» стоит и в начале чтения, и в датах Goodreads,
+        // а колонка одна — показывать её надо там, куда она действительно поедет.
+        keys.forEach( key -> targets.putIfAbsent( key, target ) );
+    }
+
     public Parsed parse( InputStream input, String fileName ) throws IOException {
         try ( BufferedReader reader = new BufferedReader( new InputStreamReader( input, StandardCharsets.UTF_8 ) ) ) {
             CSVFormat format = CSVFormat.Builder.create( CSVFormat.DEFAULT )
@@ -108,17 +140,49 @@ public class CsvImportParser {
                                                 .build();
 
             try ( CSVParser parser = format.parse( reader ) ) {
-                Map<String, Integer> headers = normalizedHeaders( parser.getHeaderMap() );
+                Map<String, Integer> headerMap = parser.getHeaderMap();
+                Map<String, Integer> headers = normalizedHeaders( headerMap );
                 String source = detectSource( headers.keySet() );
                 List<LibraryImportRow> rows = new ArrayList<>();
+                Map<Integer, String> samples = new java.util.HashMap<>();
 
                 for ( CSVRecord record : parser ) {
                     if ( rows.size() >= MAX_ROWS ) {
                         break;
                     }
+                    collectSamples( record, headerMap, samples );
                     rows.add( toRow( record, headers, source ) );
                 }
-                return new Parsed( fileName, source, rows );
+                return new Parsed( fileName, source, rows, columns( headerMap, samples ) );
+            }
+        }
+    }
+
+    /**
+     * Что понял разбор, колонка за колонкой: имя из файла, куда оно поедет и пример значения.
+     * Пример нужен ровно затем, чтобы «Bookshelves → не разобрано» читалось не как строка
+     * настройки, а как «sci-fi, favourites не приедут».
+     */
+    private List<Column> columns( Map<String, Integer> headerMap, Map<Integer, String> samples ) {
+        return headerMap.entrySet().stream()
+                        .sorted( Map.Entry.comparingByValue() )
+                        .map( entry -> {
+                            String target = COLUMN_TARGETS.get( normalizeKey( entry.getKey() ) );
+                            return new Column( entry.getKey(), target, target != null,
+                                               samples.get( entry.getValue() ) );
+                        } )
+                        .toList();
+    }
+
+    /** Первое непустое значение колонки: пустые ячейки первых строк не должны выдавать её за пустую. */
+    private void collectSamples( CSVRecord record, Map<String, Integer> headerMap, Map<Integer, String> samples ) {
+        for ( Integer index : headerMap.values() ) {
+            if ( samples.containsKey( index ) || index >= record.size() ) {
+                continue;
+            }
+            String value = record.get( index );
+            if ( StringUtils.hasText( value ) ) {
+                samples.put( index, value.trim() );
             }
         }
     }
@@ -294,5 +358,8 @@ public class CsvImportParser {
         return null;
     }
 
-    public record Parsed( String fileName, String source, List<LibraryImportRow> rows ) { }
+    public record Parsed( String fileName, String source, List<LibraryImportRow> rows, List<Column> columns ) { }
+
+    /** Колонка файла: имя как в заголовке, поле записи и пример значения. */
+    public record Column( String name, String target, boolean recognized, String sample ) { }
 }

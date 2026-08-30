@@ -1,9 +1,12 @@
 package com.library.tracker.service;
 
+import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
+import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.TagRepository;
+import com.library.tracker.web.dto.TagDuplicateResponse;
 import com.library.tracker.web.dto.TagRequest;
 
 import java.util.List;
@@ -33,6 +36,9 @@ class TagServiceTest {
     private TagRepository tagRepository;
 
     @Mock
+    private LibraryItemRepository itemRepository;
+
+    @Mock
     private UserService userService;
 
     private TagService service;
@@ -41,7 +47,7 @@ class TagServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TagService( tagRepository, userService );
+        service = new TagService( tagRepository, itemRepository, userService );
         owner = user();
     }
 
@@ -106,6 +112,108 @@ class TagServiceTest {
         request.setName( "на лето" );
 
         assertThatThrownBy( () -> service.create( request ) ).isInstanceOf( IllegalArgumentException.class );
+    }
+
+    /**
+     * Объединение переносит пометки, а не удаляет их вместе с тегом: иначе «уборка» стоила бы
+     * пользователю тех самых книг, ради которых он тег и заводил.
+     */
+    @Test
+    void mergeMovesItemsToTargetAndRemovesSource() {
+        Tag source = tag( "сай-фай", owner );
+        Tag target = tag( "фантастика", owner );
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.getTags().add( source );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findById( eq( source.getId() ) ) ).thenReturn( Optional.of( source ) );
+        when( tagRepository.findById( eq( target.getId() ) ) ).thenReturn( Optional.of( target ) );
+        when( itemRepository.findByTagId( eq( source.getId() ) ) ).thenReturn( List.of( item ) );
+        when( tagRepository.countByTag( eq( owner.getId() ) ) ).thenReturn( List.of() );
+
+        service.merge( source.getId(), target.getId() );
+
+        assertThat( item.getTags() ).containsExactly( target );
+        verify( tagRepository ).delete( source );
+    }
+
+    @Test
+    void mergeOfForeignTagIsDenied() {
+        Tag foreign = tag( "чужой", user() );
+        Tag mine = tag( "мой", owner );
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findById( eq( foreign.getId() ) ) ).thenReturn( Optional.of( foreign ) );
+        when( tagRepository.findById( eq( mine.getId() ) ) ).thenReturn( Optional.of( mine ) );
+
+        assertThatThrownBy( () -> service.merge( foreign.getId(), mine.getId() ) )
+                .isInstanceOf( AccessDeniedException.class );
+        verify( tagRepository, never() ).delete( any( Tag.class ) );
+    }
+
+    /**
+     * Дубль виден по пересечению, а не по написанию: «сай-фай» почти целиком лежит внутри
+     * «фантастики», а «космос» с ней просто соседствует.
+     */
+    @Test
+    void findDuplicatesKeepsOnlyPairsThatOverlapAlmostEntirely() {
+        Tag small = tag( "сай-фай", owner );
+        Tag big = tag( "фантастика", owner );
+        Tag neighbour = tag( "космос", owner );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findByOwnerIdOrderByNameAsc( eq( owner.getId() ) ) )
+                .thenReturn( List.of( small, big, neighbour ) );
+        when( tagRepository.countByTag( eq( owner.getId() ) ) )
+                .thenReturn( List.of( count( small.getId(), 9 ), count( big.getId(), 64 ),
+                                      count( neighbour.getId(), 27 ) ) );
+        when( tagRepository.overlaps( eq( owner.getId() ) ) )
+                .thenReturn( List.of( overlap( small.getId(), big.getId(), 7 ),
+                                      overlap( big.getId(), small.getId(), 7 ),
+                                      overlap( neighbour.getId(), big.getId(), 8 ) ) );
+
+        List<TagDuplicateResponse> duplicates = service.findDuplicates();
+
+        assertThat( duplicates ).singleElement().satisfies( duplicate -> {
+            assertThat( duplicate.getSource().getName() ).isEqualTo( "сай-фай" );
+            assertThat( duplicate.getTarget().getName() ).isEqualTo( "фантастика" );
+            assertThat( duplicate.getOverlap() ).isEqualTo( 7 );
+        } );
+    }
+
+    private TagRepository.TagCount count( UUID tagId, long value ) {
+        return new TagRepository.TagCount() {
+
+            @Override
+            public UUID getTagId() {
+                return tagId;
+            }
+
+            @Override
+            public long getCount() {
+                return value;
+            }
+        };
+    }
+
+    private TagRepository.TagOverlap overlap( UUID first, UUID second, long value ) {
+        return new TagRepository.TagOverlap() {
+
+            @Override
+            public UUID getFirstId() {
+                return first;
+            }
+
+            @Override
+            public UUID getSecondId() {
+                return second;
+            }
+
+            @Override
+            public long getOverlap() {
+                return value;
+            }
+        };
     }
 
     private User user() {

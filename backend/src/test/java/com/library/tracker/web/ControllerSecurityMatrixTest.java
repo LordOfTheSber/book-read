@@ -335,6 +335,9 @@ class ControllerSecurityMatrixTest {
                 // Организация библиотеки: теги, полки и умные полки личные, поэтому доступны
                 // всем ролям, а владелец проверяется в сервисе.
                 Endpoint.get( "/api/v1/tags", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.get( "/api/v1/tags/duplicates", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/tags/" + ID + "/merge", "{\"targetId\":\"" + ID + "\"}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.post( "/api/v1/tags", "{\"name\":\"на лето\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.put( "/api/v1/tags/" + ID, "{\"name\":\"на лето\"}", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/tags/" + ID, SUPER_ADMIN, ADMIN, EDITOR, USER ),

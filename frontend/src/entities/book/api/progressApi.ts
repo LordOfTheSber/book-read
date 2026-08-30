@@ -48,8 +48,12 @@ export const deleteQuote = async (itemId: string, quoteId: string) => {
   await httpClient.delete(`/items/${itemId}/quotes/${quoteId}`);
 };
 
-/** Поиск по выпискам всей библиотеки: цитату часто помнят, а книгу — нет. */
-export const searchQuotes = async (query: string) => {
-  const { data } = await httpClient.get<Quote[]>('/quotes', { params: { q: query } });
+/**
+ * Выписки всей библиотеки: с запросом — поиск, без запроса — последние. Пустой запрос не значит
+ * «ничего не показывать»: страница выписок открывается стеной, а цитату часто перечитывают,
+ * не помня ни книги, ни слова.
+ */
+export const searchQuotes = async (query?: string) => {
+  const { data } = await httpClient.get<Quote[]>('/quotes', { params: query ? { q: query } : undefined });
   return data;
 };

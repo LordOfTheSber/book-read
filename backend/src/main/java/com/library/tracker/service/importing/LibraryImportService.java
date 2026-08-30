@@ -9,6 +9,7 @@ import com.library.tracker.service.LibraryItemService;
 import com.library.tracker.service.UserService;
 import com.library.tracker.web.dto.BulkItemUpdateRequest;
 import com.library.tracker.web.dto.DuplicateCandidateResponse;
+import com.library.tracker.web.dto.LibraryImportColumnResponse;
 import com.library.tracker.web.dto.LibraryImportCommitRequest;
 import com.library.tracker.web.dto.LibraryImportPreviewResponse;
 import com.library.tracker.web.dto.LibraryImportResultResponse;
@@ -83,7 +84,19 @@ public class LibraryImportService {
                                            .validRows( (int) valid )
                                            .duplicateRows( duplicateRows )
                                            .rows( parsed.rows() )
+                                           .columns( columns( parsed ) )
                                            .build();
+    }
+
+    private List<LibraryImportColumnResponse> columns( CsvImportParser.Parsed parsed ) {
+        return parsed.columns().stream()
+                     .map( column -> LibraryImportColumnResponse.builder()
+                                                                .name( column.name() )
+                                                                .target( column.target() )
+                                                                .recognized( column.recognized() )
+                                                                .sample( column.sample() )
+                                                                .build() )
+                     .toList();
     }
 
     /**

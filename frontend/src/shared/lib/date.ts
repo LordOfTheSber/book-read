@@ -33,3 +33,24 @@ export const formatDateTime = (value?: string | null) =>
 /** 12:30:45 */
 export const formatTime = (value?: string | null) =>
   format(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+/**
+ * «сегодня», «вчера», «3 дня назад», «2 недели назад».
+ *
+ * В списке выписок и событий точная дата не нужна: важно, свежая запись или прошлогодняя,
+ * а «10 янв. 2026 г.» это приходится вычислять в уме.
+ */
+export const formatRelativeDate = (value?: string | null) => {
+  const date = parseServerDate(value);
+  if (!date || Number.isNaN(date.getTime())) return EMPTY;
+
+  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (days <= 0) return 'сегодня';
+  if (days === 1) return 'вчера';
+
+  const relative = new Intl.RelativeTimeFormat('ru-RU', { numeric: 'auto' });
+  if (days < 7) return relative.format(-days, 'day');
+  if (days < 31) return relative.format(-Math.round(days / 7), 'week');
+  if (days < 365) return relative.format(-Math.round(days / 30), 'month');
+  return relative.format(-Math.round(days / 365), 'year');
+};

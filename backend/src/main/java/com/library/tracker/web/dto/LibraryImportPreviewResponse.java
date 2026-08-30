@@ -20,4 +20,6 @@ public class LibraryImportPreviewResponse {
     int validRows;
     int duplicateRows;
     List<LibraryImportRow> rows;
+    /** Разбор заголовка: что распозналось и что пропадёт, если ничего не делать. */
+    List<LibraryImportColumnResponse> columns;
 }

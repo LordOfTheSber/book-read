@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { App, Breadcrumb, Button, Form, Grid, Result, Skeleton, Space, Tabs, Typography, theme } from 'antd';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { LibraryItem, MediaKind, ProgressUnit } from '@/shared/types/library';
 import { fetchBook, loadBooks, updateBookThunk } from '@/entities/book';
@@ -20,6 +20,9 @@ import { RecordCardTab } from './RecordCardTab';
 /** Ширина колонки состояния из макета: обложка, статус и прогресс встают в неё без переносов. */
 const STATE_WIDTH = 292;
 
+/** Вкладки записи: список нужен, чтобы чужой `?tab=` из адреса не открывал пустоту. */
+const TABS = ['card', 'progress', 'review', 'quotes', 'loans'];
+
 /** Даты в форме — объекты dayjs, а на сервер уходят строками. */
 const toDate = (value?: string) => (value ? dayjs(value) : undefined);
 const fromDate = (value?: dayjs.Dayjs | null) => (value ? value.format('YYYY-MM-DD') : undefined);
@@ -34,6 +37,11 @@ const fromDate = (value?: dayjs.Dayjs | null) => (value ? value.format('YYYY-MM-
 export const RecordPage: React.FC = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  /**
+   * Вкладка живёт в адресе: со страницы выписок «Добавить выписку» ведёт сразу на свою вкладку,
+   * а не на карточку, откуда до неё ещё одно нажатие.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { message } = App.useApp();
   const showRequestError = useRequestError();
@@ -49,7 +57,9 @@ export const RecordPage: React.FC = () => {
   const [missing, setMissing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string>();
-  const [tab, setTab] = useState('card');
+  const requestedTab = searchParams.get('tab') ?? '';
+  const tab = TABS.includes(requestedTab) ? requestedTab : 'card';
+  const setTab = (key: string) => setSearchParams(key === 'card' ? {} : { tab: key }, { replace: true });
 
   /*
    * Запись из списка главнее дозагруженной: заход на вкладке «Прогресс» перечитывает список, и

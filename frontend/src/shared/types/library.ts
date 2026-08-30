@@ -54,6 +54,8 @@ export interface Quote {
   id: string;
   itemId: string;
   itemTitle: string;
+  /** Авторы книги: в общем списке выписок цитата оторвана от карточки, и названия мало. */
+  itemAuthorNames?: string[];
   position?: number;
   text: string;
   note?: string;
@@ -110,6 +112,15 @@ export interface TagSummary {
   id: string;
   name: string;
   color?: string;
+}
+
+/** Подозрение на дубль: два тега стоят почти на одних и тех же записях. */
+export interface TagDuplicate {
+  /** Крупный тег: в него предлагается объединить. */
+  target: Tag;
+  /** Мелкий: он исчезнет при объединении. */
+  source: Tag;
+  overlap: number;
 }
 
 /** Полка внутри карточки: без описания и состава. */
@@ -226,6 +237,16 @@ export interface ImportRow {
   duplicates: DuplicateCandidate[];
 }
 
+/** Колонка файла и то, что разбор с ней сделал: без этого потеря данных не видна до импорта. */
+export interface ImportColumn {
+  name: string;
+  /** Поле записи, куда поедет колонка; пусто — не распознана. */
+  target?: string;
+  recognized: boolean;
+  /** Первое непустое значение: пример показывает, что именно теряется. */
+  sample?: string;
+}
+
 export interface ImportPreview {
   fileName: string;
   detectedSource: 'GOODREADS' | 'STORYGRAPH' | 'LIVELIB' | 'GENERIC';
@@ -233,6 +254,7 @@ export interface ImportPreview {
   validRows: number;
   duplicateRows: number;
   rows: ImportRow[];
+  columns: ImportColumn[];
 }
 
 export interface ImportResultSummary {

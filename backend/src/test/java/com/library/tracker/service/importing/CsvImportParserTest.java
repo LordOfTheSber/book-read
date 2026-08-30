@@ -111,6 +111,26 @@ class CsvImportParserTest {
         assertThat( rows.get( 0 ).getErrors() ).isNotEmpty();
     }
 
+    /**
+     * Колонки, которые не распознались, до этого пропадали молча: человек узнавал о потере,
+     * не найдя в библиотеке своих заметок. Разбор обязан сказать, что он понял, а что нет.
+     */
+    @Test
+    void reportsRecognizedAndUnknownColumnsWithSamples() throws Exception {
+        String csv = "Title,Number of Pages,Owned Copies\nЗадача трёх тел,400,1\n";
+
+        List<CsvImportParser.Column> columns = parse( csv, "goodreads.csv" ).columns();
+
+        assertThat( columns ).extracting( CsvImportParser.Column::name )
+                             .containsExactly( "Title", "Number of Pages", "Owned Copies" );
+        assertThat( columns.get( 0 ).recognized() ).isTrue();
+        assertThat( columns.get( 0 ).target() ).isEqualTo( "Название" );
+        // Пример объясняет потерю лучше названия колонки: «1» рядом с «Owned Copies» — это данные.
+        assertThat( columns.get( 2 ).recognized() ).isFalse();
+        assertThat( columns.get( 2 ).target() ).isNull();
+        assertThat( columns.get( 2 ).sample() ).isEqualTo( "1" );
+    }
+
     private CsvImportParser.Parsed parse( String csv, String fileName ) throws Exception {
         return parser.parse( new ByteArrayInputStream( csv.getBytes( StandardCharsets.UTF_8 ) ), fileName );
     }

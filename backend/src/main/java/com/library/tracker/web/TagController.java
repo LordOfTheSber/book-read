@@ -1,6 +1,8 @@
 package com.library.tracker.web;
 
 import com.library.tracker.service.TagService;
+import com.library.tracker.web.dto.TagDuplicateResponse;
+import com.library.tracker.web.dto.TagMergeRequest;
 import com.library.tracker.web.dto.TagRequest;
 import com.library.tracker.web.dto.TagResponse;
 import jakarta.validation.Valid;
@@ -36,10 +38,23 @@ public class TagController {
         return tagService.findAll();
     }
 
+    /** Подозрения на дубли: одни и те же книги под двумя пометками. */
+    @GetMapping( "/duplicates" )
+    public List<TagDuplicateResponse> duplicates() {
+        return tagService.findDuplicates();
+    }
+
     @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
     @PostMapping
     public TagResponse create( @Valid @RequestBody TagRequest request ) {
         return tagService.create( request );
+    }
+
+    /** Объединение: пометки исходного тега переезжают на указанный, исходный удаляется. */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PostMapping( "/{id}/merge" )
+    public TagResponse merge( @PathVariable UUID id, @Valid @RequestBody TagMergeRequest request ) {
+        return tagService.merge( id, request.getTargetId() );
     }
 
     @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )

@@ -21,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -100,9 +101,23 @@ class ReadingProgressIntegrationTest extends PostgresContainerTest {
         quoteRepository.save( quote( item, 7, "Слабость и невежество не помеха выживанию" ) );
         quoteRepository.flush();
 
-        List<Quote> found = quoteRepository.search( "НЕВЕЖЕСТВО", null );
+        List<Quote> found = quoteRepository.search( "НЕВЕЖЕСТВО", null, PageRequest.of( 0, 100 ) );
 
         assertThat( found ).singleElement().extracting( Quote::getPosition ).isEqualTo( 7 );
+    }
+
+    /** Страница выписок открывается стеной: без запроса отдаются последние, а не пустой список. */
+    @Test
+    void listsRecentQuotesWithoutQuery() {
+        LibraryItem item = libraryItemRepository.save( item( "Пикник на обочине" ) );
+        quoteRepository.save( quote( item, 92, "Сталкеры не исследователи" ) );
+        quoteRepository.save( quote( item, 118, "Счастье для всех, даром" ) );
+        quoteRepository.flush();
+
+        List<Quote> found = quoteRepository.findRecent( null, PageRequest.of( 0, 1 ) );
+
+        // Окно соблюдается: на библиотеке в тысячи записей выписок столько же.
+        assertThat( found ).hasSize( 1 );
     }
 
     private LibraryItem item( String title ) {

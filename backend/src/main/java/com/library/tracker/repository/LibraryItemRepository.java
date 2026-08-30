@@ -76,6 +76,15 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             """, nativeQuery = true )
     List<LibraryItem> findSimilarByTitle( String title, UUID userId );
 
+    /** Записи с этой пометкой: нужны объединению тегов, которое переносит их на другой тег. */
+    @Query( """
+            select li
+            from LibraryItem li
+            join li.tags t
+            where t.id = :tagId
+            """ )
+    List<LibraryItem> findByTagId( UUID tagId );
+
     interface ItemAuthorRow {
 
         UUID getItemId();

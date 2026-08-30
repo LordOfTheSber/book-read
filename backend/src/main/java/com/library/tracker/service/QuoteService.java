@@ -3,6 +3,7 @@ package com.library.tracker.service;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Quote;
 import com.library.tracker.domain.User;
+import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.QuoteRepository;
 import com.library.tracker.web.dto.QuoteRequest;
 import com.library.tracker.web.dto.QuoteResponse;
@@ -10,11 +11,14 @@ import com.library.tracker.web.dto.QuoteResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -25,7 +29,14 @@ import org.springframework.util.StringUtils;
 @Transactional
 public class QuoteService {
 
+    /**
+     * Верхняя граница выдачи по всем выпискам: страница показывает их стеной, и на библиотеке
+     * в тысячи записей отдавать всё разом нельзя — ни серверу, ни браузеру.
+     */
+    private static final int MAX_RESULTS = 500;
+
     private final QuoteRepository quoteRepository;
+    private final LibraryItemRepository itemRepository;
     private final LibraryItemAccess itemAccess;
     private final UserService userService;
 
@@ -33,22 +44,46 @@ public class QuoteService {
     public List<QuoteResponse> findByItem( UUID itemId ) {
         itemAccess.requireReadable( itemId );
         return quoteRepository.findByItemIdOrderByPositionAscCreatedAtAsc( itemId ).stream()
-                              .map( this::toResponse )
+                              .map( quote -> toResponse( quote, List.of() ) )
                               .toList();
     }
 
     /**
-     * Поиск по всем выпискам библиотеки. Обычный пользователь ищет только по своим: цитата —
-     * личная запись, а не общий справочник.
+     * Выписки всей библиотеки: с запросом — поиск, без запроса — последние. Пустой ответ на
+     * пустой запрос означал бы, что страница открывается ничем, а выписки перечитывают и просто
+     * так — поэтому «ничего не спросили» здесь значит «покажите последние».
+     * <p>
+     * Обычный пользователь видит только свои: цитата — личная запись, а не общий справочник.
      */
     @Transactional( readOnly = true )
     public List<QuoteResponse> search( String query ) {
-        if ( !StringUtils.hasText( query ) ) {
-            return List.of();
-        }
         User currentUser = userService.getCurrentUser();
         UUID scope = userService.isAdmin( currentUser ) ? null : currentUser.getId();
-        return quoteRepository.search( query.trim(), scope ).stream().map( this::toResponse ).toList();
+        List<Quote> found = StringUtils.hasText( query )
+                ? quoteRepository.search( query.trim(), scope, PageRequest.of( 0, MAX_RESULTS ) )
+                : quoteRepository.findRecent( scope, PageRequest.of( 0, MAX_RESULTS ) );
+
+        Map<UUID, List<String>> authors = authorNames( found );
+        return found.stream()
+                    .map( quote -> toResponse( quote, authors.getOrDefault( quote.getItem().getId(), List.of() ) ) )
+                    .toList();
+    }
+
+    /**
+     * Авторы книг найденных выписок — одним запросом на всю выдачу, а не по запросу на цитату.
+     * Нужны списку книг: «Задача трёх тел» без «Лю Цысиня» в колонке книг ничем не отличается
+     * от одноимённой чужой записи.
+     */
+    private Map<UUID, List<String>> authorNames( List<Quote> quotes ) {
+        List<UUID> itemIds = quotes.stream().map( quote -> quote.getItem().getId() ).distinct().toList();
+        if ( itemIds.isEmpty() ) {
+            return Map.of();
+        }
+        Map<UUID, List<String>> byItem = new LinkedHashMap<>();
+        for ( LibraryItemRepository.ItemAuthorRow row : itemRepository.findAuthorsByItemIds( itemIds ) ) {
+            byItem.computeIfAbsent( row.getItemId(), key -> new java.util.ArrayList<>() ).add( row.getName() );
+        }
+        return byItem;
     }
 
     public QuoteResponse create( UUID itemId, QuoteRequest request ) {
@@ -56,7 +91,7 @@ public class QuoteService {
         Quote quote = new Quote();
         quote.setItem( item );
         applyRequest( quote, request );
-        return toResponse( quoteRepository.save( quote ) );
+        return toResponse( quoteRepository.save( quote ), List.of() );
     }
 
     public Optional<QuoteResponse> update( UUID itemId, UUID quoteId, QuoteRequest request ) {
@@ -65,7 +100,7 @@ public class QuoteService {
                               .filter( quote -> quote.getItem().getId().equals( itemId ) )
                               .map( quote -> {
                                   applyRequest( quote, request );
-                                  return toResponse( quoteRepository.save( quote ) );
+                                  return toResponse( quoteRepository.save( quote ), List.of() );
                               } );
     }
 
@@ -82,11 +117,12 @@ public class QuoteService {
         quote.setNote( StringUtils.hasText( request.getNote() ) ? request.getNote().trim() : null );
     }
 
-    private QuoteResponse toResponse( Quote quote ) {
+    private QuoteResponse toResponse( Quote quote, List<String> itemAuthorNames ) {
         return QuoteResponse.builder()
                             .id( quote.getId() )
                             .itemId( quote.getItem().getId() )
                             .itemTitle( quote.getItem().getTitle() )
+                            .itemAuthorNames( itemAuthorNames )
                             .position( quote.getPosition() )
                             .text( quote.getText() )
                             .note( quote.getNote() )
