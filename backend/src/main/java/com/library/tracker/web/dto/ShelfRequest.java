@@ -1,5 +1,6 @@
 package com.library.tracker.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -14,6 +15,13 @@ public class ShelfRequest {
 
     private String description;
 
-    /** Публичная полка видна по ссылке другим пользователям сервиса. */
+    /**
+     * Публичная полка видна по ссылке другим пользователям сервиса.
+     * <p>
+     * Имя в JSON задано явно по той же причине, что и в ответе: сеттер Lombok называется
+     * {@code setPublic}, и присланное клиентом «isPublic» до него не доходило — полка
+     * создавалась приватной, что бы ни стояло в переключателе.
+     */
+    @JsonProperty( "isPublic" )
     private boolean isPublic;
 }
