@@ -154,18 +154,23 @@ test('открытый профиль появляется на своей ст�
   await expect(page.getByRole('button', { name: 'Настроить профиль' })).toBeVisible();
 });
 
-/** Цель года считается от равномерного темпа, поэтому пустая цель ничего не показывает. */
+/**
+ * Цель года считается от равномерного темпа, поэтому пустая цель ничего не показывает.
+ * Форма при этом убрана под карандаш: страница открывается ответом, а не настройкой.
+ */
 test('цель года заводится и показывает прогресс', async ({ page }) => {
   await registerNewUser(page);
 
   await page.goto('/goals');
   await expect(page.getByText(/Цель ещё не поставлена/)).toBeVisible();
 
+  await page.getByRole('button', { name: 'Поставить цель' }).click();
   await page.getByLabel('Произведений').fill('40');
   await page.getByRole('button', { name: 'Сохранить' }).click();
 
-  await expect(page.getByText('0 / 40')).toBeVisible();
-  await expect(page.getByText('Такими темпами')).toBeVisible();
+  await expect(page.getByText('из 40 книг')).toBeVisible();
+  await expect(page.getByText('Осталось')).toBeVisible();
+  await expect(page.getByText('40 книг', { exact: true })).toBeVisible();
 });
 
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {

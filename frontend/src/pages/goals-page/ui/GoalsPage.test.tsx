@@ -1,5 +1,6 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GoalsPage } from './GoalsPage';
 import { renderWithStore } from '@/test/renderWithStore';
@@ -15,6 +16,7 @@ vi.mock('@/entities/engagement', () => ({
   fetchGoals: vi.fn(),
   saveGoal: vi.fn(),
   deleteGoal: vi.fn(),
+  resetYearGoal: vi.fn(),
   fetchStreak: (...args: unknown[]) => fetchStreak(...args),
   fetchAchievements: (...args: unknown[]) => fetchAchievements(...args),
   fetchYearInReview: (...args: unknown[]) => fetchYearInReview(...args)
@@ -64,23 +66,41 @@ describe('GoalsPage', () => {
     fetchYearInReview.mockResolvedValue(review);
   });
 
-  /** Главное на странице — не проценты, а отставание: без графика «12 из 40» ни о чём не говорит. */
-  it('показывает отставание от равномерного темпа', async () => {
+  /**
+   * Главное на странице — ответ «успею или нет»: проценты его не дают, а неделя даёт.
+   * «Нужно в неделю» считается от остатка и оставшихся дней, «темп» — от пройденных.
+   */
+  it('открывается выводом и четырьмя числами, а не формой', async () => {
     renderWithStore(<GoalsPage />);
 
-    expect(await screen.findByText('Отставание')).toBeInTheDocument();
-    expect(screen.getByText('8 шт.')).toBeInTheDocument();
-    expect(screen.getByText('20 шт.')).toBeInTheDocument();
-    expect(screen.getByText('24 шт. за год')).toBeInTheDocument();
+    expect(await screen.findByText(/Отстаёте на 8 книг/)).toBeInTheDocument();
+    expect(screen.getByText('Осталось')).toBeInTheDocument();
+    expect(screen.getByText('28 книг')).toBeInTheDocument();
+    expect(screen.getByText('1,3')).toBeInTheDocument();
+    expect(screen.getByText('0,4')).toBeInTheDocument();
+    expect(screen.getByText('24 книги')).toBeInTheDocument();
+
+    // Форма спрятана под карандаш: страница начинается с результата, а не с настройки.
+    expect(screen.queryByLabelText('Произведений')).not.toBeInTheDocument();
   });
 
-  it('показывает опережение вместо цифры отставания', async () => {
+  it('открывает форму цели карандашом', async () => {
+    renderWithStore(<GoalsPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Изменить цель' }));
+
+    expect(await screen.findByLabelText('Произведений')).toHaveValue('40');
+  });
+
+  /** Цели по страницам и минутам остаются, но идут второй строкой, а не спорят с главной. */
+  it('показывает цели по страницам второй строкой', async () => {
     fetchGoal.mockResolvedValue(
-      goal({ items: { target: 40, done: 30, expected: 20, percent: 75, behind: 0, onTrack: true, projected: 60 } })
+      goal({ pages: { target: 15000, done: 11240, expected: 11000, percent: 74, behind: 0, onTrack: true, projected: 15200 } })
     );
     renderWithStore(<GoalsPage />);
 
-    expect(await screen.findByText('Опережение')).toBeInTheDocument();
+    expect(await screen.findByText('Страницы')).toBeInTheDocument();
+    expect(screen.getByText('11 240 из 15 000 страниц')).toBeInTheDocument();
     expect(screen.getByText('идёте по плану')).toBeInTheDocument();
   });
 
@@ -90,13 +110,29 @@ describe('GoalsPage', () => {
     renderWithStore(<GoalsPage />);
 
     expect(await screen.findByText(/Цель ещё не поставлена/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Поставить цель' }));
+    expect(await screen.findByLabelText('Произведений')).toBeInTheDocument();
   });
 
   it('показывает закрытые достижения вместе с полученными', async () => {
     renderWithStore(<GoalsPage />);
 
     expect(await screen.findByText('Начало положено')).toBeInTheDocument();
-    expect(screen.getByText('Десяток')).toBeInTheDocument();
-    expect(screen.getByText('ещё не получено')).toBeInTheDocument();
+    expect(screen.getByText(/получено 05 янв/)).toBeInTheDocument();
+    // У неполученного вместо даты стоит условие: иначе непонятно, что осталось сделать.
+    expect(screen.getByText('Десять завершённых')).toBeInTheDocument();
+  });
+
+  /** Итоги года на первом экране — одна строка: разворачивать таблицу каждый раз незачем. */
+  it('раскрывает итоги года по кнопке', async () => {
+    renderWithStore(<GoalsPage />);
+
+    expect(await screen.findByText(/12 книг, 3 400 страниц, 60 дней с чтением/)).toBeInTheDocument();
+    expect(screen.queryByText('Лучшее за год')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Смотреть итоги' }));
+
+    expect(await screen.findByText('Лучшее за год')).toBeInTheDocument();
   });
 });
