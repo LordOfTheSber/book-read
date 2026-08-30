@@ -3,6 +3,7 @@ package com.library.tracker.service;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.SessionRepository;
+import com.library.tracker.repository.TrustedDeviceRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.security.AppUserDetails;
 
@@ -41,13 +42,17 @@ class UserServiceTest {
     private SessionRepository sessionRepository;
 
     @Mock
+    private TrustedDeviceRepository trustedDeviceRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService( userRepository, sessionRepository, passwordEncoder );
+        userService = new UserService( userRepository, sessionRepository, trustedDeviceRepository,
+                                      passwordEncoder );
     }
 
     @AfterEach

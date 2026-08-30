@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.SessionRepository;
+import com.library.tracker.repository.TrustedDeviceRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.security.AppUserDetails;
 import com.library.tracker.web.dto.UserResponse;
@@ -42,6 +43,7 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
+    private final TrustedDeviceRepository trustedDeviceRepository;
     private final PasswordEncoder passwordEncoder;
     private final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
 
@@ -257,6 +259,9 @@ public class UserService implements UserDetailsService {
         evictFromCache( saved );
         if ( blocked ) {
             sessionRepository.deleteAllByUserId( userId );
+            // Вместе с сессиями уходит и доверие устройств: иначе заблокированный входил бы
+            // без пароля ровно до первой проверки блокировки — то есть каждый раз заново.
+            trustedDeviceRepository.deleteAllByUserId( userId );
         }
         return toResponse( saved );
     }

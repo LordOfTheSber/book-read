@@ -62,7 +62,9 @@ describe('AppHeader', () => {
 
     expect(await screen.findByText('Каждую неделю')).toBeInTheDocument();
     expect(screen.getByText('Действия')).toBeInTheDocument();
-    expect(screen.getByText('Справочники')).toBeInTheDocument();
+    expect(screen.getByText('Наборы и справочники')).toBeInTheDocument();
+    // Четыре справочника съехались на одну страницу и стоят в меню одним пунктом.
+    expect(screen.getByRole('menuitem', { name: 'Справочники' })).toBeInTheDocument();
     // Администрирования у обычного пользователя нет вовсе — пустой группы тоже.
     expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();
   });
@@ -72,8 +74,9 @@ describe('AppHeader', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Ещё/ }));
 
-    expect(await screen.findByText('Администрирование')).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Узлы' })).toBeInTheDocument();
+    expect(await screen.findByText('Служебное')).toBeInTheDocument();
+    // Пользователи, сессии, копии и узлы — один пункт: по отдельности их открывают единицы.
+    expect(screen.getByRole('menuitem', { name: 'Администрирование' })).toBeInTheDocument();
   });
 
   it('добавление доступно прямо из шапки: со страницы аналитики за ним не надо возвращаться', async () => {

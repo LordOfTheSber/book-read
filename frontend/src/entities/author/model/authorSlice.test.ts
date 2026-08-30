@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { authorReducer, createAuthorThunk, deleteAuthorThunk, loadAuthors, updateAuthorThunk } from '@/entities/author';
+import {
+  authorReducer,
+  createAuthorThunk,
+  deleteAuthorThunk,
+  loadAuthors,
+  mergeAuthorsThunk,
+  updateAuthorThunk
+} from '@/entities/author';
 import { Author } from '@/shared/types/library';
 
 const author = (id: string, name: string, itemCount = 0): Author =>
@@ -34,6 +41,17 @@ describe('authorSlice', () => {
     });
 
     expect(state.list.map((item) => item.name)).toEqual(['Liu Cixin', 'Аркадий Стругацкий']);
+  });
+
+  /** Слияние трогает обе строки разом: уходящий пропадает, остающийся получает его записи. */
+  it('после слияния оставляет одного автора с новым счётчиком', () => {
+    const state = authorReducer(loaded(author('1', 'Лю Цысинь', 6), author('2', 'Cixin Liu', 2)), {
+      type: mergeAuthorsThunk.fulfilled.type,
+      payload: { target: author('1', 'Лю Цысинь', 8), sourceId: '2' }
+    });
+
+    expect(state.list.map((item) => item.id)).toEqual(['1']);
+    expect(state.list[0].itemCount).toBe(8);
   });
 
   it('убирает удалённого автора', () => {

@@ -45,29 +45,32 @@ export const secondaryNav: NavGroup[] = [
   },
   {
     key: 'catalogues',
-    label: 'Справочники',
+    // Раньше группа звалась «Справочники» по своему содержимому; теперь так зовётся и страница
+    // внутри неё, и подпись группы совпадала бы с пунктом под ней.
+    label: 'Наборы и справочники',
     items: [
       { key: 'shelves', label: 'Полки и теги', path: '/shelves' },
-      { key: 'authors', label: 'Авторы', path: '/authors' },
-      { key: 'series', label: 'Серии', path: '/series' },
-      { key: 'types', label: 'Типы', path: '/types' },
-      { key: 'sources', label: 'Источники', path: '/sources' }
+      // Авторы, серии, типы и источники устроены одинаково и живут одной страницей: четыре
+      // равноправных пункта на то, что открывают раз в полгода, — четверть меню.
+      { key: 'catalog', label: 'Справочники', path: '/catalog' }
     ]
   },
   {
     key: 'admin',
-    label: 'Администрирование',
-    items: [
-      { key: 'users', label: 'Пользователи', path: '/users', adminOnly: true },
-      { key: 'nodes', label: 'Узлы', path: '/nodes', adminOnly: true }
-    ]
+    // Подпись группы не повторяет пункт под ней — как и у справочников выше.
+    label: 'Служебное',
+    // Пользователи, сессии, копии и узлы собраны в один раздел: два пункта из одиннадцати
+    // уходили на то, что открывают единицы.
+    items: [{ key: 'admin', label: 'Администрирование', path: '/admin', adminOnly: true }]
   }
 ];
 
 /** Разделы без пункта меню: имя нужно заголовку экрана на телефоне. */
 const extraTitles: Array<{ path: string; label: string }> = [
   { path: '/profile', label: 'Профиль' },
-  { path: '/u/', label: 'Страница читателя' }
+  { path: '/u/', label: 'Страница читателя' },
+  // Страница узла открывается с обзора администрирования, своего пункта меню у неё нет.
+  { path: '/nodes/', label: 'Узел' }
 ];
 
 export const allSections: NavSection[] = [

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Activity } from '@/shared/types/library';
 import { activityMeta } from '@/shared/constants/social';
 import { CoverThumb } from '@/shared/ui/CoverThumb';
-import { formatDateTime } from '@/shared/lib/date';
+import { formatDateTime, formatDayMonth } from '@/shared/lib/date';
 import { useFeedPostStyles } from './FeedPost.styles';
 
 interface Props {
@@ -48,8 +48,10 @@ export const EventLine: React.FC<Props> = ({ event }) => {
       {screens.sm && event.itemId && event.subject && (
         <CoverThumb title={event.subject} width={30} height={44} radius={6} />
       )}
-      <Typography.Text type="secondary" style={styles.lineTime}>
-        {formatDateTime(event.createdAt)}
+      {/* На телефоне дата короткая: полная со временем занимала половину строки, и подпись
+          события переносилась в три этажа. Точное время остаётся во всплывающей подсказке. */}
+      <Typography.Text type="secondary" style={styles.lineTime} title={formatDateTime(event.createdAt)}>
+        {screens.sm ? formatDateTime(event.createdAt) : formatDayMonth(event.createdAt)}
       </Typography.Text>
     </Card>
   );

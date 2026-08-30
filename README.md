@@ -36,6 +36,8 @@ Located in `/backend` (Spring Boot).
 | `SECURITY_JWT_EXPIRATION_MS` | `1800000` (30 min) | Access token lifetime. Clients renew it via `POST /api/v1/auth/refresh` using the server-side session cookie. |
 | `SECURITY_COOKIE_SECURE` | `false` (`true` in `prod`) | `Secure` flag of the auth cookies. Keep `true` behind TLS. |
 | `SECURITY_COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the auth cookies. Do not relax it to `None` without adding CSRF tokens: both cookies are sent automatically by the browser. |
+| `SECURITY_DEVICE_TTL_DAYS` | `90` | How long a trusted device stays remembered. Every quick login pushes the expiry forward, so a device in daily use never falls out; an abandoned one expires on its own. |
+| `SECURITY_DEVICE_MAX_PER_USER` | `10` | Cap on remembered devices per user. Room for a new one is freed by dropping the least recently used. |
 
 Authentication uses two httpOnly cookies and no client-side storage:
 
@@ -43,6 +45,28 @@ Authentication uses two httpOnly cookies and no client-side storage:
 - `ACCESS_TOKEN` — the JWT itself. It is never returned in a response body, so XSS cannot read it.
 
 `Authorization: Bearer <token>` is still accepted for non-browser clients (curl, integration tests).
+
+#### Quick login on a trusted device
+
+Ticking *«Запомнить устройство»* on the login or register form issues a third httpOnly cookie,
+`DEVICE_TOKEN` — 256 random bits, scoped to `/api/v1/auth` so it never travels with ordinary API
+calls. Alongside it the browser computes a device fingerprint from traits that do not drift with a
+browser update (platform, cores, memory, colour depth, touch support, timezone, plus a marker kept
+in `localStorage`). The server stores only SHA-256 of both, and lets a device in without a password
+only when the cookie *and* the fingerprint match — a fingerprint is not a secret, and the cookie
+alone can be copied.
+
+- `GET /api/v1/auth/device?fingerprint=…` — who this device remembers (204 when unknown).
+- `POST /api/v1/auth/device/login` — log in without a password; the secret is rotated on every use,
+  so a copy of the cookie stops working as soon as the real device returns.
+- `DELETE /api/v1/auth/device` — «это не я»: the device stops being trusted.
+- `GET`/`DELETE /api/v1/account/devices` — the owner's own list, with revoking one or all of them
+  (Профиль → Аккаунт → «Быстрый вход»).
+
+Logging out keeps the trust: the login screen then offers «продолжить как», and the tab remembers
+that the user left on purpose so it does not log them straight back in. Blocking a user or deleting
+an account drops their devices. Without a secure context there is no `crypto.subtle`, no
+fingerprint and no quick login — the checkbox explains itself and stays disabled.
 
 The deployment scripts generate `SECURITY_JWT_SECRET` when it is not supplied and reuse the previously
 deployed value on subsequent runs — changing the key signs every user out.

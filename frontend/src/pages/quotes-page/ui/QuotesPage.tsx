@@ -21,7 +21,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Quote } from '@/shared/types/library';
 import { deleteQuote, searchQuotes } from '@/entities/book';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
-import { formatRelativeDate } from '@/shared/lib/date';
+import { formatRelative } from '@/shared/lib/date';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
 import { DogEar } from '@/shared/ui/DogEar';
@@ -300,7 +300,7 @@ export const QuotesPage: React.FC = () => {
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                       {[
                         quote.position != null ? `стр. ${quote.position}` : 'пометка',
-                        formatRelativeDate(quote.createdAt)
+                        formatRelative(quote.createdAt)
                       ].join(' · ')}
                     </Typography.Text>
                   </span>
@@ -369,7 +369,7 @@ export const QuotesPage: React.FC = () => {
                       {pluralize(activeBook.count, ['выписка', 'выписки', 'выписок'])}
                     </Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                      {`последняя ${formatRelativeDate(activeBook.lastAt)}`}
+                      {`последняя ${formatRelative(activeBook.lastAt)}`}
                     </Typography.Text>
                   </Space>
                 </div>

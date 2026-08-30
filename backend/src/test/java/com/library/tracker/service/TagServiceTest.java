@@ -6,8 +6,8 @@ import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.TagRepository;
-import com.library.tracker.web.dto.TagDuplicateResponse;
 import com.library.tracker.web.dto.TagRequest;
+import com.library.tracker.web.dto.TagResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +36,7 @@ class TagServiceTest {
     private TagRepository tagRepository;
 
     @Mock
-    private LibraryItemRepository itemRepository;
+    private LibraryItemRepository libraryItemRepository;
 
     @Mock
     private UserService userService;
@@ -47,7 +47,7 @@ class TagServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TagService( tagRepository, itemRepository, userService );
+        service = new TagService( tagRepository, libraryItemRepository, userService );
         owner = user();
     }
 
@@ -115,133 +115,43 @@ class TagServiceTest {
     }
 
     /**
-     * Объединение переносит пометки, а не удаляет их вместе с тегом: иначе «уборка» стоила бы
-     * пользователю тех самых книг, ради которых он тег и заводил.
+     * «сай-фай» и «фантастика» — одна пометка, разведённая по двум тегам вводом из карточки.
+     * Объединение переносит пометки и удаляет уходящий тег.
      */
     @Test
-    void mergeMovesItemsToTargetAndRemovesSource() {
-        Tag source = tag( "сай-фай", owner );
-        Tag target = tag( "фантастика", owner );
+    void mergeMovesMarksToTargetTag() {
+        Tag into = tag( "фантастика", owner );
+        Tag from = tag( "сай-фай", owner );
         LibraryItem item = new LibraryItem();
         item.setId( UUID.randomUUID() );
-        item.getTags().add( source );
+        item.getTags().add( from );
 
         when( userService.getCurrentUser() ).thenReturn( owner );
-        when( tagRepository.findById( eq( source.getId() ) ) ).thenReturn( Optional.of( source ) );
-        when( tagRepository.findById( eq( target.getId() ) ) ).thenReturn( Optional.of( target ) );
-        when( itemRepository.findByTagId( eq( source.getId() ) ) ).thenReturn( List.of( item ) );
+        when( tagRepository.findById( eq( into.getId() ) ) ).thenReturn( Optional.of( into ) );
+        when( tagRepository.findById( eq( from.getId() ) ) ).thenReturn( Optional.of( from ) );
+        when( libraryItemRepository.findByTagId( eq( from.getId() ) ) ).thenReturn( List.of( item ) );
         when( tagRepository.countByTag( eq( owner.getId() ) ) ).thenReturn( List.of() );
 
-        service.merge( source.getId(), target.getId() );
+        TagResponse merged = service.merge( into.getId(), from.getId() ).orElseThrow();
 
-        assertThat( item.getTags() ).containsExactly( target );
-        verify( tagRepository ).delete( source );
+        assertThat( merged.getName() ).isEqualTo( "фантастика" );
+        assertThat( item.getTags() ).containsExactly( into );
+        verify( tagRepository ).delete( eq( from ) );
     }
 
+    /** Тег личный: объединить чужой со своим — то же, что удалить чужой. */
     @Test
-    void mergeOfForeignTagIsDenied() {
-        Tag foreign = tag( "чужой", user() );
-        Tag mine = tag( "мой", owner );
-        when( userService.getCurrentUser() ).thenReturn( owner );
-        when( tagRepository.findById( eq( foreign.getId() ) ) ).thenReturn( Optional.of( foreign ) );
-        when( tagRepository.findById( eq( mine.getId() ) ) ).thenReturn( Optional.of( mine ) );
+    void mergeRejectsForeignTag() {
+        Tag mine = tag( "фантастика", owner );
+        Tag foreign = tag( "сай-фай", user() );
 
-        assertThatThrownBy( () -> service.merge( foreign.getId(), mine.getId() ) )
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findById( eq( mine.getId() ) ) ).thenReturn( Optional.of( mine ) );
+        when( tagRepository.findById( eq( foreign.getId() ) ) ).thenReturn( Optional.of( foreign ) );
+
+        assertThatThrownBy( () -> service.merge( mine.getId(), foreign.getId() ) )
                 .isInstanceOf( AccessDeniedException.class );
         verify( tagRepository, never() ).delete( any( Tag.class ) );
-    }
-
-    /**
-     * Дубль виден по пересечению, а не по написанию: «сай-фай» почти целиком лежит внутри
-     * «фантастики», а «космос» с ней просто соседствует.
-     */
-    @Test
-    void findDuplicatesKeepsOnlyPairsThatOverlapAlmostEntirely() {
-        Tag small = tag( "сай-фай", owner );
-        Tag big = tag( "фантастика", owner );
-        Tag neighbour = tag( "космос", owner );
-
-        when( userService.getCurrentUser() ).thenReturn( owner );
-        when( tagRepository.findByOwnerIdOrderByNameAsc( eq( owner.getId() ) ) )
-                .thenReturn( List.of( small, big, neighbour ) );
-        when( tagRepository.countByTag( eq( owner.getId() ) ) )
-                .thenReturn( List.of( count( small.getId(), 9 ), count( big.getId(), 64 ),
-                                      count( neighbour.getId(), 27 ) ) );
-        when( tagRepository.overlaps( eq( owner.getId() ) ) )
-                .thenReturn( List.of( overlap( small.getId(), big.getId(), 7 ),
-                                      overlap( big.getId(), small.getId(), 7 ),
-                                      overlap( neighbour.getId(), big.getId(), 8 ) ) );
-
-        List<TagDuplicateResponse> duplicates = service.findDuplicates();
-
-        assertThat( duplicates ).singleElement().satisfies( duplicate -> {
-            assertThat( duplicate.getSource().getName() ).isEqualTo( "сай-фай" );
-            assertThat( duplicate.getTarget().getName() ).isEqualTo( "фантастика" );
-            assertThat( duplicate.getOverlap() ).isEqualTo( 7 );
-        } );
-    }
-
-    /**
-     * Запрос отдаёт пару в обоих порядках, и при равных счётчиках «меньший» определялся тем,
-     * какая строка пришла первой: одно и то же подозрение показывалось дважды.
-     */
-    @Test
-    void findDuplicatesShowsMirroredPairOnce() {
-        Tag older = tag( "фантастика", owner );
-        older.setCreatedAt( java.time.LocalDateTime.of( 2026, 1, 1, 10, 0 ) );
-        Tag newer = tag( "сай-фай", owner );
-        newer.setCreatedAt( java.time.LocalDateTime.of( 2026, 5, 1, 10, 0 ) );
-
-        when( userService.getCurrentUser() ).thenReturn( owner );
-        when( tagRepository.findByOwnerIdOrderByNameAsc( eq( owner.getId() ) ) ).thenReturn( List.of( older, newer ) );
-        when( tagRepository.countByTag( eq( owner.getId() ) ) )
-                .thenReturn( List.of( count( older.getId(), 4 ), count( newer.getId(), 4 ) ) );
-        when( tagRepository.overlaps( eq( owner.getId() ) ) )
-                .thenReturn( List.of( overlap( older.getId(), newer.getId(), 4 ),
-                                      overlap( newer.getId(), older.getId(), 4 ) ) );
-
-        List<TagDuplicateResponse> duplicates = service.findDuplicates();
-
-        // Лишний при равных счётчиках — заведённый позже: старый успел разойтись по записям.
-        assertThat( duplicates ).singleElement().satisfies( duplicate -> {
-            assertThat( duplicate.getSource().getName() ).isEqualTo( "сай-фай" );
-            assertThat( duplicate.getTarget().getName() ).isEqualTo( "фантастика" );
-        } );
-    }
-
-    private TagRepository.TagCount count( UUID tagId, long value ) {
-        return new TagRepository.TagCount() {
-
-            @Override
-            public UUID getTagId() {
-                return tagId;
-            }
-
-            @Override
-            public long getCount() {
-                return value;
-            }
-        };
-    }
-
-    private TagRepository.TagOverlap overlap( UUID first, UUID second, long value ) {
-        return new TagRepository.TagOverlap() {
-
-            @Override
-            public UUID getFirstId() {
-                return first;
-            }
-
-            @Override
-            public UUID getSecondId() {
-                return second;
-            }
-
-            @Override
-            public long getOverlap() {
-                return value;
-            }
-        };
     }
 
     private User user() {

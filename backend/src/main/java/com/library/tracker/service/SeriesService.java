@@ -6,10 +6,12 @@ import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SeriesRepository;
 import com.library.tracker.web.dto.SeriesRequest;
 import com.library.tracker.web.dto.SeriesResponse;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +32,7 @@ public class SeriesService {
     private final SeriesRepository seriesRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final UserService userService;
+    private final ShowcaseAssembler showcaseAssembler;
 
     @Transactional( readOnly = true )
     public List<SeriesResponse> findAll() {
@@ -37,6 +40,15 @@ public class SeriesService {
         return seriesRepository.findAllByOrderByNameAsc().stream()
                                .map( series -> toResponse( series, counts ) )
                                .toList();
+    }
+
+    /**
+     * Обложки для показанных карточек цикла — в порядке томов: карточка серии тем и полезна,
+     * что видно, на чём цикл встал.
+     */
+    @Transactional( readOnly = true )
+    public Map<UUID, List<ShowcaseItemResponse>> showcase( Collection<UUID> seriesIds ) {
+        return showcaseAssembler.assemble( seriesIds, libraryItemRepository::findShowcaseBySeries );
     }
 
     @Transactional( readOnly = true )

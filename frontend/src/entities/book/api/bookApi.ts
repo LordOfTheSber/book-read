@@ -12,6 +12,9 @@ export interface FetchBooksParams {
   favorite?: boolean;
   minRating?: number;
   maxRating?: number;
+  /** Дата завершения, ISO: витрина профиля берёт ими полку года. */
+  finishedFrom?: string;
+  finishedTo?: string;
   authorId?: string;
   seriesId?: string;
   tagId?: string;

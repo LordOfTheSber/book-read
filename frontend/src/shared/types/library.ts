@@ -69,6 +69,10 @@ export interface Author {
   name: string;
   altName?: string;
   itemCount: number;
+  /** Из них дочитано: карточка справочника отвечает, что этого автора осталось прочесть. */
+  finishedCount: number;
+  /** Средняя оценка по выставленным; без оценок поля нет. */
+  avgRating?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -114,15 +118,6 @@ export interface TagSummary {
   color?: string;
 }
 
-/** Подозрение на дубль: два тега стоят почти на одних и тех же записях. */
-export interface TagDuplicate {
-  /** Крупный тег: в него предлагается объединить. */
-  target: Tag;
-  /** Мелкий: он исчезнет при объединении. */
-  source: Tag;
-  overlap: number;
-}
-
 /** Полка внутри карточки: без описания и состава. */
 export interface ShelfSummary {
   id: string;
@@ -160,6 +155,22 @@ export interface ShelfItem {
   status: ReadingStatus;
   review?: string;
 }
+
+/**
+ * Произведение в витрине справочника — обложка на карточке автора или цикла. Полей ровно
+ * столько, сколько рисует карточка: полная выдача на семьдесят две записи стоила бы страницы.
+ */
+export interface ShowcaseItem {
+  id: string;
+  title: string;
+  kind: MediaKind;
+  status: ReadingStatus;
+  rating?: number;
+  hasCover: boolean;
+}
+
+/** Обложки, разложенные по идентификаторам авторов или циклов. */
+export type Showcase = Record<string, ShowcaseItem[]>;
 
 /** Сохранённый фильтр умной полки: повторяет параметры выдачи, кроме страницы и размера. */
 export interface SavedFilter {

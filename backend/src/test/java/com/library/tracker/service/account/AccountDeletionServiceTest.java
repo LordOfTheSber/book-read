@@ -4,6 +4,7 @@ import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.SessionRepository;
+import com.library.tracker.repository.TrustedDeviceRepository;
 import com.library.tracker.repository.UserRepository;
 import com.library.tracker.service.UserService;
 import com.library.tracker.storage.ObjectStorage;
@@ -44,6 +45,9 @@ class AccountDeletionServiceTest {
     private SessionRepository sessionRepository;
 
     @Mock
+    private TrustedDeviceRepository trustedDeviceRepository;
+
+    @Mock
     private ObjectStorage objectStorage;
 
     @Mock
@@ -59,7 +63,8 @@ class AccountDeletionServiceTest {
     @BeforeEach
     void setUp() {
         service = new AccountDeletionService( userRepository, libraryItemRepository, sessionRepository,
-                                              objectStorage, userService, passwordEncoder );
+                                              trustedDeviceRepository, objectStorage, userService,
+                                              passwordEncoder );
 
         user = new User();
         user.setId( UUID.randomUUID() );

@@ -14,6 +14,7 @@ import { tagReducer } from '@/entities/tag';
 import { shelfReducer } from '@/entities/shelf';
 import { smartShelfReducer } from '@/entities/smart-shelf';
 import { usersReducer } from '@/entities/user';
+import { nodesReducer } from '@/entities/node';
 import { analyticsReducer } from '@/entities/analytics';
 import { bookFilterReducer } from '@/features/book/set-book-filters';
 
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   smartShelves: smartShelfReducer,
   bookFilters: bookFilterReducer,
   users: usersReducer,
+  nodes: nodesReducer,
   analytics: analyticsReducer
 });
 

@@ -4,18 +4,14 @@ import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-rou
 import { PageLayout } from '@/app/layouts/PageLayout';
 import { BooksPage } from '@/pages/books-page';
 import { RecordPage } from '@/pages/record-page';
-import { TypesPage } from '@/pages/types-page';
-import { SourcesPage } from '@/pages/sources-page';
-import { AuthorsPage } from '@/pages/authors-page';
-import { SeriesPage } from '@/pages/series-page';
+import { CatalogPage } from '@/pages/catalog-page';
 import { QuotesPage } from '@/pages/quotes-page';
 import { ShelvesPage } from '@/pages/shelves-page';
 import { ImportPage } from '@/pages/import-page';
 import { LoginPage } from '@/pages/login-page';
 import { RegisterPage } from '@/pages/register-page';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { UsersPage } from '@/pages/users-page';
-import { NodesPage } from '@/pages/nodes-page';
+import { AdminPage } from '@/pages/admin-page';
 import { NodeDetailPage } from '@/pages/node-detail-page';
 import { fetchCurrentUser } from '@/entities/auth';
 import { AnalyticsPage } from '@/pages/analytics-page';
@@ -73,23 +69,30 @@ const router = createBrowserRouter([
           { path: 'u/:username', element: <UserProfilePage /> },
           { path: 'feed', element: <FeedPage /> },
           { path: 'goals', element: <GoalsPage /> },
-          { path: 'types', element: <TypesPage /> },
-          { path: 'sources', element: <SourcesPage /> },
-          { path: 'authors', element: <AuthorsPage /> },
-          { path: 'series', element: <SeriesPage /> },
+          { path: 'catalog', element: <CatalogPage /> },
+          // Четыре справочника съехались на одну страницу, но их адреса разосланы и лежат
+          // в закладках: старый путь ведёт в тот же справочник, а не в «страница не найдена».
+          { path: 'authors', element: <Navigate to="/catalog" replace /> },
+          { path: 'series', element: <Navigate to="/catalog?entity=series" replace /> },
+          { path: 'types', element: <Navigate to="/catalog?entity=types" replace /> },
+          { path: 'sources', element: <Navigate to="/catalog?entity=sources" replace /> },
           { path: 'quotes', element: <QuotesPage /> },
           { path: 'shelves', element: <ShelvesPage /> },
           { path: 'import', element: <ImportPage /> },
           {
-            path: 'users',
+            // Пользователи, сессии, копии и узлы — один раздел: по отдельности их открывают
+            // единицы, а места в меню они занимали два пункта из одиннадцати.
+            path: 'admin',
             element: <RequireAdmin />,
-            children: [{ index: true, element: <UsersPage /> }]
+            children: [{ index: true, element: <AdminPage /> }]
           },
+          { path: 'users', element: <Navigate to="/admin?tab=users" replace /> },
           {
             path: 'nodes',
             element: <RequireAdmin />,
             children: [
-              { index: true, element: <NodesPage /> },
+              { index: true, element: <Navigate to="/admin" replace /> },
+              // У узла остаётся своя страница: на неё уходят с обзора за подробностями.
               { path: ':nodeId', element: <NodeDetailPage /> }
             ]
           },

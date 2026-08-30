@@ -1,3 +1,5 @@
+import { pluralize } from './plural';
+
 /**
  * Дата в том же виде, в каком её присылает сервер. Через `toISOString` нельзя: он переводит
  * в UTC, и у всех западнее Гринвича календарные сетки съезжали бы на день относительно
@@ -30,27 +32,36 @@ export const formatDate = (value?: string | null) =>
 export const formatDateTime = (value?: string | null) =>
   format(value, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+/**
+ * 10 янв — день и месяц без года и времени.
+ *
+ * Для узких мест: в строке ленты на телефоне полная дата со временем занимала половину ширины,
+ * и подпись события переносилась в три строки. Год у свежих событий и так подразумевается.
+ */
+export const formatDayMonth = (value?: string | null) => format(value, { day: 'numeric', month: 'short' });
+
 /** 12:30:45 */
 export const formatTime = (value?: string | null) =>
   format(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /**
- * «сегодня», «вчера», «3 дня назад», «2 недели назад».
- *
- * В списке выписок и событий точная дата не нужна: важно, свежая запись или прошлогодняя,
- * а «10 янв. 2026 г.» это приходится вычислять в уме.
+ * «3 часа назад», «вчера», «5 дней назад» — для показателей состояния, где важна не точная дата,
+ * а свежесть: администратор смотрит, не устарела ли последняя копия, а не когда именно её сняли.
  */
-export const formatRelativeDate = (value?: string | null) => {
+export const formatRelative = (value?: string | null) => {
   const date = parseServerDate(value);
   if (!date || Number.isNaN(date.getTime())) return EMPTY;
 
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-  if (days <= 0) return 'сегодня';
-  if (days === 1) return 'вчера';
+  const minutes = Math.round((Date.now() - date.getTime()) / 60_000);
+  if (minutes < 1) return 'только что';
+  if (minutes < 60) return `${pluralize(minutes, ['минуту', 'минуты', 'минут'])} назад`;
 
-  const relative = new Intl.RelativeTimeFormat('ru-RU', { numeric: 'auto' });
-  if (days < 7) return relative.format(-days, 'day');
-  if (days < 31) return relative.format(-Math.round(days / 7), 'week');
-  if (days < 365) return relative.format(-Math.round(days / 30), 'month');
-  return relative.format(-Math.round(days / 365), 'year');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${pluralize(hours, ['час', 'часа', 'часов'])} назад`;
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'вчера';
+  if (days < 30) return `${pluralize(days, ['день', 'дня', 'дней'])} назад`;
+
+  return formatDate(value);
 };

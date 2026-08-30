@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Tag } from '@/shared/types/library';
-import { createTag, deleteTag, fetchTags, TagPayload, updateTag } from '../api/tagApi';
+import { createTag, deleteTag, fetchTags, mergeTags, TagPayload, updateTag } from '../api/tagApi';
 
 export interface TagState {
   list: Tag[];
@@ -31,6 +31,15 @@ export const createTagThunk = createAsyncThunk('tags/create', async (payload: Ta
 export const updateTagThunk = createAsyncThunk('tags/update', async ({ id, payload }: { id: string; payload: TagPayload }) =>
   updateTag(id, payload)
 );
+/** Объединение дублей: остающийся тег обновляется счётчиком, уходящий пропадает из списка. */
+export const mergeTagsThunk = createAsyncThunk(
+  'tags/merge',
+  async ({ targetId, sourceId }: { targetId: string; sourceId: string }) => ({
+    target: await mergeTags(targetId, sourceId),
+    sourceId
+  })
+);
+
 export const deleteTagThunk = createAsyncThunk('tags/delete', async (id: string) => {
   await deleteTag(id);
   return id;
@@ -59,6 +68,11 @@ const tagSlice = createSlice({
       })
       .addCase(updateTagThunk.fulfilled, (state, action: PayloadAction<Tag>) => {
         state.list = state.list.map((tag) => (tag.id === action.payload.id ? action.payload : tag));
+      })
+      .addCase(mergeTagsThunk.fulfilled, (state, action: PayloadAction<{ target: Tag; sourceId: string }>) => {
+        state.list = state.list
+          .filter((tag) => tag.id !== action.payload.sourceId)
+          .map((tag) => (tag.id === action.payload.target.id ? action.payload.target : tag));
       })
       .addCase(deleteTagThunk.fulfilled, (state, action: PayloadAction<string>) => {
         state.list = state.list.filter((tag) => tag.id !== action.payload);

@@ -128,11 +128,13 @@ test('введённый в карточке автор заводится и п
   // В списке автор идёт подписью под названием.
   await expect(page.getByText(author).first()).toBeVisible();
 
-  // Справочники свёрнуты под «Ещё»: одиннадцать равноправных вкладок в шапке не помещались.
+  // Справочники свёрнуты под «Ещё» и живут одной страницей: одиннадцать равноправных вкладок
+  // в шапке не помещались, а четыре одинаковых справочника занимали четверть меню.
   await page.getByRole('button', { name: /Ещё/ }).click();
-  await page.getByRole('menuitem', { name: 'Авторы' }).click();
+  await page.getByRole('menuitem', { name: 'Справочники' }).click();
   await expect(page.getByText(author)).toBeVisible();
-  await expect(page.getByRole('button', { name: /1 произведение/ })).toBeVisible();
+  // Карточка автора отвечает, что из него прочитано, — ради этого справочник и открывают.
+  await expect(page.getByText('Не начато · 1 запись')).toBeVisible();
 });
 
 /**
@@ -142,7 +144,9 @@ test('введённый в карточке автор заводится и п
 test('открытый профиль появляется на своей странице /u/:username', async ({ page }) => {
   const username = await registerNewUser(page);
 
-  await page.goto('/profile');
+  // Профиль разложен по вкладкам, и вкладка стоит в адресе: форма публичной страницы —
+  // не первый экран, а `?tab=public`.
+  await page.goto('/profile?tab=public');
   await page.getByLabel('Имя для показа').fill('Читатель e2e');
   await page.getByRole('switch').first().click();
   await page.getByRole('button', { name: 'Сохранить' }).click();
@@ -171,6 +175,39 @@ test('цель года заводится и показывает прогре�
   await expect(page.getByText('из 40 книг')).toBeVisible();
   await expect(page.getByText('Осталось')).toBeVisible();
   await expect(page.getByText('40 книг', { exact: true })).toBeVisible();
+});
+
+/**
+ * Быстрый вход по устройству: пароль спрашивают один раз, дальше устройство узнают само.
+ *
+ * Проверяется на живом стеке, потому что весь механизм держится на том, чего нет ни в юнит-тестах,
+ * ни в MockMvc: httpOnly-куке, которую браузер сам приносит на нужный путь, и отпечатке, который
+ * считает страница.
+ */
+test('запомненное устройство входит без пароля', async ({ page, context }) => {
+  const username = await registerNewUser(page);
+
+  // Кука устройства не должна быть доступна странице и ездить в каждый запрос.
+  const deviceCookie = (await context.cookies()).find((cookie) => cookie.name === 'DEVICE_TOKEN');
+  expect(deviceCookie?.httpOnly).toBe(true);
+  expect(deviceCookie?.path).toBe('/api/v1/auth');
+
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await page.getByRole('button', { name: 'Выйти' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+
+  // После своего выхода экран входа ждёт нажатия, а не входит сам.
+  await page.getByRole('button', { name: `Продолжить как ${username}` }).click();
+  await expect(page.getByRole('button', { name: 'Добавить запись' }).first()).toBeVisible();
+
+  // В новой вкладке отметки «только что вышел» нет — там вход происходит сам собой.
+  await page.getByRole('button', { name: 'Меню профиля' }).click();
+  await page.getByRole('button', { name: 'Выйти' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.evaluate(() => window.sessionStorage.clear());
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: 'Добавить запись' }).first()).toBeVisible();
 });
 
 test('выход закрывает доступ к библиотеке', async ({ page, context }) => {

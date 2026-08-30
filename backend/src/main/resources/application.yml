@@ -39,6 +39,13 @@ security:
     # В профиле prod переопределяется на true (см. application-prod.yml).
     secure: ${SECURITY_COOKIE_SECURE:false}
     same-site: ${SECURITY_COOKIE_SAME_SITE:Lax}
+  # Быстрый вход по доверенному устройству (см. TrustedDeviceService).
+  device:
+    # Сколько устройство помнят без единого ввода пароля. Каждый вход сдвигает срок вперёд,
+    # поэтому активное устройство не разлогинивается никогда — а забытое отваливается само.
+    ttl-days: ${SECURITY_DEVICE_TTL_DAYS:90}
+    # Потолок на список «мои устройства»: место под новое освобождают самые давние по входу.
+    max-per-user: ${SECURITY_DEVICE_MAX_PER_USER:10}
 
 management:
   endpoints:

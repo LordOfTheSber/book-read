@@ -14,28 +14,27 @@ import {
   ThunderboltOutlined
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
-import { clearCurrentNode, downloadNodeLogs, loadNodeById, loadNodeMemoryDetail } from '@/entities/node';
+import {
+  clearCurrentNode,
+  downloadNodeLogs,
+  loadNodeById,
+  loadNodeMemoryDetail,
+  nodeCpuPercent,
+  nodeDiskPercent,
+  nodeHeartbeat,
+  nodeMemoryPercent
+} from '@/entities/node';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { StatTile } from '@/shared/ui/StatTile';
 import { isSuperAdmin } from '@/shared/lib/roles';
 import { useRequestError } from '@/shared/lib/errors';
-import { parseServerDate } from '@/shared/lib/date';
-import { calculateUsed, formatDuration, formatPercent, usageLevel } from '@/shared/lib/format';
+import { formatDuration, usageLevel } from '@/shared/lib/format';
 import { OverviewTab } from './OverviewTab';
 import { RequestsTab } from './RequestsTab';
 import { ProcessesTab } from './ProcessesTab';
 import { useNodeDetailPageStyles } from './NodeDetailPage.styles';
 
 const POLL_INTERVAL_MS = 10_000;
-
-const heartbeat = (lastReportedAt?: string) => {
-  const parsed = parseServerDate(lastReportedAt);
-  if (!parsed) return { status: 'default' as const, text: 'нет данных' };
-  const diff = Date.now() - parsed.getTime();
-  if (diff > 60_000) return { status: 'error' as const, text: 'нет сигнала' };
-  if (diff > 20_000) return { status: 'warning' as const, text: 'задержка' };
-  return { status: 'success' as const, text: 'в сети' };
-};
 
 export const NodeDetailPage: React.FC = () => {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -118,16 +117,10 @@ export const NodeDetailPage: React.FC = () => {
   }
 
   const node = currentNode;
-  const hb = heartbeat(node?.lastReportedAt);
-  const cpu =
-    node?.cpuLoad === undefined || node?.cpuLoad === null || node.cpuLoad < 0
-      ? undefined
-      : Number((node.cpuLoad * 100).toFixed(1));
-  const memory = formatPercent(
-    calculateUsed(node?.systemMemoryTotal, node?.systemMemoryFree),
-    node?.systemMemoryTotal
-  );
-  const disk = formatPercent(calculateUsed(node?.diskTotal, node?.diskFree), node?.diskTotal);
+  const hb = nodeHeartbeat(node?.lastReportedAt);
+  const cpu = nodeCpuPercent(node);
+  const memory = nodeMemoryPercent(node);
+  const disk = nodeDiskPercent(node);
 
   const accentFor = (percent?: number) => {
     const level = usageLevel(percent);
