@@ -70,8 +70,12 @@ const METRIC_TITLES: Record<MetricKey, string> = {
 
 const DAYS_IN_WEEK = 7;
 
-/** «1,2» вместо «1.2»: во всём остальном интерфейсе дробная часть отделяется запятой. */
-const decimal = (value: number) => value.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+/**
+ * «1,2» вместо «1.2»: во всём остальном интерфейсе дробная часть отделяется запятой. Знак после
+ * запятой всегда один — иначе «0» темпа и «2,7» нормы в одном ряду читаются как разные величины.
+ */
+const decimal = (value: number) =>
+  value.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** «12 книг», но «11 240 страниц» — разряды у крупных чисел не менее важны, чем форма слова. */
 const measure = (value: number, key: MetricKey) => `${formatNumber(value)} ${plural(value, METRIC_FORMS[key])}`;

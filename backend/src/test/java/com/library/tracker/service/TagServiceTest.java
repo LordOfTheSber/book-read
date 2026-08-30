@@ -181,6 +181,34 @@ class TagServiceTest {
         } );
     }
 
+    /**
+     * Запрос отдаёт пару в обоих порядках, и при равных счётчиках «меньший» определялся тем,
+     * какая строка пришла первой: одно и то же подозрение показывалось дважды.
+     */
+    @Test
+    void findDuplicatesShowsMirroredPairOnce() {
+        Tag older = tag( "фантастика", owner );
+        older.setCreatedAt( java.time.LocalDateTime.of( 2026, 1, 1, 10, 0 ) );
+        Tag newer = tag( "сай-фай", owner );
+        newer.setCreatedAt( java.time.LocalDateTime.of( 2026, 5, 1, 10, 0 ) );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( tagRepository.findByOwnerIdOrderByNameAsc( eq( owner.getId() ) ) ).thenReturn( List.of( older, newer ) );
+        when( tagRepository.countByTag( eq( owner.getId() ) ) )
+                .thenReturn( List.of( count( older.getId(), 4 ), count( newer.getId(), 4 ) ) );
+        when( tagRepository.overlaps( eq( owner.getId() ) ) )
+                .thenReturn( List.of( overlap( older.getId(), newer.getId(), 4 ),
+                                      overlap( newer.getId(), older.getId(), 4 ) ) );
+
+        List<TagDuplicateResponse> duplicates = service.findDuplicates();
+
+        // Лишний при равных счётчиках — заведённый позже: старый успел разойтись по записям.
+        assertThat( duplicates ).singleElement().satisfies( duplicate -> {
+            assertThat( duplicate.getSource().getName() ).isEqualTo( "сай-фай" );
+            assertThat( duplicate.getTarget().getName() ).isEqualTo( "фантастика" );
+        } );
+    }
+
     private TagRepository.TagCount count( UUID tagId, long value ) {
         return new TagRepository.TagCount() {
 

@@ -121,8 +121,11 @@ public class TagService {
             }
             long firstCount = counts.getOrDefault( first.getId(), 0L );
             long secondCount = counts.getOrDefault( second.getId(), 0L );
-            // Меньший тег и решает: он целиком лежит внутри большего — значит, лишний.
-            Tag source = firstCount <= secondCount ? first : second;
+            // Меньший тег и решает: он целиком лежит внутри большего — значит, лишний. При равных
+            // счётчиках лишний — заведённый позже: старый успел разойтись по записям и привычкам.
+            Tag source = firstCount != secondCount
+                    ? ( firstCount < secondCount ? first : second )
+                    : ( createdLater( first, second ) ? first : second );
             Tag target = source == first ? second : first;
             long sourceCount = Math.min( firstCount, secondCount );
             if ( sourceCount < DUPLICATE_MIN_ITEMS
@@ -166,9 +169,23 @@ public class TagService {
         return toResponse( target, itemCounts( currentUser.getId() ) );
     }
 
-    /** Пара без порядка: «а с б» и «б с а» — одно подозрение, а запрос отдаёт оба. */
+    /**
+     * Пара без порядка: «а с б» и «б с а» — одно подозрение, а запрос отдаёт оба. Ключ считается
+     * по отсортированным идентификаторам, а не по паре «источник — цель»: при равных счётчиках
+     * они меняются местами, и пара показывалась дважды.
+     */
     private String pairKey( UUID first, UUID second ) {
-        return first + "|" + second;
+        String left = first.toString();
+        String right = second.toString();
+        return left.compareTo( right ) <= 0 ? left + "|" + right : right + "|" + left;
+    }
+
+    /** Кто заведён позже; у тега без даты создания приоритета нет. */
+    private boolean createdLater( Tag first, Tag second ) {
+        if ( first.getCreatedAt() == null || second.getCreatedAt() == null ) {
+            return false;
+        }
+        return first.getCreatedAt().isAfter( second.getCreatedAt() );
     }
 
     /**

@@ -40,7 +40,7 @@ import {
 } from '@/entities/shelf';
 import { deleteTagThunk, fetchTagDuplicates, loadTags, mergeTags, updateTagThunk } from '@/entities/tag';
 import { applySavedFilter } from '@/features/book/set-book-filters';
-import { pluralize } from '@/shared/lib/plural';
+import { plural, pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
 import { ShelfMembersModal } from '@/widgets/shelf-members';
 import { shelfRoleMeta } from '@/shared/constants/social';
@@ -498,7 +498,7 @@ export const ShelvesPage: React.FC = () => {
         subtitle={`Полка — набор, собранный руками; тег — свободная пометка в дополнение к типу · ${pluralize(
           shelves.length,
           ['полка', 'полки', 'полок']
-        )}, ${publicCount} общих`}
+        )}, ${publicCount} ${plural(publicCount, ['общая', 'общие', 'общих'])}`}
       />
 
       <div style={screens.lg ? styles.columns : styles.columnsNarrow}>
