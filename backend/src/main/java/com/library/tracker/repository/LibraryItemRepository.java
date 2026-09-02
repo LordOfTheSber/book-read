@@ -209,6 +209,42 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID>,
             """ )
     List<ShowcaseRow> findShowcaseBySeries( Collection<UUID> seriesIds, UUID userId );
 
+    /**
+     * Что человек читает прямо сейчас — для обложек в чужом профиле. Отдаётся всё: страница
+     * сама решает, сколько поместится, а запрос с окном дешевле выборки всей библиотеки.
+     */
+    @Query( """
+            select li
+            from LibraryItem li
+            where li.createdBy.id = :userId
+              and li.status = com.library.tracker.domain.ReadingStatus.READING
+            order by li.updatedAt desc
+            """ )
+    List<LibraryItem> findReadingNow( UUID userId, Pageable window );
+
+    /**
+     * Какие из названий уже есть у спрашивающего. Сравнение по названию без учёта регистра:
+     * библиотека у каждого своя, и «та же книга» — это не тот же идентификатор, а то же название.
+     */
+    @Query( """
+            select distinct lower(li.title)
+            from LibraryItem li
+            where li.createdBy.id = :userId
+              and lower(li.title) in :titles
+            """ )
+    List<String> findOwnedTitles( Collection<String> titles, UUID userId );
+
+    /** Сколько книг есть у обоих — то, ради чего и ходят к чужому профилю. */
+    @Query( """
+            select count(distinct lower(mine.title))
+            from LibraryItem mine
+            where mine.createdBy.id = :viewerId
+              and lower(mine.title) in (select lower(theirs.title)
+                                        from LibraryItem theirs
+                                        where theirs.createdBy.id = :ownerId)
+            """ )
+    long countCommonTitles( UUID viewerId, UUID ownerId );
+
     /** Произведения автора — для слияния дублей: у одного из двух авторов их надо переподвесить. */
     @Query( """
             select li

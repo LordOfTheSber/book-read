@@ -12,7 +12,9 @@ import com.library.tracker.web.dto.PublicReviewResponse;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,16 @@ public class PublicReviewMapper {
 
     @Transactional( readOnly = true )
     public List<PublicReviewResponse> toResponses( List<LibraryItem> items ) {
+        return toResponses( items, Set.of() );
+    }
+
+    /**
+     * То же со списком названий из библиотеки спрашивающего: по нему ставится отметка «есть у вас».
+     * Названия приходят готовым множеством, а не запросом на строку: библиотека у каждого своя,
+     * и «та же книга» — это совпадение названия, а не идентификатора.
+     */
+    @Transactional( readOnly = true )
+    public List<PublicReviewResponse> toResponses( List<LibraryItem> items, Set<String> ownedTitles ) {
         if ( items.isEmpty() ) {
             return List.of();
         }
@@ -57,16 +69,27 @@ public class PublicReviewMapper {
                     .map( item -> toResponse( item,
                                               reactions.getOrDefault( item.getId(), 0L ),
                                               comments.getOrDefault( item.getId(), 0L ),
-                                              mine.get( item.getId() ) ) )
+                                              mine.get( item.getId() ),
+                                              ownedTitles.contains( normalizeTitle( item.getTitle() ) ) ) )
                     .toList();
     }
 
     public PublicReviewResponse toResponse( LibraryItem item, long reactionCount, long commentCount ) {
-        return toResponse( item, reactionCount, commentCount, null );
+        return toResponse( item, reactionCount, commentCount, null, false );
     }
 
     public PublicReviewResponse toResponse( LibraryItem item, long reactionCount, long commentCount,
                                             ReactionKind myReaction ) {
+        return toResponse( item, reactionCount, commentCount, myReaction, false );
+    }
+
+    /** Названия сравниваются в нижнем регистре: «Дюна» и «дюна» — одна и та же книга. */
+    public static String normalizeTitle( String title ) {
+        return title == null ? "" : title.trim().toLowerCase( Locale.ROOT );
+    }
+
+    private PublicReviewResponse toResponse( LibraryItem item, long reactionCount, long commentCount,
+                                             ReactionKind myReaction, boolean inMyLibrary ) {
         return PublicReviewResponse.builder()
                                    .itemId( item.getId() )
                                    .kind( item.getKind() )
@@ -85,6 +108,7 @@ public class PublicReviewMapper {
                                    .reactionCount( reactionCount )
                                    .commentCount( commentCount )
                                    .myReaction( myReaction )
+                                   .inMyLibrary( inMyLibrary )
                                    .build();
     }
 

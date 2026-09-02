@@ -623,6 +623,8 @@ export interface PublicReview {
   commentCount: number;
   /** Своя отметка: без неё лента рисовала бы сердце пустым поверх собственной реакции. */
   myReaction?: ReactionKind;
+  /** Есть ли эта книга у смотрящего: отзыв на свою книгу читается иначе, чем на незнакомую. */
+  inMyLibrary?: boolean;
 }
 
 /** Страница /u/username: шапка, счётчики, открытые полки и последние отзывы. */
@@ -643,8 +645,12 @@ export interface PublicProfile {
   currentStreak: number;
   achievementCount: number;
   joinedAt?: string;
+  /** Сколько книг есть и у него, и у смотрящего; в своём профиле — ноль. */
+  commonCount: number;
   shelves: Shelf[];
   reviews: PublicReview[];
+  /** Что читает прямо сейчас — обложками, без прогресса. */
+  currentlyReading: ShowcaseItem[];
 }
 
 export type ActivityType =
