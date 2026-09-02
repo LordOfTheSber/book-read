@@ -280,6 +280,10 @@ export const BooksPage: React.FC = () => {
           onCreate={openCreate}
           hasActiveFilters={hasActiveFilters}
           onResetFilters={() => dispatch(resetFilters())}
+          activeFilters={activeFilters}
+          onRemoveFilter={(key) => dispatch(setFilters({ [key]: undefined, page: 0 } as Partial<BookFilterState>))}
+          query={filters.q}
+          onClearQuery={() => dispatch(setFilters({ q: undefined, page: 0 }))}
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
         />

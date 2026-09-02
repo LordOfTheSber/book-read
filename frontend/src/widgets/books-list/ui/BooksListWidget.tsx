@@ -41,6 +41,15 @@ interface Props {
   /** Есть ли активные фильтры — от этого зависит текст пустого состояния. */
   hasActiveFilters: boolean;
   onResetFilters: () => void;
+  /**
+   * Чем именно сужена выдача. Пустой список из-за фильтра и пустая библиотека — разные экраны:
+   * в первом случае человеку нужно не «добавить запись», а увидеть, какое условие всё срезало.
+   */
+  activeFilters?: Array<{ key: string; label: string }>;
+  onRemoveFilter?: (key: string) => void;
+  /** Текстовый запрос: он сужает выдачу наравне с фильтрами, но снимается своей кнопкой. */
+  query?: string;
+  onClearQuery?: () => void;
   /** Выделение для массовых операций живёт на странице: панель действий рисуется над списком. */
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
@@ -58,6 +67,10 @@ export const BooksListWidget: React.FC<Props> = ({
   onEdit,
   onCreate,
   hasActiveFilters,
+  activeFilters = [],
+  onRemoveFilter,
+  query,
+  onClearQuery,
   onResetFilters,
   selectedIds,
   onSelectionChange
@@ -323,6 +336,12 @@ export const BooksListWidget: React.FC<Props> = ({
     </div>
   );
 
+  /**
+   * Три разных пустых экрана вместо одного: ещё ничего не завели, фильтр никого не нашёл,
+   * запрос не совпал. Раньше во всех случаях предлагалось «сбросить фильтры» — даже когда
+   * сбрасывать было нечего.
+   */
+  const lastFilter = activeFilters[activeFilters.length - 1];
   const emptyState = (
     <Empty
       image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -330,15 +349,32 @@ export const BooksListWidget: React.FC<Props> = ({
         <Space direction="vertical" size={4}>
           <Typography.Text strong>{hasActiveFilters ? 'Ничего не найдено' : 'Библиотека пока пуста'}</Typography.Text>
           <Typography.Text type="secondary">
-            {hasActiveFilters
-              ? 'Попробуйте смягчить фильтры или изменить запрос.'
-              : 'Добавьте первую запись — книгу, сериал или подкаст.'}
+            {!hasActiveFilters
+              ? 'Добавьте первую запись — книгу, сериал или подкаст.'
+              : activeFilters.length > 0
+                ? `Выдачу сужают: ${activeFilters.map((filter) => filter.label).join(' · ')}${
+                    query ? ` · запрос «${query}»` : ''
+                  }`
+                : `По запросу «${query ?? ''}» ничего не нашлось.`}
           </Typography.Text>
         </Space>
       }
     >
       {hasActiveFilters ? (
-        <Button onClick={onResetFilters}>Сбросить фильтры</Button>
+        <Space size={8} wrap>
+          {/* Снять последнее условие — самый частый выход: обычно именно оно и срезало всё. */}
+          {lastFilter && onRemoveFilter && (
+            <Button type="primary" onClick={() => onRemoveFilter(lastFilter.key)}>
+              {`Снять «${lastFilter.label}»`}
+            </Button>
+          )}
+          {!lastFilter && query && onClearQuery && (
+            <Button type="primary" onClick={onClearQuery}>
+              Очистить поиск
+            </Button>
+          )}
+          <Button onClick={onResetFilters}>Сбросить всё</Button>
+        </Space>
       ) : (
         canEdit && (
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>

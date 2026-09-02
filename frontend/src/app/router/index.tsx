@@ -20,6 +20,7 @@ import { UserProfilePage } from '@/pages/user-profile-page';
 import { FeedPage } from '@/pages/feed-page';
 import { GoalsPage } from '@/pages/goals-page';
 import { NotFoundPage } from '@/pages/not-found-page';
+import { ForbiddenPage } from '@/pages/forbidden-page';
 import { ErrorPage } from '@/pages/error-page';
 import { isAdminLike } from '@/shared/lib/roles';
 
@@ -44,8 +45,9 @@ const RequireAdmin: React.FC = () => {
     );
   }
 
+  // Отказ показывается, а не прячется переходом: см. `ForbiddenPage`.
   if (!isAdminLike(user?.role)) {
-    return <Navigate to="/" replace />;
+    return <ForbiddenPage />;
   }
   return <Outlet />;
 };
