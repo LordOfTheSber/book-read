@@ -1,16 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Empty, Form, Input, InputNumber, Skeleton, Space, Switch, Table, Typography } from 'antd';
+import { Alert, Card, Empty, Skeleton, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { AlertOutlined, ApiOutlined, ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { EndpointMetrics, NodeMetricsSnapshot, SlowRequest } from '@/shared/types/library';
-import {
-  fetchMonitoringMetrics,
-  updateMonitoringMetricsEnabled,
-  updateMonitoringSettings
-} from '@/entities/monitoring/api/monitoringApi';
-import { isAdminLike, isSuperAdmin } from '@/shared/lib/roles';
-import { UserRole } from '@/shared/types/library';
-import { getErrorMessage, isFormValidationError } from '@/shared/lib/errors';
+import { fetchMonitoringMetrics } from '@/entities/monitoring/api/monitoringApi';
+import { getErrorMessage } from '@/shared/lib/errors';
 import { formatMs, formatNumber } from '@/shared/lib/format';
 import { formatDateTime, formatTime } from '@/shared/lib/date';
 import { StatTile } from '@/shared/ui/StatTile';
@@ -20,26 +14,19 @@ const POLL_INTERVAL_MS = 10_000;
 
 interface Props {
   nodeKey?: string;
-  role?: UserRole;
 }
 
-interface PingSettingsValues {
-  pingIntervalSeconds: number;
-  pingPath: string;
-}
-
-export const RequestsTab: React.FC<Props> = ({ nodeKey, role }) => {
+/**
+ * Запросы узла: сводка, разбивка по эндпоинтам и медленные вызовы. Настройки проверки
+ * доступности отсюда уехали — они общие для всех узлов и живут своей карточкой.
+ */
+export const RequestsTab: React.FC<Props> = ({ nodeKey }) => {
   const styles = useNodeDetailPageStyles();
-  const [form] = Form.useForm<PingSettingsValues>();
-  const canToggle = isAdminLike(role);
-  const canEditPing = isSuperAdmin(role);
 
   const [metrics, setMetrics] = useState<NodeMetricsSnapshot | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,18 +35,12 @@ export const RequestsTab: React.FC<Props> = ({ nodeKey, role }) => {
       setEnabled(data.enabled);
       setMetrics(data.nodes?.find((snapshot) => snapshot.nodeKey === nodeKey) ?? null);
       setError(null);
-      if (data.settings && isSuperAdmin(role)) {
-        form.setFieldsValue({
-          pingIntervalSeconds: data.settings.pingIntervalSeconds,
-          pingPath: data.settings.pingPath
-        });
-      }
     } catch (err) {
       setError(getErrorMessage(err, 'Не удалось загрузить метрики'));
     } finally {
       setLoading(false);
     }
-  }, [nodeKey, form, role]);
+  }, [nodeKey]);
 
   useEffect(() => {
     if (!nodeKey) return;
@@ -67,36 +48,6 @@ export const RequestsTab: React.FC<Props> = ({ nodeKey, role }) => {
     const intervalId = window.setInterval(load, POLL_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
   }, [nodeKey, load]);
-
-  const handleToggle = async (value: boolean) => {
-    setToggling(true);
-    try {
-      await updateMonitoringMetricsEnabled(value);
-      setError(null);
-      await load();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Не удалось переключить сбор метрик'));
-    } finally {
-      setToggling(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
-    try {
-      const values = await form.validateFields();
-      await updateMonitoringSettings(values);
-      setError(null);
-      await load();
-    } catch (err) {
-      // Ошибки валидации формы рисует сама форма — на уровень страницы не выносим.
-      if (!isFormValidationError(err)) {
-        setError(getErrorMessage(err, 'Не удалось сохранить настройки пинга'));
-      }
-    } finally {
-      setSavingSettings(false);
-    }
-  };
 
   const endpointColumns: ColumnsType<EndpointMetrics> = useMemo(
     () => [
@@ -183,53 +134,17 @@ export const RequestsTab: React.FC<Props> = ({ nodeKey, role }) => {
 
   return (
     <>
-      <Card
-        style={{ ...styles.card, marginBottom: 16 }}
-        styles={{ body: styles.cardBody }}
-        title="Сбор метрик"
-        extra={
-          <Space>
-            <Typography.Text type="secondary">{enabled ? 'включен' : 'выключен'}</Typography.Text>
-            <Switch checked={enabled} loading={toggling} onChange={handleToggle} disabled={!canToggle} />
-          </Space>
-        }
-      >
-        {error && <Alert type="error" showIcon message={error} style={styles.alert} />}
+      {error && <Alert type="error" showIcon message={error} style={styles.alert} />}
 
-        {!enabled && (
-          <Alert
-            type="warning"
-            showIcon
-            style={styles.alert}
-            message="Метрики не собираются"
-            description="Пока сбор выключен, задержки и ошибки не записываются. Автоматический пинг тоже остановлен."
-          />
-        )}
-
-        {canEditPing && (
-          <Form form={form} layout="inline" disabled={!enabled} style={{ rowGap: 12 }}>
-            <Form.Item
-              label="Интервал пинга, сек"
-              name="pingIntervalSeconds"
-              rules={[{ required: true, message: 'Укажите интервал' }]}
-            >
-              <InputNumber min={5} max={3600} />
-            </Form.Item>
-            <Form.Item
-              label="Путь"
-              name="pingPath"
-              rules={[{ required: true, message: 'Укажите путь' }]}
-            >
-              <Input placeholder="/api/v1/monitoring/ping" style={{ minWidth: 240 }} />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" onClick={handleSaveSettings} loading={savingSettings}>
-                Сохранить
-              </Button>
-            </Form.Item>
-          </Form>
-        )}
-      </Card>
+      {!enabled && (
+        <Alert
+          type="warning"
+          showIcon
+          style={styles.alert}
+          message="Метрики не собираются"
+          description="Пока сбор выключен, задержки и ошибки не записываются. Переключатель — в карточке «Проверка доступности»."
+        />
+      )}
 
       {loading && !metrics ? (
         <Card style={styles.card} styles={{ body: styles.cardBody }}>
