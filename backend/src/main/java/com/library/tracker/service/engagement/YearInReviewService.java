@@ -3,6 +3,7 @@ package com.library.tracker.service.engagement;
 import com.library.tracker.domain.Author;
 import com.library.tracker.domain.BookType;
 import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.MediaKind;
 import com.library.tracker.repository.LibraryItemRepository;
 import com.library.tracker.repository.ReadingSessionRepository;
 import com.library.tracker.service.UserService;
@@ -77,7 +78,15 @@ public class YearInReviewService {
                                    .longestItem( longestItem( finished ) )
                                    .topAuthors( topAuthors( finished ) )
                                    .topTypes( topTypes( finished ) )
+                                   .kindBreakdown( kindBreakdown( finished ) )
                                    .build();
+    }
+
+    /** Доли видов за год — по тем же записям, что уже загружены: отдельный запрос здесь не нужен. */
+    private Map<MediaKind, Long> kindBreakdown( List<LibraryItem> finished ) {
+        return finished.stream()
+                       .filter( item -> item.getKind() != null )
+                       .collect( Collectors.groupingBy( LibraryItem::getKind, Collectors.counting() ) );
     }
 
     private BigDecimal averageRating( List<LibraryItem> finished ) {

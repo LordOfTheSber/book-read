@@ -1,7 +1,10 @@
 package com.library.tracker.web.dto;
 
+import com.library.tracker.domain.MediaKind;
+
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import lombok.Builder;
 import lombok.Value;
@@ -26,4 +29,9 @@ public class YearInReviewResponse {
     PublicReviewResponse longestItem;
     List<AuthorSummary> topAuthors;
     List<TypeCountResponse> topTypes;
+    /**
+     * Доли видов произведения за год: из них собирается корешковая полоса на открытке.
+     * Считать её на клиенте по списку лучших нельзя — там десяток записей, а не весь год.
+     */
+    Map<MediaKind, Long> kindBreakdown;
 }

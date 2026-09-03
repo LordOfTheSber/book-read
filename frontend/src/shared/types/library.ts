@@ -807,4 +807,6 @@ export interface YearInReview {
   longestItem?: PublicReview;
   topAuthors: AuthorSummary[];
   topTypes: { typeId: string; typeName: string; count: number }[];
+  /** Доли видов за год: из них собирается корешковая полоса на открытке. */
+  kindBreakdown?: Partial<Record<MediaKind, number>>;
 }
