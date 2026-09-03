@@ -6,6 +6,7 @@ import { themeOptions, useThemeMode } from '@/app/providers/ThemeProvider';
 import { useOfflineQueue } from '@/widgets/offline-queue';
 import { MyDataCard } from '@/features/account/manage-my-data';
 import { DevicesCard } from '@/features/account/manage-devices';
+import { ChangePasswordCard } from '@/features/account/change-password';
 import { roleMeta } from '@/shared/constants/roles';
 import { formatDate } from '@/shared/lib/date';
 import { pluralize } from '@/shared/lib/plural';
@@ -51,6 +52,8 @@ export const AccountTab: React.FC = () => {
           options={themeOptions.map((option) => ({ label: option.label, value: option.value }))}
         />
       </Card>
+
+      <ChangePasswordCard />
 
       <DevicesCard />
 

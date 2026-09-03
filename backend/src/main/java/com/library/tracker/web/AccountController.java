@@ -4,9 +4,12 @@ import com.library.tracker.domain.User;
 import com.library.tracker.security.AccessTokenCookieService;
 import com.library.tracker.service.SessionService;
 import com.library.tracker.service.UserService;
+import com.library.tracker.security.DeviceTokenCookieService;
 import com.library.tracker.service.account.AccountDeletionService;
+import com.library.tracker.service.account.PasswordChangeService;
 import com.library.tracker.service.account.UserDataExportService;
 import com.library.tracker.web.dto.AccountDeletionRequest;
+import com.library.tracker.web.dto.PasswordChangeRequest;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,8 +42,10 @@ public class AccountController {
     private final UserService userService;
     private final UserDataExportService userDataExportService;
     private final AccountDeletionService accountDeletionService;
+    private final PasswordChangeService passwordChangeService;
     private final SessionService sessionService;
     private final AccessTokenCookieService accessTokenCookieService;
+    private final DeviceTokenCookieService deviceTokenCookieService;
 
     /**
      * Выгрузка своей библиотеки. Ответ стримится, а не собирается в массив байтов: библиотека
@@ -69,6 +75,22 @@ public class AccountController {
                                                    ? MediaType.parseMediaType( "text/csv; charset=UTF-8" )
                                                    : MediaType.APPLICATION_JSON )
                              .body( body );
+    }
+
+    /**
+     * Смена собственного пароля. Куки гасятся вместе с сессиями: пароль меняют, когда старый мог
+     * утечь, и оставлять по нему открытый вход — значит не сделать того, ради чего его меняли.
+     */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PutMapping( "/password" )
+    public ResponseEntity<Void> changePassword( @Valid @RequestBody PasswordChangeRequest request ) {
+        passwordChangeService.changeOwnPassword( request.getCurrentPassword(), request.getNewPassword() );
+
+        return ResponseEntity.noContent()
+                             .header( HttpHeaders.SET_COOKIE, sessionService.buildExpiredCookie().toString() )
+                             .header( HttpHeaders.SET_COOKIE, accessTokenCookieService.buildExpired().toString() )
+                             .header( HttpHeaders.SET_COOKIE, deviceTokenCookieService.buildExpired().toString() )
+                             .build();
     }
 
     /**

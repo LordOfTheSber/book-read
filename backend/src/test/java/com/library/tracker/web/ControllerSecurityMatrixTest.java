@@ -27,6 +27,7 @@ import com.library.tracker.service.TrustedDeviceService;
 import com.library.tracker.service.UserService;
 import com.library.tracker.service.analytics.AnalyticsService;
 import com.library.tracker.service.account.AccountDeletionService;
+import com.library.tracker.service.account.PasswordChangeService;
 import com.library.tracker.service.account.UserDataExportService;
 import com.library.tracker.service.engagement.AchievementService;
 import com.library.tracker.service.engagement.ReadingGoalService;
@@ -126,6 +127,9 @@ class ControllerSecurityMatrixTest {
 
     @MockBean
     private AccountDeletionService accountDeletionService;
+
+    @MockBean
+    private PasswordChangeService passwordChangeService;
 
     @MockBean
     private TrustedDeviceService trustedDeviceService;
@@ -338,6 +342,10 @@ class ControllerSecurityMatrixTest {
                 Endpoint.get( "/api/v1/items/duplicates", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.post( "/api/v1/items/bulk", "{\"itemIds\":[\"" + ID + "\"]}",
                                SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/bulk/delete-preview", "{\"itemIds\":[\"" + ID + "\"]}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.post( "/api/v1/items/bulk/delete", "{\"itemIds\":[\"" + ID + "\"]}",
+                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.put( "/api/v1/items/" + ID + "/cover-from-url",
                               "{\"url\":\"https://covers.openlibrary.org/b/id/1-L.jpg\"}",
                               SUPER_ADMIN, ADMIN, EDITOR, USER ),
@@ -456,6 +464,9 @@ class ControllerSecurityMatrixTest {
                 // Свои данные доступны каждому — в отличие от административного бэкапа ниже,
                 // который лежит под соседним префиксом и остаётся только у супер-администратора.
                 Endpoint.get( "/api/v1/account/export", SUPER_ADMIN, ADMIN, EDITOR, USER ),
+                Endpoint.put( "/api/v1/account/password",
+                              "{\"currentPassword\":\"secret123\",\"newPassword\":\"newsecret1\"}",
+                              SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 Endpoint.delete( "/api/v1/account", SUPER_ADMIN, ADMIN, EDITOR, USER ),
                 // Доверенные устройства — тоже «свои данные»: список и отключение доступны каждому,
                 // а видит человек только собственные устройства (владелец сверяется в сервисе).
