@@ -7,7 +7,11 @@ import com.library.tracker.domain.Tag;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.BookTypeRepository;
 import com.library.tracker.repository.LibraryItemRepository;
+import com.library.tracker.repository.QuoteRepository;
+import com.library.tracker.repository.ReadingSessionRepository;
 import com.library.tracker.repository.ShelfRepository;
+import com.library.tracker.web.dto.BulkItemDeletePreviewResponse;
+import com.library.tracker.web.dto.BulkItemDeleteResponse;
 import com.library.tracker.web.dto.BulkItemUpdateRequest;
 import com.library.tracker.web.dto.BulkItemUpdateResponse;
 
@@ -28,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,15 +60,72 @@ class BulkItemServiceTest {
     @Mock
     private ReadingProgressService readingProgressService;
 
+    @Mock
+    private QuoteRepository quoteRepository;
+
+    @Mock
+    private ReadingSessionRepository readingSessionRepository;
+
+    @Mock
+    private LibraryItemService libraryItemService;
+
     private BulkItemService service;
 
     private User owner;
 
     @BeforeEach
     void setUp() {
-        service = new BulkItemService( libraryItemRepository, bookTypeRepository, shelfRepository, tagService,
-                                       userService, readingProgressService, FIXED_CLOCK );
+        service = new BulkItemService( libraryItemRepository, bookTypeRepository, shelfRepository, quoteRepository,
+                                       readingSessionRepository, libraryItemService, tagService, userService,
+                                       readingProgressService, FIXED_CLOCK );
         owner = user();
+    }
+
+    /**
+     * Последствия называются числами до нажатия: записи заводятся заново за минуту, а выписки
+     * и заходы человек вводил руками.
+     */
+    @Test
+    void previewCountsWhatWillDisappearWithTheItems() {
+        LibraryItem mine = item( "Моя", owner );
+        mine.setReview( "Отзыв" );
+        LibraryItem foreign = item( "Чужая", user() );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( userService.isAdmin( eq( owner ) ) ).thenReturn( false );
+        when( libraryItemRepository.findAllById( any() ) ).thenReturn( List.of( mine, foreign ) );
+        when( quoteRepository.countByItems( eq( List.of( mine.getId() ) ) ) ).thenReturn( 26L );
+        when( quoteRepository.countItemsWithQuotes( eq( List.of( mine.getId() ) ) ) ).thenReturn( 1L );
+        when( readingSessionRepository.countByItems( eq( List.of( mine.getId() ) ) ) ).thenReturn( 4L );
+
+        BulkItemDeletePreviewResponse preview =
+                service.previewDelete( List.of( mine.getId(), foreign.getId() ) );
+
+        assertThat( preview.getItems() ).isEqualTo( 1 );
+        // Чужая запись не удаляется и в последствия не входит — но и не роняет запрос.
+        assertThat( preview.getSkipped() ).isEqualTo( 1 );
+        assertThat( preview.getQuotes() ).isEqualTo( 26 );
+        assertThat( preview.getItemsWithQuotes() ).isEqualTo( 1 );
+        assertThat( preview.getSessions() ).isEqualTo( 4 );
+        assertThat( preview.getReviews() ).isEqualTo( 1 );
+    }
+
+    /** Удаление идёт через сервис записи: у неё обложка вне базы, и файл остался бы сиротой. */
+    @Test
+    void deleteGoesThroughItemServiceAndSkipsForeign() {
+        LibraryItem mine = item( "Моя", owner );
+        LibraryItem foreign = item( "Чужая", user() );
+
+        when( userService.getCurrentUser() ).thenReturn( owner );
+        when( userService.isAdmin( eq( owner ) ) ).thenReturn( false );
+        when( libraryItemRepository.findAllById( any() ) ).thenReturn( List.of( mine, foreign ) );
+
+        BulkItemDeleteResponse response = service.delete( List.of( mine.getId(), foreign.getId() ) );
+
+        assertThat( response.getDeleted() ).isEqualTo( 1 );
+        assertThat( response.getSkipped() ).isEqualTo( 1 );
+        verify( libraryItemService ).delete( mine.getId() );
+        verify( libraryItemService, never() ).delete( foreign.getId() );
     }
 
     /** Выделение делают списком, поэтому чужая запись в нём не должна ронять весь запрос. */

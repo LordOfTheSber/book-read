@@ -14,11 +14,10 @@ import { loadUsers } from '@/entities/user';
 import { loadBookAnalytics } from '@/entities/analytics';
 import { isAdminLike, canEditBooks } from '@/shared/lib/roles';
 import { pluralize } from '@/shared/lib/plural';
-import { statusMeta } from '@/shared/constants/status';
-import { getMediaKindLabel } from '@/shared/constants/mediaKind';
-import { MediaKind, ReadingStatus } from '@/shared/types/library';
+import { describeFilters } from '@/shared/lib/filterLabels';
+import { ReadingStatus } from '@/shared/types/library';
 import { BooksListWidget, type BooksViewMode } from '@/widgets/books-list';
-import { BooksToolbarWidget, type ActiveFilterChip, type BooksLayout } from '@/widgets/books-toolbar';
+import { BooksToolbarWidget, type BooksLayout } from '@/widgets/books-toolbar';
 import { FiltersPanelWidget } from '@/widgets/filters-panel';
 import { BulkActionsBar } from '@/widgets/bulk-actions';
 import { SmartShelvesWidget } from '@/widgets/smart-shelves';
@@ -129,52 +128,12 @@ export const BooksPage: React.FC = () => {
     dispatch(setFilters({ page, size, sort }));
   };
 
-  const activeFilters = useMemo<ActiveFilterChip[]>(() => {
-    const chips: ActiveFilterChip[] = [];
-    if (filters.status) {
-      chips.push({ key: 'status', label: `Статус: ${statusMeta[filters.status as ReadingStatus]?.label ?? filters.status}` });
-    }
-    if (filters.typeId) {
-      const name = bookTypes.find((type) => type.id === filters.typeId)?.name ?? 'выбран';
-      chips.push({ key: 'typeId', label: `Тип: ${name}` });
-    }
-    if (filters.kind) {
-      chips.push({ key: 'kind', label: `Вид: ${getMediaKindLabel(filters.kind as MediaKind)}` });
-    }
-    if (filters.authorId) {
-      const name = authors.find((author) => author.id === filters.authorId)?.name ?? 'выбран';
-      chips.push({ key: 'authorId', label: `Автор: ${name}` });
-    }
-    if (filters.seriesId) {
-      const name = series.find((item) => item.id === filters.seriesId)?.name ?? 'выбрана';
-      chips.push({ key: 'seriesId', label: `Серия: ${name}` });
-    }
-    if (filters.tagId) {
-      const name = tags.find((tag) => tag.id === filters.tagId)?.name ?? 'выбран';
-      chips.push({ key: 'tagId', label: `Тег: ${name}` });
-    }
-    if (filters.shelfId) {
-      const name = shelves.find((shelf) => shelf.id === filters.shelfId)?.name ?? 'выбрана';
-      chips.push({ key: 'shelfId', label: `Полка: ${name}` });
-    }
-    if (filters.favorite) {
-      chips.push({ key: 'favorite', label: 'Только избранное' });
-    }
-    if (filters.wishlist) {
-      chips.push({ key: 'wishlist', label: 'Список желаемого' });
-    }
-    if (filters.minRating !== undefined && filters.minRating !== null) {
-      chips.push({ key: 'minRating', label: `Оценка от ${filters.minRating}` });
-    }
-    if (filters.maxRating !== undefined && filters.maxRating !== null) {
-      chips.push({ key: 'maxRating', label: `Оценка до ${filters.maxRating}` });
-    }
-    if (filters.userId) {
-      const name = users.find((user) => user.id === filters.userId)?.username ?? 'выбран';
-      chips.push({ key: 'userId', label: `Пользователь: ${name}` });
-    }
-    return chips;
-  }, [filters, bookTypes, users, authors, series, tags, shelves]);
+  // Подписи условий считает общий помощник: их же показывает пустой экран и окно умной полки,
+  // и расходиться эти три места не должны — человек сохраняет ровно то, что видит.
+  const activeFilters = useMemo(
+    () => describeFilters(filters, { bookTypes, authors, series, tags, shelves, users }),
+    [filters, bookTypes, users, authors, series, tags, shelves]
+  );
 
   const hasActiveFilters = activeFilters.length > 0 || Boolean(filters.q);
 

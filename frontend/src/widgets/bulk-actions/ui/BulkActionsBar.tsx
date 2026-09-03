@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { App, Button, Select, Space, Typography, theme } from 'antd';
-import { ClearOutlined, TagsOutlined } from '@ant-design/icons';
+import { ClearOutlined, DeleteOutlined, TagsOutlined } from '@ant-design/icons';
 import { ReadingStatus } from '@/shared/types/library';
 import { statusOptions } from '@/shared/constants/status';
-import { bulkUpdateBooks, BulkUpdatePayload, loadBooks } from '@/entities/book';
+import { bulkDeleteBooks, bulkUpdateBooks, BulkUpdatePayload, loadBooks } from '@/entities/book';
 import { loadTags } from '@/entities/tag';
 import { loadShelves } from '@/entities/shelf';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { pluralize } from '@/shared/lib/plural';
 import { useRequestError } from '@/shared/lib/errors';
+import { BulkDeleteModal } from './BulkDeleteModal';
 
 interface Props {
   selectedIds: string[];
@@ -31,6 +32,7 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
   const contributableShelves = shelves.filter((shelf) => shelf.canContribute);
   const [busy, setBusy] = useState(false);
   const [tagNames, setTagNames] = useState<string[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const apply = async (payload: Omit<BulkUpdatePayload, 'itemIds'>, successText: string) => {
     setBusy(true);
@@ -51,6 +53,27 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
       showRequestError(error, 'Не удалось применить изменения');
     } finally {
       setBusy(false);
+    }
+  };
+
+  /**
+   * Удаление вынесено из общего `apply`: оно необратимо и идёт своим диалогом, который называет
+   * последствия числами и требует набрать слово.
+   */
+  const remove = async () => {
+    try {
+      const result = await bulkDeleteBooks(selectedIds);
+      message.success(
+        result.skipped > 0
+          ? `Удалено записей: ${result.deleted}. Пропущено чужих: ${result.skipped}`
+          : `Удалено записей: ${result.deleted}`
+      );
+      await dispatch(loadBooks(filters)).unwrap();
+      dispatch(loadShelves({ force: true }));
+      onClearSelection();
+      setDeleteOpen(false);
+    } catch (error) {
+      showRequestError(error, 'Не удалось удалить записи');
     }
   };
 
@@ -119,10 +142,21 @@ export const BulkActionsBar: React.FC<Props> = ({ selectedIds, onClearSelection 
         В желаемое
       </Button>
 
+      <Button danger icon={<DeleteOutlined />} disabled={busy} onClick={() => setDeleteOpen(true)}>
+        Удалить
+      </Button>
+
       {/* Снятие выделения ничего не портит и восстанавливается парой кликов — подтверждать нечего. */}
       <Button type="text" icon={<ClearOutlined />} disabled={busy} onClick={onClearSelection}>
         Снять выделение
       </Button>
+
+      <BulkDeleteModal
+        open={deleteOpen}
+        itemIds={selectedIds}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={remove}
+      />
     </div>
   );
 };

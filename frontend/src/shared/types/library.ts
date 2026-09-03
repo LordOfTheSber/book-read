@@ -275,6 +275,23 @@ export interface ImportResultSummary {
   errors: string[];
 }
 
+/** Последствия массового удаления — числами, до нажатия. */
+export interface BulkDeletePreview {
+  items: number;
+  /** Чужие записи не удаляются и не роняют запрос. */
+  skipped: number;
+  quotes: number;
+  /** У скольких записей выписки есть: «у 4 из 17» точнее, чем просто «26 выписок». */
+  itemsWithQuotes: number;
+  sessions: number;
+  reviews: number;
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  skipped: number;
+}
+
 /** Итог массовой правки: пропущенные перечисляются поимённо. */
 export interface BulkUpdateResult {
   updated: number;

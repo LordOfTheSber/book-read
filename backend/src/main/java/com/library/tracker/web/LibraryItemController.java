@@ -5,6 +5,9 @@ import com.library.tracker.domain.ReadingStatus;
 import com.library.tracker.service.BulkItemService;
 import com.library.tracker.service.DuplicateDetectionService;
 import com.library.tracker.service.LibraryItemService;
+import com.library.tracker.web.dto.BulkItemDeletePreviewResponse;
+import com.library.tracker.web.dto.BulkItemDeleteRequest;
+import com.library.tracker.web.dto.BulkItemDeleteResponse;
 import com.library.tracker.web.dto.BulkItemUpdateRequest;
 import com.library.tracker.web.dto.BulkItemUpdateResponse;
 import com.library.tracker.web.dto.CoverFromUrlRequest;
@@ -96,6 +99,19 @@ public class LibraryItemController {
     @PostMapping( "/bulk" )
     public BulkItemUpdateResponse bulkUpdate( @Valid @RequestBody BulkItemUpdateRequest request ) {
         return bulkItemService.apply( request );
+    }
+
+    /** Что исчезнет вместе с записями — до удаления, а не после. */
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PostMapping( "/bulk/delete-preview" )
+    public BulkItemDeletePreviewResponse bulkDeletePreview( @Valid @RequestBody BulkItemDeleteRequest request ) {
+        return bulkItemService.previewDelete( request.getItemIds() );
+    }
+
+    @PreAuthorize( "hasAnyRole('SUPER_ADMIN','ADMIN','EDITOR','USER')" )
+    @PostMapping( "/bulk/delete" )
+    public BulkItemDeleteResponse bulkDelete( @Valid @RequestBody BulkItemDeleteRequest request ) {
+        return bulkItemService.delete( request.getItemIds() );
     }
 
     @GetMapping( "/{id}" )

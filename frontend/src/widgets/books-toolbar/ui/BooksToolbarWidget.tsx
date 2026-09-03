@@ -14,11 +14,6 @@ import type { BooksViewMode } from '@/widgets/books-list';
 /** Список во всю ширину — вариант А макетов; рабочий стол с рельсом — вариант Б. */
 export type BooksLayout = 'list' | 'desk';
 
-export interface ActiveFilterChip {
-  key: string;
-  label: string;
-}
-
 interface Props {
   search: string;
   onSearchChange: (value: string) => void;
