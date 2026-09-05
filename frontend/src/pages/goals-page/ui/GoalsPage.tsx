@@ -37,6 +37,8 @@ import {
   resetYearGoal,
   saveGoal
 } from '@/entities/engagement';
+import { YearCard } from '@/widgets/year-card';
+import { useAppSelector } from '@/shared/lib/hooks';
 import { useGoalsPageStyles } from './GoalsPage.styles';
 
 interface GoalFormValues {
@@ -95,6 +97,7 @@ export const GoalsPage: React.FC = () => {
   const showRequestError = useRequestError();
   const [form] = Form.useForm<GoalFormValues>();
 
+  const username = useAppSelector((state) => state.auth.user?.username);
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [goal, setGoal] = useState<ReadingGoal | null>(null);
@@ -508,6 +511,9 @@ export const GoalsPage: React.FC = () => {
           </Row>
         </Card>
       )}
+
+      {/* Открытка — то, ради чего итоги вообще показывают другим: одна картинка на весь год. */}
+      {reviewOpen && review && review.finishedCount > 0 && <YearCard review={review} username={username} />}
 
       <Modal
         title={`Цель на ${year} год`}

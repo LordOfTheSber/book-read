@@ -14,6 +14,14 @@ export const exportMyLibrary = async (format: ExportFormat): Promise<Blob> => {
   return data;
 };
 
+/**
+ * Смена собственного пароля. Сервер вместе с ним гасит все сессии и запомненные устройства:
+ * пароль меняют, когда старый мог утечь.
+ */
+export const changeMyPassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await httpClient.put('/account/password', { currentPassword, newPassword });
+};
+
 /** Пароль подтверждает, что за клавиатурой владелец аккаунта, а не открытая чужая сессия. */
 export const deleteMyAccount = async (password: string): Promise<void> => {
   await httpClient.delete('/account', { data: { password } });

@@ -1,5 +1,7 @@
 package com.library.tracker.service.social;
 
+import com.library.tracker.domain.LibraryItem;
+import com.library.tracker.domain.ReadingStatus;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.domain.UserFollow;
@@ -14,6 +16,7 @@ import com.library.tracker.web.dto.ProfileUpdateRequest;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -142,6 +145,65 @@ class ProfileServiceTest {
         assertThat( response.getBio() ).isNull();
         assertThat( response.isPublicProfile() ).isTrue();
         verify( userService ).evictFromCache( reader );
+    }
+
+    /**
+     * «Есть у вас» — то, ради чего к чужому профилю и ходят. Названия из отзывов проверяются
+     * одним запросом, а не по запросу на строку.
+     */
+    @Test
+    void foreignProfileMarksBooksTheReaderAlreadyHas() {
+        User author = user( "author", true );
+        LibraryItem reviewed = item( "Дюна" );
+        when( userRepository.findByUsernameIgnoreCase( "author" ) ).thenReturn( Optional.of( author ) );
+        when( libraryItemRepository.findReviewed( eq( author.getId() ), any() ) ).thenReturn( List.of( reviewed ) );
+        when( libraryItemRepository.findOwnedTitles( eq( Set.of( "дюна" ) ), eq( reader.getId() ) ) )
+                .thenReturn( List.of( "дюна" ) );
+        when( libraryItemRepository.countCommonTitles( eq( reader.getId() ), eq( author.getId() ) ) ).thenReturn( 4L );
+
+        var profile = service.findByUsername( "author" ).orElseThrow();
+
+        assertThat( profile.getCommonCount() ).isEqualTo( 4 );
+        verify( publicReviewMapper ).toResponses( List.of( reviewed ), Set.of( "дюна" ) );
+    }
+
+    /** В своём профиле отметка «есть у вас» стоит у каждой строки и не значит ничего. */
+    @Test
+    void ownProfileSkipsTheOwnedMarks() {
+        when( userRepository.findByUsernameIgnoreCase( "reader" ) ).thenReturn( Optional.of( reader ) );
+        when( libraryItemRepository.findReviewed( eq( reader.getId() ), any() ) )
+                .thenReturn( List.of( item( "Дюна" ) ) );
+
+        var profile = service.findByUsername( "reader" ).orElseThrow();
+
+        assertThat( profile.getCommonCount() ).isZero();
+        verify( libraryItemRepository, never() ).findOwnedTitles( any(), any() );
+        verify( libraryItemRepository, never() ).countCommonTitles( any(), any() );
+    }
+
+    /** «Сейчас читает» — только читаемое и только обложками: чужой прогресс не показываем. */
+    @Test
+    void profileShowsWhatTheReaderIsReadingNow() {
+        User author = user( "author", true );
+        LibraryItem reading = item( "Тёмный лес" );
+        when( userRepository.findByUsernameIgnoreCase( "author" ) ).thenReturn( Optional.of( author ) );
+        when( libraryItemRepository.findReadingNow( eq( author.getId() ), any() ) ).thenReturn( List.of( reading ) );
+
+        var profile = service.findByUsername( "author" ).orElseThrow();
+
+        assertThat( profile.getCurrentlyReading() ).singleElement()
+                                                   .satisfies( cover -> {
+                                                       assertThat( cover.getTitle() ).isEqualTo( "Тёмный лес" );
+                                                       assertThat( cover.isHasCover() ).isFalse();
+                                                   } );
+    }
+
+    private LibraryItem item( String title ) {
+        LibraryItem item = new LibraryItem();
+        item.setId( UUID.randomUUID() );
+        item.setTitle( title );
+        item.setStatus( ReadingStatus.READING );
+        return item;
     }
 
     private User user( String username, boolean publicProfile ) {

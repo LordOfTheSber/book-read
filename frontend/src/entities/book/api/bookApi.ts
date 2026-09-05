@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { BulkUpdateResult, DuplicateCandidate, LibraryItem, PageResponse, ReadingStatus } from '@/shared/types/library';
+import { BulkDeletePreview, BulkDeleteResult, BulkUpdateResult, DuplicateCandidate, LibraryItem, PageResponse, ReadingStatus } from '@/shared/types/library';
 
 export interface FetchBooksParams {
   page?: number;
@@ -78,6 +78,17 @@ export const uploadCoverFromUrl = async (id: string, url: string) => {
 
 export const bulkUpdateBooks = async (payload: BulkUpdatePayload) => {
   const { data } = await httpClient.post<BulkUpdateResult>('/items/bulk', payload);
+  return data;
+};
+
+/** Что исчезнет вместе с записями: спрашивается до диалога, а не после удаления. */
+export const previewBulkDelete = async (itemIds: string[]) => {
+  const { data } = await httpClient.post<BulkDeletePreview>('/items/bulk/delete-preview', { itemIds });
+  return data;
+};
+
+export const bulkDeleteBooks = async (itemIds: string[]) => {
+  const { data } = await httpClient.post<BulkDeleteResult>('/items/bulk/delete', { itemIds });
   return data;
 };
 

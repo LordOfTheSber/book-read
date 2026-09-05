@@ -30,6 +30,10 @@ public class PublicProfileResponse {
     int currentStreak;
     long achievementCount;
     OffsetDateTime joinedAt;
+    /** Сколько книг есть и у него, и у спрашивающего; в своём профиле — ноль. */
+    long commonCount;
     List<ShelfResponse> shelves;
     List<PublicReviewResponse> reviews;
+    /** Что читает прямо сейчас: обложками, без прогресса — чужой темп чтения не наше дело. */
+    List<ShowcaseItemResponse> currentlyReading;
 }

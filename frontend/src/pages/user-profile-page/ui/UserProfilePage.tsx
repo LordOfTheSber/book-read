@@ -5,45 +5,57 @@ import {
   Avatar,
   Button,
   Card,
-  Col,
-  Collapse,
   Empty,
+  Grid,
   List,
   Modal,
-  Row,
   Skeleton,
   Space,
+  Tabs,
   Tag,
   Typography
 } from 'antd';
-import { FireOutlined, GlobalOutlined, StarOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, UserOutlined } from '@ant-design/icons';
 import { Activity, PublicProfile, Shelf, ShelfItem } from '@/shared/types/library';
-import { activityMeta } from '@/shared/constants/social';
-import { getMediaKindLabel } from '@/shared/constants/mediaKind';
-import { formatDate, formatDateTime } from '@/shared/lib/date';
+import { formatDate } from '@/shared/lib/date';
 import { formatScore } from '@/shared/lib/format';
 import { getErrorMessage, useRequestError } from '@/shared/lib/errors';
-import { pluralize } from '@/shared/lib/plural';
-import { PageHeader } from '@/shared/ui/PageHeader';
-import { StatTile } from '@/shared/ui/StatTile';
-import { ReviewThreadPanel } from '@/widgets/review-thread';
+import { plural, pluralize } from '@/shared/lib/plural';
+import { useDocumentTitle } from '@/shared/lib/documentTitle';
+import { CoverThumb } from '@/shared/ui/CoverThumb';
+import { coverUrl } from '@/entities/book';
 import { fetchProfile, fetchProfileActivity, followUser, unfollowUser } from '@/entities/profile';
 import { fetchShelfItems } from '@/entities/shelf';
+import { EventLine } from '@/widgets/feed-post';
+import { PublicReviewCard } from './PublicReviewCard';
+import { useUserProfilePageStyles } from './UserProfilePage.styles';
 
 /**
- * Страница {@code /u/username}. Закрытый профиль сервер отдаёт как отсутствующий, поэтому здесь
- * не нужно различать «нет такого» и «не показывают»: и то и другое — одна и та же страница.
+ * Страница {@code /u/username} по макету `PublicPage.dc.html`.
+ *
+ * Отзывы, полки и активность лежали тремя карточками подряд, и до отзыва — единственного, ради
+ * чего к чужому профилю и ходят, — нужно было прокрутить половину экрана. Теперь отзывы это
+ * главное содержимое, остальное сжато в правую колонку, а к каждой книге добавлено то, чего
+ * не было вовсе: «есть у вас» и число общих книг.
+ *
+ * Закрытый профиль сервер отдаёт как отсутствующий, поэтому здесь не нужно различать «нет такого»
+ * и «не показывают»: и то и другое — одна и та же страница.
  */
 export const UserProfilePage: React.FC = () => {
   const { username = '' } = useParams();
+  const styles = useUserProfilePageStyles();
+  const screens = Grid.useBreakpoint();
   const showRequestError = useRequestError();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
+  const [tab, setTab] = useState('reviews');
   const [preview, setPreview] = useState<{ shelf: Shelf; items: ShelfItem[] } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  useDocumentTitle(profile ? profile.displayName || profile.username : 'Страница читателя');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,7 +102,7 @@ export const UserProfilePage: React.FC = () => {
   };
 
   if (loading) {
-    return <Skeleton active paragraph={{ rows: 6 }} />;
+    return <Skeleton active avatar paragraph={{ rows: 6 }} />;
   }
 
   if (error || !profile) {
@@ -106,13 +118,128 @@ export const UserProfilePage: React.FC = () => {
 
   const avatarSrc = profile.hasAvatar ? `/api/v1/users/${profile.id}/avatar` : undefined;
 
+  const stats = [
+    { label: 'Дочитано', value: profile.finishedCount },
+    { label: 'Отзывов', value: profile.reviewCount },
+    { label: 'Оценка', value: profile.averageRating != null ? formatScore(profile.averageRating) : '—' },
+    { label: 'Серия', value: profile.currentStreak }
+  ];
+
+  const reviewsTab =
+    profile.reviews.length === 0 ? (
+      <Card style={styles.card}>
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Отзывов пока нет" />
+      </Card>
+    ) : (
+      <div>
+        {profile.reviews.map((review) => (
+          <PublicReviewCard key={review.itemId} review={review} own={profile.me} />
+        ))}
+      </div>
+    );
+
+  const shelvesTab =
+    profile.shelves.length === 0 ? (
+      <Card style={styles.card}>
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Открытых полок нет" />
+      </Card>
+    ) : (
+      <Card style={styles.card} styles={{ body: styles.cardBody }}>
+        <List
+          dataSource={profile.shelves}
+          renderItem={(shelf) => (
+            <List.Item
+              actions={[
+                <Button key="open" type="link" size="small" onClick={() => openShelf(shelf)}>
+                  Открыть состав
+                </Button>
+              ]}
+            >
+              <List.Item.Meta
+                avatar={
+                  <span aria-hidden style={styles.shelfIcon}>
+                    <AppstoreOutlined />
+                  </span>
+                }
+                title={shelf.name}
+                description={
+                  <Space direction="vertical" size={0}>
+                    <Typography.Text type="secondary">
+                      {pluralize(shelf.itemCount, ['запись', 'записи', 'записей'])}
+                      {shelf.isPublic ? '' : ' · видна только вам'}
+                    </Typography.Text>
+                    {shelf.description && <Typography.Text type="secondary">{shelf.description}</Typography.Text>}
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </Card>
+    );
+
+  const activityTab =
+    activity.length === 0 ? (
+      <Card style={styles.card}>
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Пока тихо" />
+      </Card>
+    ) : (
+      <Space direction="vertical" size={10} style={{ display: 'flex' }}>
+        {activity.map((event) => (
+          <EventLine key={event.id} event={event} />
+        ))}
+      </Space>
+    );
+
   return (
     <div>
-      <PageHeader
-        title={profile.displayName || profile.username}
-        subtitle={`@${profile.username}${profile.joinedAt ? ` · с нами с ${formatDate(profile.joinedAt)}` : ''}`}
-        actions={
-          profile.me ? (
+      <div style={styles.header}>
+        <Avatar size={76} src={avatarSrc} icon={<UserOutlined />} style={{ flexShrink: 0 }} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Typography.Title level={1} className="brand-display" style={styles.name}>
+            {profile.displayName || profile.username}
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+            {`@${profile.username}`}
+            {profile.joinedAt ? ` · с нами с ${formatDate(profile.joinedAt)}` : ''}
+          </Typography.Text>
+
+          {profile.bio ? (
+            <Typography.Paragraph style={styles.bio}>{profile.bio}</Typography.Paragraph>
+          ) : (
+            <Typography.Text type="secondary" style={{ display: 'block', marginTop: 10 }}>
+              О себе пока ничего не написано.
+            </Typography.Text>
+          )}
+
+          <div style={styles.counters}>
+            <span>
+              <Typography.Text strong>{profile.followerCount}</Typography.Text>{' '}
+              <Typography.Text type="secondary">
+                {plural(profile.followerCount, ['подписчик', 'подписчика', 'подписчиков'])}
+              </Typography.Text>
+            </span>
+            <span>
+              <Typography.Text strong>{profile.followingCount}</Typography.Text>{' '}
+              <Typography.Text type="secondary">в подписках</Typography.Text>
+            </span>
+            {/* Общие книги — единственный ответ на вопрос «а что у нас общего»; в своём профиле его нет. */}
+            {!profile.me && profile.commonCount > 0 && (
+              <Typography.Text>
+                {`${pluralize(profile.commonCount, ['общая книга', 'общие книги', 'общих книг'])} с вами`}
+              </Typography.Text>
+            )}
+            {!profile.publicProfile && (
+              <Tag color="warning" bordered={false}>
+                профиль закрыт — его видите только вы
+              </Tag>
+            )}
+          </div>
+        </div>
+
+        <Space size={8} style={{ flexShrink: 0 }}>
+          {profile.me ? (
             <Link to="/profile">
               <Button>Настроить профиль</Button>
             </Link>
@@ -120,190 +247,79 @@ export const UserProfilePage: React.FC = () => {
             <Button type={profile.followedByMe ? 'default' : 'primary'} loading={following} onClick={toggleFollow}>
               {profile.followedByMe ? 'Отписаться' : 'Подписаться'}
             </Button>
-          )
-        }
-      />
-
-      <Card style={{ marginBottom: 16 }}>
-        <Space align="start" size={16} wrap>
-          <Avatar size={72} src={avatarSrc} icon={<UserOutlined />} />
-          <Space direction="vertical" size={6} style={{ maxWidth: 640 }}>
-            {profile.bio ? (
-              <Typography.Paragraph style={{ marginBottom: 0 }}>{profile.bio}</Typography.Paragraph>
-            ) : (
-              <Typography.Text type="secondary">О себе пока ничего не написано.</Typography.Text>
-            )}
-            <Space size={8} wrap>
-              <Tag bordered={false}>
-                {pluralize(profile.followerCount, ['подписчик', 'подписчика', 'подписчиков'])}
-              </Tag>
-              <Tag bordered={false}>{profile.followingCount} в подписках</Tag>
-              {!profile.publicProfile && (
-                <Tag color="warning" bordered={false}>
-                  профиль закрыт — его видите только вы
-                </Tag>
-              )}
-            </Space>
-          </Space>
+          )}
         </Space>
-      </Card>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={12} md={6}>
-          <StatTile label="Дочитано" value={profile.finishedCount} />
-        </Col>
-        <Col xs={12} md={6}>
-          <StatTile label="Отзывов" value={profile.reviewCount} />
-        </Col>
-        <Col xs={12} md={6}>
-          <StatTile
-            label="Средняя оценка"
-            value={profile.averageRating != null ? formatScore(profile.averageRating) : '—'}
-            hint={profile.averageRating ? 'из 10' : 'оценок пока нет'}
+      <div style={screens.lg ? styles.columns : styles.columnsNarrow}>
+        <div style={{ minWidth: 0 }}>
+          <Tabs
+            activeKey={tab}
+            onChange={setTab}
+            items={[
+              { key: 'reviews', label: `Отзывы · ${profile.reviewCount}`, children: reviewsTab },
+              { key: 'shelves', label: `Полки · ${profile.shelves.length}`, children: shelvesTab },
+              { key: 'activity', label: 'Активность', children: activityTab }
+            ]}
           />
-        </Col>
-        <Col xs={12} md={6}>
-          <StatTile
-            label="Серия"
-            value={profile.currentStreak}
-            hint={`${pluralize(profile.achievementCount, ['достижение', 'достижения', 'достижений'])}`}
-            icon={<FireOutlined />}
-            accent="#f97316"
-          />
-        </Col>
-      </Row>
+        </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={14}>
-          <Card title="Отзывы" style={{ marginBottom: 16 }}>
-            {profile.reviews.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Отзывов пока нет" />
-            ) : (
-              <List
-                itemLayout="vertical"
-                dataSource={profile.reviews}
-                renderItem={(review) => (
-                  <List.Item key={review.itemId}>
-                    <List.Item.Meta
-                      title={
-                        <Space size={8} wrap>
-                          <Typography.Text strong>{review.title}</Typography.Text>
-                          <Tag bordered={false}>{getMediaKindLabel(review.kind)}</Tag>
-                          {review.rating != null && (
-                            <Tag color="gold" bordered={false}>
-                              <StarOutlined /> {formatScore(review.rating)} / 10
-                            </Tag>
-                          )}
-                        </Space>
-                      }
-                      description={
-                        <Typography.Text type="secondary">
-                          {review.authorNames.join(', ') || 'автор не указан'}
-                          {review.finishedAt ? ` · дочитано ${formatDate(review.finishedAt)}` : ''}
-                        </Typography.Text>
-                      }
-                    />
-                    <Typography.Paragraph>{review.review}</Typography.Paragraph>
-                    {review.reviewSpoiler && (
-                      /* Спойлер приходит отдельным полем — прячем целиком, а не режем текст. */
-                      <Collapse
-                        ghost
-                        size="small"
-                        items={[
-                          {
-                            key: 'spoiler',
-                            label: 'Показать спойлеры',
-                            children: <Typography.Paragraph>{review.reviewSpoiler}</Typography.Paragraph>
-                          }
-                        ]}
-                      />
-                    )}
-                    <Collapse
-                      ghost
-                      size="small"
-                      items={[
-                        {
-                          key: 'thread',
-                          label: `Обсуждение · ${review.reactionCount} реакций, ${review.commentCount} комментариев`,
-                          children: <ReviewThreadPanel itemId={review.itemId} own={profile.me} />
-                        }
-                      ]}
-                    />
-                  </List.Item>
-                )}
-              />
-            )}
+        <div style={styles.side}>
+          <Card style={styles.card} styles={{ body: styles.cardBody }}>
+            <div style={styles.stats}>
+              {stats.map((stat) => (
+                <div key={stat.label}>
+                  <Typography.Text type="secondary" style={styles.statLabel}>
+                    {stat.label}
+                  </Typography.Text>
+                  <span style={styles.statValue}>{stat.value}</span>
+                </div>
+              ))}
+            </div>
           </Card>
-        </Col>
 
-        <Col xs={24} lg={10}>
-          <Card title="Открытые полки" style={{ marginBottom: 16 }}>
+          <Card style={styles.card} styles={{ body: styles.cardBody }} title="Открытые полки">
             {profile.shelves.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Открытых полок нет" />
+              <Typography.Text type="secondary">Открытых полок нет</Typography.Text>
             ) : (
-              <List
-                dataSource={profile.shelves}
-                renderItem={(shelf) => (
-                  <List.Item
-                    actions={[
-                      <Button key="open" type="link" size="small" onClick={() => openShelf(shelf)}>
-                        Открыть
-                      </Button>
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={<GlobalOutlined />}
-                      title={shelf.name}
-                      description={
-                        <Space direction="vertical" size={0}>
-                          <Typography.Text type="secondary">
-                            {pluralize(shelf.itemCount, ['запись', 'записи', 'записей'])}
-                            {shelf.isPublic ? '' : ' · видна только вам'}
-                          </Typography.Text>
-                          {shelf.description && (
-                            <Typography.Text type="secondary">{shelf.description}</Typography.Text>
-                          )}
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+              profile.shelves.map((shelf) => (
+                <button key={shelf.id} type="button" style={styles.shelfRow} onClick={() => openShelf(shelf)}>
+                  <span aria-hidden style={styles.shelfIcon}>
+                    <AppstoreOutlined />
+                  </span>
+                  <Typography.Text style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500 }} ellipsis>
+                    {shelf.name}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
+                    {shelf.itemCount}
+                  </Typography.Text>
+                </button>
+              ))
             )}
           </Card>
 
-          <Card title="Активность">
-            {activity.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Пока тихо" />
+          {/* Что человек держит в руках прямо сейчас — самое живое, что есть на его странице. */}
+          <Card style={styles.card} styles={{ body: styles.cardBody }} title="Сейчас читает">
+            {profile.currentlyReading.length === 0 ? (
+              <Typography.Text type="secondary">Сейчас ничего не читает</Typography.Text>
             ) : (
-              <List
-                dataSource={activity}
-                renderItem={(event) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={event.type === 'UNLOCKED_ACHIEVEMENT' ? <TrophyOutlined /> : undefined}
-                      title={
-                        <Space size={8} wrap>
-                          <Tag color={activityMeta[event.type].color} bordered={false}>
-                            {activityMeta[event.type].label}
-                          </Tag>
-                          <Typography.Text>{event.subject}</Typography.Text>
-                        </Space>
-                      }
-                      description={
-                        <Typography.Text type="secondary">
-                          {formatDateTime(event.createdAt)}
-                          {event.detail ? ` · ${event.detail}` : ''}
-                        </Typography.Text>
-                      }
+              <div style={styles.covers}>
+                {profile.currentlyReading.map((item) => (
+                  <Link key={item.id} to={`/library/${item.id}`} aria-label={`Открыть «${item.title}»`}>
+                    <CoverThumb
+                      src={item.hasCover ? coverUrl(item.id) : undefined}
+                      title={item.title}
+                      kind={item.kind}
+                      width={64}
+                      height={90}
                     />
-                  </List.Item>
-                )}
-              />
+                  </Link>
+                ))}
+              </div>
             )}
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       <Modal
         title={preview?.shelf.name}
@@ -321,10 +337,7 @@ export const UserProfilePage: React.FC = () => {
             locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="На полке пока пусто" /> }}
             renderItem={(item) => (
               <List.Item>
-                <List.Item.Meta
-                  title={item.title}
-                  description={item.authorNames.join(', ') || 'автор не указан'}
-                />
+                <List.Item.Meta title={item.title} description={item.authorNames.join(', ') || 'автор не указан'} />
                 {item.rating != null && (
                   <Typography.Text type="secondary">{formatScore(item.rating)} / 10</Typography.Text>
                 )}

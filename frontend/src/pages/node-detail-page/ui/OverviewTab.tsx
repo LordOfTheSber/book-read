@@ -3,8 +3,7 @@ import { Card, Col, Empty, Row, Skeleton, Typography } from 'antd';
 import { NodeMemoryDetail, SystemNode } from '@/shared/types/library';
 import { MetricList } from '@/shared/ui/MetricList';
 import { UsageMeter } from '@/shared/ui/UsageMeter';
-import { calculateUsed, formatBytes, formatDuration, formatPercent } from '@/shared/lib/format';
-import { formatDateTime } from '@/shared/lib/date';
+import { calculateUsed, formatBytes, formatPercent } from '@/shared/lib/format';
 import { useNodeDetailPageStyles } from './NodeDetailPage.styles';
 
 interface Props {
@@ -13,6 +12,10 @@ interface Props {
   memoryDetailLoading: boolean;
 }
 
+/**
+ * Обзор узла: память, heap и диск подробно. Паспорт узла отсюда уехал в колонку слева —
+ * он нужен на любой вкладке, а не только на этой.
+ */
 export const OverviewTab: React.FC<Props> = ({ node, memoryDetail, memoryDetailLoading }) => {
   const styles = useNodeDetailPageStyles();
 
@@ -34,23 +37,6 @@ export const OverviewTab: React.FC<Props> = ({ node, memoryDetail, memoryDetailL
 
   return (
     <Row gutter={[16, 16]}>
-      <Col xs={24} lg={12}>
-        <Card title="Об узле" style={styles.card} styles={{ body: styles.cardBody }}>
-          <MetricList
-            items={[
-              { label: 'Хост', value: node?.hostname || '—', mono: true },
-              { label: 'IP-адрес', value: node?.ip || '—', mono: true },
-              { label: 'Порт', value: node?.port ?? '—', mono: true },
-              { label: 'Аптайм', value: formatDuration(node?.uptimeSeconds) },
-              {
-                label: 'Последний отчёт',
-                value: node?.lastReportedAt ? formatDateTime(node.lastReportedAt) : '—'
-              }
-            ]}
-          />
-        </Card>
-      </Col>
-
       <Col xs={24} lg={12}>
         {resource('Системная память', formatPercent(memoryUsed, node?.systemMemoryTotal), [
           { label: 'Использовано', value: formatBytes(memoryUsed) },

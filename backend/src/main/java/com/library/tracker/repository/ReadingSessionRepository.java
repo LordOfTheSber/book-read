@@ -107,6 +107,14 @@ public interface ReadingSessionRepository extends JpaRepository<ReadingSession, 
             """ )
     PaceTotals paceTotals( UUID userId, LocalDate from, LocalDate to );
 
+    /** Сколько заходов удалится вместе с записями: то же, что и у выписок, — предупредить заранее. */
+    @Query( """
+            select count(rs)
+            from ReadingSession rs
+            where rs.item.id in :itemIds
+            """ )
+    long countByItems( Collection<UUID> itemIds );
+
     interface DayActivity {
 
         LocalDate getDate();

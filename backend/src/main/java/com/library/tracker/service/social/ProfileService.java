@@ -1,5 +1,6 @@
 package com.library.tracker.service.social;
 
+import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Shelf;
 import com.library.tracker.domain.User;
 import com.library.tracker.domain.UserFollow;
@@ -16,6 +17,7 @@ import com.library.tracker.web.dto.ProfileUpdateRequest;
 import com.library.tracker.web.dto.PublicProfileResponse;
 import com.library.tracker.web.dto.PublicReviewResponse;
 import com.library.tracker.web.dto.ShelfResponse;
+import com.library.tracker.web.dto.ShowcaseItemResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,6 +53,9 @@ public class ProfileService {
     private static final int PROFILE_REVIEW_LIMIT = 10;
 
     private static final int SEARCH_LIMIT = 20;
+
+    /** Столько обложек «сейчас читает» помещается в колонку чужого профиля. */
+    private static final int READING_SHOWN = 4;
 
     private final UserRepository userRepository;
     private final UserFollowRepository userFollowRepository;
@@ -191,8 +196,12 @@ public class ProfileService {
         boolean me = user.getId().equals( currentUser.getId() );
         Double average = libraryItemRepository.averageRating( user.getId() );
 
-        List<PublicReviewResponse> reviews = publicReviewMapper.toResponses(
-                libraryItemRepository.findReviewed( user.getId(), PageRequest.of( 0, PROFILE_REVIEW_LIMIT ) ) );
+        List<LibraryItem> reviewed =
+                libraryItemRepository.findReviewed( user.getId(), PageRequest.of( 0, PROFILE_REVIEW_LIMIT ) );
+        // В своём профиле отметка «есть у вас» стоит у каждой строки и не значит ничего.
+        List<PublicReviewResponse> reviews = me
+                ? publicReviewMapper.toResponses( reviewed )
+                : publicReviewMapper.toResponses( reviewed, ownedTitles( reviewed, currentUser ) );
 
         return PublicProfileResponse.builder()
                                     .id( user.getId() )
@@ -215,9 +224,46 @@ public class ProfileService {
                                                                .findByOwnerIdOrderByUnlockedOnAsc( user.getId() )
                                                                .size() )
                                     .joinedAt( toOffsetDateTime( user.getCreatedAt() ) )
+                                    .commonCount( me ? 0
+                                                     : libraryItemRepository.countCommonTitles( currentUser.getId(),
+                                                                                                user.getId() ) )
                                     .shelves( shelves( user, me ) )
                                     .reviews( reviews )
+                                    .currentlyReading( currentlyReading( user ) )
                                     .build();
+    }
+
+    /**
+     * Названия отзывов, которые уже есть у спрашивающего, — одним запросом на весь список.
+     * По запросу на отзыв страница чужого профиля стоила бы десяти лишних обращений к базе.
+     */
+    private Set<String> ownedTitles( List<LibraryItem> reviewed, User currentUser ) {
+        if ( reviewed.isEmpty() ) {
+            return Set.of();
+        }
+        Set<String> titles = reviewed.stream()
+                                     .map( item -> PublicReviewMapper.normalizeTitle( item.getTitle() ) )
+                                     .filter( StringUtils::hasText )
+                                     .collect( Collectors.toSet() );
+        return titles.isEmpty()
+                ? Set.of()
+                : Set.copyOf( libraryItemRepository.findOwnedTitles( titles, currentUser.getId() ) );
+    }
+
+    /**
+     * «Сейчас читает» — обложками и без прогресса: чужой темп чтения не наше дело, а вот
+     * что человек держит в руках прямо сейчас — самое живое, что есть на его странице.
+     */
+    private List<ShowcaseItemResponse> currentlyReading( User user ) {
+        return libraryItemRepository.findReadingNow( user.getId(), PageRequest.of( 0, READING_SHOWN ) ).stream()
+                                    .map( item -> ShowcaseItemResponse.builder()
+                                                                      .id( item.getId() )
+                                                                      .title( item.getTitle() )
+                                                                      .kind( item.getKind() )
+                                                                      .status( item.getStatus() )
+                                                                      .hasCover( item.getCoverKey() != null )
+                                                                      .build() )
+                                    .toList();
     }
 
     /**

@@ -389,12 +389,12 @@ export const ShelvesPage: React.FC = () => {
       </div>
 
       <Modal
-        title={editing ? 'Полка' : 'Новая полка'}
+        title={editing ? `Переименовать «${editing.name}»` : 'Новая полка'}
         open={formOpen}
         onCancel={() => setFormOpen(false)}
         onOk={handleSubmit}
         confirmLoading={saving}
-        okText="Сохранить"
+        okText={editing ? 'Сохранить' : 'Создать'}
         cancelText="Отмена"
         destroyOnHidden
       >
@@ -412,9 +412,9 @@ export const ShelvesPage: React.FC = () => {
           </Form.Item>
           <Form.Item
             name="isPublic"
-            label="Публичная"
+            label="Открыть другим"
             valuePropName="checked"
-            tooltip="Публичную полку по ссылке увидит любой пользователь сервиса; приватная заметка в состав не входит"
+            tooltip="Полку увидят на вашей публичной странице; приватная заметка в состав не входит"
           >
             <Switch />
           </Form.Item>

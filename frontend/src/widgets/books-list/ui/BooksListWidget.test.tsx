@@ -118,6 +118,35 @@ describe('BooksListWidget', () => {
     expect(screen.getByText('Ничего не найдено')).toBeInTheDocument();
   });
 
+  /**
+   * Пустая выдача из-за фильтра — не то же самое, что пустая библиотека: человеку нужно увидеть,
+   * какое условие всё срезало, и снять его одним нажатием.
+   */
+  it('называет условия, сузившие выдачу, и предлагает снять последнее', async () => {
+    const onRemoveFilter = vi.fn();
+    renderList([], {
+      hasActiveFilters: true,
+      activeFilters: [
+        { key: 'status', label: 'Статус: Читаю' },
+        { key: 'minRating', label: 'Оценка от 9' }
+      ],
+      onRemoveFilter
+    });
+
+    expect(screen.getByText(/Выдачу сужают: Статус: Читаю · Оценка от 9/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Снять «Оценка от 9»' }));
+
+    expect(onRemoveFilter).toHaveBeenCalledWith('minRating');
+  });
+
+  it('пустой поиск без фильтров предлагает очистить запрос', () => {
+    renderList([], { hasActiveFilters: true, query: 'страх', onClearQuery: vi.fn() });
+
+    expect(screen.getByText(/По запросу «страх» ничего не нашлось/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Очистить поиск' })).toBeInTheDocument();
+  });
+
   it('листание показывает, сколько записей всего', () => {
     renderList([item()]);
 

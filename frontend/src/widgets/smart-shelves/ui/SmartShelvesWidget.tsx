@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { App, Button, Dropdown, Input, Modal, Space, Typography } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { App, Button, Dropdown, Input, Modal, Space, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { BookOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import { applySavedFilter, toSavedFilter } from '@/features/book/set-book-filters';
 import { createSmartShelfThunk, deleteSmartShelfThunk, loadSmartShelves } from '@/entities/smart-shelf';
 import { useRequestError } from '@/shared/lib/errors';
+import { describeFilters } from '@/shared/lib/filterLabels';
+import { pluralize } from '@/shared/lib/plural';
 
 /**
  * Умные полки: сохранённый фильтр как объект. Фильтр выдачи и так принимал десяток параметров —
@@ -38,6 +40,12 @@ export const SmartShelvesWidget: React.FC<Props> = ({
   const showRequestError = useRequestError();
   const filters = useAppSelector((state) => state.bookFilters);
   const shelves = useAppSelector((state) => state.smartShelves.list);
+  const bookTypes = useAppSelector((state) => state.bookTypes.list);
+  const authors = useAppSelector((state) => state.authors.list);
+  const series = useAppSelector((state) => state.series.list);
+  const tags = useAppSelector((state) => state.tags.list);
+  const shelfList = useAppSelector((state) => state.shelves.list);
+  const total = useAppSelector((state) => state.books.total);
   const [ownOpen, setOwnOpen] = useState(false);
   const saveOpen = controlledOpen ?? ownOpen;
   const setSaveOpen = onSaveOpenChange ?? setOwnOpen;
@@ -47,6 +55,15 @@ export const SmartShelvesWidget: React.FC<Props> = ({
   useEffect(() => {
     dispatch(loadSmartShelves());
   }, [dispatch]);
+
+  /**
+   * Что именно сохранится — теми же словами, что стоят в строке «Показаны:». Раньше окно обещало
+   * «текущие фильтры», не показывая их: сохранить набор вслепую и найти в полке не то — обычное дело.
+   */
+  const conditions = useMemo(
+    () => describeFilters(filters, { bookTypes, authors, series, tags, shelves: shelfList }),
+    [filters, bookTypes, authors, series, tags, shelfList]
+  );
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -158,11 +175,7 @@ export const SmartShelvesWidget: React.FC<Props> = ({
         confirmLoading={saving}
         destroyOnHidden
       >
-        <Space direction="vertical" size={8} style={{ display: 'flex' }}>
-          <Typography.Text type="secondary">
-            Состав полки не запоминается — сохраняются текущие фильтры, и каждый раз она
-            пересчитывается по ним заново.
-          </Typography.Text>
+        <Space direction="vertical" size={12} style={{ display: 'flex' }}>
           <Input
             autoFocus
             placeholder="Например, «Непрочитанная фантастика»"
@@ -171,6 +184,34 @@ export const SmartShelvesWidget: React.FC<Props> = ({
             onChange={(event) => setName(event.target.value)}
             onPressEnter={handleSave}
           />
+
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 6 }}>
+              Что сохранится
+            </Typography.Text>
+            {conditions.length === 0 && !filters.q ? (
+              <Typography.Text type="secondary">
+                Фильтров сейчас нет — в полку попадёт вся библиотека.
+              </Typography.Text>
+            ) : (
+              <Space size={[6, 6]} wrap>
+                {conditions.map((condition) => (
+                  <Tag key={condition.key} bordered={false} style={{ borderRadius: 999, paddingInline: 10 }}>
+                    {condition.label}
+                  </Tag>
+                ))}
+                {filters.q && (
+                  <Tag bordered={false} style={{ borderRadius: 999, paddingInline: 10 }}>
+                    {`Запрос: ${filters.q}`}
+                  </Tag>
+                )}
+              </Space>
+            )}
+          </div>
+
+          <Typography.Text type="secondary">
+            {`Сейчас под фильтр попадает ${pluralize(total, ['запись', 'записи', 'записей'])}. Состав не запоминается: полка пересчитывается заново, и новые книги попадут в неё сами.`}
+          </Typography.Text>
         </Space>
       </Modal>
     </>

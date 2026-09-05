@@ -74,8 +74,9 @@ describe('ShelvesPage', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText('Название'), 'Книжный клуб, весна');
     await userEvent.type(within(dialog).getByLabelText('Описание'), 'что читаем в марте');
-    await userEvent.click(within(dialog).getByLabelText('Публичная'));
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+    await userEvent.click(within(dialog).getByLabelText('Открыть другим'));
+    // Кнопка повторяет глагол заголовка: новая полка создаётся, существующая сохраняется.
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Создать' }));
 
     await waitFor(() =>
       expect(createShelf).toHaveBeenCalledWith({
@@ -114,7 +115,7 @@ describe('ShelvesPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /Новая полка/ }));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Создать' }));
 
     expect(await screen.findByText('Название обязательно')).toBeInTheDocument();
     expect(createShelf).not.toHaveBeenCalled();

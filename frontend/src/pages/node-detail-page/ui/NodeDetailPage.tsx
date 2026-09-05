@@ -1,18 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, App, Badge, Button, Space, Spin, Tabs, Typography } from 'antd';
-import {
-  ApiOutlined,
-  ArrowLeftOutlined,
-  ClockCircleOutlined,
-  DashboardOutlined,
-  DatabaseOutlined,
-  DownloadOutlined,
-  HddOutlined,
-  PartitionOutlined,
-  ReloadOutlined,
-  ThunderboltOutlined
-} from '@ant-design/icons';
+import { Alert, App, Breadcrumb, Button, Grid, Space, Spin, Tabs, Typography } from 'antd';
+import { ApiOutlined, DashboardOutlined, DownloadOutlined, PartitionOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/hooks';
 import {
   clearCurrentNode,
@@ -21,25 +10,37 @@ import {
   loadNodeMemoryDetail,
   nodeCpuPercent,
   nodeDiskPercent,
+  nodeHeapPercent,
   nodeHeartbeat,
   nodeMemoryPercent
 } from '@/entities/node';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { StatTile } from '@/shared/ui/StatTile';
+import { StatusDot } from '@/shared/ui/StatusDot';
 import { isSuperAdmin } from '@/shared/lib/roles';
 import { useRequestError } from '@/shared/lib/errors';
-import { formatDuration, usageLevel } from '@/shared/lib/format';
+import { formatBytes, formatDuration } from '@/shared/lib/format';
+import { AboutCard } from './AboutCard';
+import { NodeTile } from './NodeTile';
 import { OverviewTab } from './OverviewTab';
+import { PingCard } from './PingCard';
 import { RequestsTab } from './RequestsTab';
 import { ProcessesTab } from './ProcessesTab';
 import { useNodeDetailPageStyles } from './NodeDetailPage.styles';
 
 const POLL_INTERVAL_MS = 10_000;
 
+/**
+ * Страница узла по макету `NodeDetail.dc.html`: состояние плитками, паспорт и общие настройки
+ * проверки слева, вкладки с метриками справа.
+ *
+ * Настройки пинга лежали внутри вкладки «Запросы» одного узла, хотя относятся ко всем сразу,
+ * а «что это за машина» приходилось собирать из подписей заголовка.
+ */
 export const NodeDetailPage: React.FC = () => {
   const { nodeId } = useParams<{ nodeId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const screens = Grid.useBreakpoint();
   const styles = useNodeDetailPageStyles();
   const { message } = App.useApp();
   const showRequestError = useRequestError();
@@ -101,10 +102,16 @@ export const NodeDetailPage: React.FC = () => {
     );
   }
 
+  /** Хлебные крошки вместо «← Все узлы»: узлы теперь живут внутри администрирования. */
   const backLink = (
-    <Typography.Link onClick={() => navigate('/nodes')} style={styles.backLink}>
-      <ArrowLeftOutlined /> Все узлы
-    </Typography.Link>
+    <Breadcrumb
+      style={styles.backLink}
+      items={[
+        { title: <Typography.Link onClick={() => navigate('/admin')}>Администрирование</Typography.Link> },
+        { title: <Typography.Link onClick={() => navigate('/admin')}>Узлы</Typography.Link> },
+        { title: currentNode?.nodeKey ?? 'Узел' }
+      ]}
+    />
   );
 
   if (error && !currentNode) {
@@ -121,15 +128,11 @@ export const NodeDetailPage: React.FC = () => {
   const cpu = nodeCpuPercent(node);
   const memory = nodeMemoryPercent(node);
   const disk = nodeDiskPercent(node);
+  const heap = nodeHeapPercent(node);
 
-  const accentFor = (percent?: number) => {
-    const level = usageLevel(percent);
-    return level === 'critical'
-      ? styles.accents.error
-      : level === 'warning'
-        ? styles.accents.warning
-        : styles.accents.ok;
-  };
+  /** «8,6 ГБ из 16 ГБ» — абсолютные числа отвечают на вопрос «надо ли что-то делать», процент нет. */
+  const used = (total?: number, free?: number) =>
+    total === undefined || free === undefined ? undefined : `${formatBytes(total - free)} из ${formatBytes(total)}`;
 
   const tabs = [
     {
@@ -150,7 +153,7 @@ export const NodeDetailPage: React.FC = () => {
           <ApiOutlined /> Запросы
         </span>
       ),
-      children: <RequestsTab nodeKey={node?.nodeKey} role={role} />
+      children: <RequestsTab nodeKey={node?.nodeKey} />
     },
     {
       key: 'processes',
@@ -172,13 +175,14 @@ export const NodeDetailPage: React.FC = () => {
         title={
           <Space size={12} align="center" wrap>
             <span>{node?.nodeKey || 'Узел'}</span>
-            <Badge status={hb.status} text={<Typography.Text type="secondary">{hb.text}</Typography.Text>} />
+            <StatusDot status={hb.status} label={hb.text} />
           </Space>
         }
         subtitle={
           <span style={styles.tabularNumbers}>
-            {node?.hostname || '—'}
-            {node?.port ? `:${node.port}` : ''} · {node?.ip || 'IP неизвестен'}
+            {`${node?.ip || node?.hostname || 'адрес неизвестен'}${node?.port ? `:${node.port}` : ''}`}
+            {` · пульс ${hb.text}`}
+            {node?.uptimeSeconds !== undefined ? ` · аптайм ${formatDuration(node.uptimeSeconds)}` : ''}
           </span>
         }
         actions={
@@ -201,34 +205,29 @@ export const NodeDetailPage: React.FC = () => {
         }
       />
 
-      <div style={styles.stats}>
-        <StatTile
-          label="CPU"
-          value={cpu === undefined ? '—' : `${cpu}%`}
-          icon={<ThunderboltOutlined />}
-          accent={accentFor(cpu)}
-        />
-        <StatTile
-          label="Память"
-          value={memory === undefined ? '—' : `${Math.round(memory)}%`}
-          icon={<DatabaseOutlined />}
-          accent={accentFor(memory)}
-        />
-        <StatTile
-          label="Диск"
-          value={disk === undefined ? '—' : `${Math.round(disk)}%`}
-          icon={<HddOutlined />}
-          accent={accentFor(disk)}
-        />
-        <StatTile
-          label="Аптайм"
-          value={formatDuration(node?.uptimeSeconds)}
-          icon={<ClockCircleOutlined />}
-          accent={styles.accents.uptime}
-        />
+      <div style={styles.tiles}>
+        <NodeTile label="CPU" percent={cpu} hint={cpu === undefined ? 'метрика недоступна' : 'загрузка процессора'} />
+        <NodeTile label="Память" percent={memory} hint={used(node?.systemMemoryTotal, node?.systemMemoryFree)} />
+        <NodeTile label="Диск" percent={disk} hint={
+          node?.diskFree !== undefined ? `${formatBytes(node.diskFree)} свободно` : undefined
+        } />
+        <NodeTile label="Heap" percent={heap} hint={
+          node?.heapUsed !== undefined && node?.heapMax !== undefined
+            ? `${formatBytes(node.heapUsed)} из ${formatBytes(node.heapMax)}`
+            : undefined
+        } />
       </div>
 
-      <Tabs items={tabs} />
+      <div style={screens.xl ? styles.columns : styles.columnsNarrow}>
+        <div style={styles.side}>
+          <PingCard role={role} onChanged={loadData} />
+          <AboutCard node={node} />
+        </div>
+
+        <div style={{ minWidth: 0 }}>
+          <Tabs items={tabs} />
+        </div>
+      </div>
     </div>
   );
 };

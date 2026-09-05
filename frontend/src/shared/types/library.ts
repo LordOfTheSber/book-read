@@ -275,6 +275,23 @@ export interface ImportResultSummary {
   errors: string[];
 }
 
+/** Последствия массового удаления — числами, до нажатия. */
+export interface BulkDeletePreview {
+  items: number;
+  /** Чужие записи не удаляются и не роняют запрос. */
+  skipped: number;
+  quotes: number;
+  /** У скольких записей выписки есть: «у 4 из 17» точнее, чем просто «26 выписок». */
+  itemsWithQuotes: number;
+  sessions: number;
+  reviews: number;
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  skipped: number;
+}
+
 /** Итог массовой правки: пропущенные перечисляются поимённо. */
 export interface BulkUpdateResult {
   updated: number;
@@ -623,6 +640,8 @@ export interface PublicReview {
   commentCount: number;
   /** Своя отметка: без неё лента рисовала бы сердце пустым поверх собственной реакции. */
   myReaction?: ReactionKind;
+  /** Есть ли эта книга у смотрящего: отзыв на свою книгу читается иначе, чем на незнакомую. */
+  inMyLibrary?: boolean;
 }
 
 /** Страница /u/username: шапка, счётчики, открытые полки и последние отзывы. */
@@ -643,8 +662,12 @@ export interface PublicProfile {
   currentStreak: number;
   achievementCount: number;
   joinedAt?: string;
+  /** Сколько книг есть и у него, и у смотрящего; в своём профиле — ноль. */
+  commonCount: number;
   shelves: Shelf[];
   reviews: PublicReview[];
+  /** Что читает прямо сейчас — обложками, без прогресса. */
+  currentlyReading: ShowcaseItem[];
 }
 
 export type ActivityType =
@@ -784,4 +807,6 @@ export interface YearInReview {
   longestItem?: PublicReview;
   topAuthors: AuthorSummary[];
   topTypes: { typeId: string; typeName: string; count: number }[];
+  /** Доли видов за год: из них собирается корешковая полоса на открытке. */
+  kindBreakdown?: Partial<Record<MediaKind, number>>;
 }

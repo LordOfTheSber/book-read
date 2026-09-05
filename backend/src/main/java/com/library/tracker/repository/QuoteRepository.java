@@ -43,6 +43,22 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
             """ )
     List<Quote> findRecent( java.util.UUID userId, Pageable window );
 
+    /** Сколько выписок исчезнет вместе с записями: диалог удаления называет последствия числами. */
+    @Query( """
+            select count(q)
+            from Quote q
+            where q.item.id in :itemIds
+            """ )
+    long countByItems( Collection<UUID> itemIds );
+
+    /** У скольких записей из выделения выписки вообще есть: «у 4 из 17» точнее, чем «26 выписок». */
+    @Query( """
+            select count(distinct q.item.id)
+            from Quote q
+            where q.item.id in :itemIds
+            """ )
+    long countItemsWithQuotes( Collection<UUID> itemIds );
+
     /** Сколько выписок сделал пользователь: нужно достижению «Собиратель». */
     @Query( "select count(q) from Quote q where q.item.createdBy.id = :userId" )
     long countByOwner( java.util.UUID userId );
