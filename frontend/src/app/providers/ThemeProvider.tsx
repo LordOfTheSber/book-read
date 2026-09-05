@@ -31,6 +31,23 @@ const getInitialMode = (): ThemeMode => {
   return 'light';
 };
 
+/**
+ * Хлебные крошки во всех темах.
+ *
+ * Ant Design красит промежуточные крошки в `colorTextDescription` — прозрачность 0.45. На бумаге
+ * это 3.3:1, ночью 4.3:1: путь наверх («Библиотека») читался хуже подписи под полем и сливался
+ * с разделителем, хотя это единственная ссылка из карточки записи обратно в список.
+ *
+ * Берём уровень «вторичного» текста (0.65), а наведение красим в цвет ссылок темы — так видно
+ * и саму надпись, и то, что по ней можно уйти. Название текущей страницы остаётся самым ярким,
+ * а разделитель — самым тихим: подняв и его, мы получили бы строку из одинаково громких кусков.
+ */
+const breadcrumb = (item: string, hover: string) => ({
+  itemColor: item,
+  linkColor: item,
+  linkHoverColor: hover
+});
+
 /** Общая для всех тем геометрия и типографика — цвета задаются отдельно. */
 const baseToken: ThemeConfig['token'] = {
   fontFamily: uiFont,
@@ -74,7 +91,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
         components: {
           Layout: { headerBg: brand.night.surface, bodyBg: brand.night.layout },
-          Menu: { itemBg: 'transparent', horizontalItemSelectedColor: brand.bookmark }
+          Menu: { itemBg: 'transparent', horizontalItemSelectedColor: brand.bookmark },
+          Breadcrumb: breadcrumb('rgba(255, 255, 255, 0.65)', '#DE8461')
         }
       };
     }
@@ -95,7 +113,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
         components: {
           Layout: { headerBg: '#ffffff', bodyBg: '#eef7f5' },
-          Menu: { itemBg: 'transparent' }
+          Menu: { itemBg: 'transparent' },
+          Breadcrumb: breadcrumb('rgba(0, 0, 0, 0.65)', '#0d9488')
         }
       };
     }
@@ -156,7 +175,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Прогресс — это закладка, а не основной цвет: полоса и ленточка на обложке
         // должны читаться как одна и та же вещь.
         Progress: { defaultColor: brand.bookmark },
-        Slider: { trackBg: brand.bookmark, trackHoverBg: brand.bookmarkHover }
+        Slider: { trackBg: brand.bookmark, trackHoverBg: brand.bookmarkHover },
+        Breadcrumb: breadcrumb(alpha(brand.inkText, 0.65), brand.bookmarkText)
       }
     };
   }, [mode]);
