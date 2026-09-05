@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 960px; background: #FBF8F3; padding: 28px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 18px;">
+    <div class="lit" style="font-size: 18px; font-weight: 600;">Резервные копии: снять, принести, развернуть</div>
+    <div style="margin-top: 5px; color: rgba(23,32,46,0.78); font-size: 13px; line-height: 1.55; max-width: 980px;">В <a href="#">Admin</a> копии показаны плиткой с кнопкой «Создать». Но опасное здесь другое: восстановление затирает всю базу целиком — и это единственное действие в приложении, которое нельзя отменить ничем.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; margin-bottom: 20px;">
+
+    <!-- Список -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Что уже снято</div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 12px;">
+          <span style="flex: 1; min-width: 0;">
+            <span class="lit" style="display: block; font-size: 16px; font-weight: 600;">Копии базы</span>
+            <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 3px;">6 файлов · 312 МБ · последняя сегодня в 04:00</span>
+          </span>
+          <span style="height: 36px; padding: 0 14px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; flex-shrink: 0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.78)" stroke-width="1.8" stroke-linecap="round"><path d="M12 16V4M8 8l4-4 4 4"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></svg>
+            Принести файл
+          </span>
+          <span style="height: 36px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            Снять копию
+          </span>
+        </div>
+
+        <div style="padding: 0 12px;">
+          <sc-for list="{{backups}}" as="copy" hint-placeholder-count="5">
+            <div style="{{copy.rowStyle}}">
+              <span style="{{copy.iconStyle}}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M14 3v5h5"></path></svg>
+              </span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; font-size: 13px; font-weight: 500;">{{copy.name}}</span>
+                <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{copy.meta}}</span>
+              </span>
+              <span style="{{copy.badgeStyle}}">{{copy.badge}}</span>
+              <span style="width: 84px; text-align: right; font-size: 12px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{copy.size}}</span>
+              <span style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+                <span style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v12M8 12l4 4 4-4"></path><path d="M4 20h16"></path></svg>
+                </span>
+                <span style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="1.8" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 2.3-5.6"></path><path d="M4 4v5h5"></path></svg>
+                </span>
+                <span style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A2323" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"></path></svg>
+                </span>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding: 14px 20px; border-top: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">Копия снимается на сервере и лежит там же. Файл, унесённый на свой диск, — единственный, который переживёт потерю самого сервера: об этом говорим прямо здесь, а не в документации.</div>
+      </div>
+
+      <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+        <sc-for list="{{states}}" as="state" hint-placeholder-count="3">
+          <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+            <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-bottom: 10px;">{{state.when}}</div>
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">{{state.title}}</div>
+            <div style="height: 8px; border-radius: 999px; background: #F0EAE0; overflow: hidden; margin-bottom: 10px;">
+              <div style="{{state.barStyle}}"></div>
+            </div>
+            <div style="font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">{{state.text}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Восстановление -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Восстановление — необратимо</div>
+      <div style="background: #FFFFFF; border-radius: 16px; box-shadow: 0 10px 32px rgba(27,42,74,0.12); overflow: hidden; margin-bottom: 20px;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 10px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A2323" stroke-width="1.8" stroke-linecap="round"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>
+          <span style="font-weight: 600;">Развернуть копию поверх базы?</span>
+        </div>
+        <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="padding: 14px 15px; border-radius: 12px; background: #F9EDEA;">
+            <div style="font-size: 13px; color: #8c1d18; line-height: 1.6;">Всё, что появилось после <span style="font-weight: 600;">14 августа, 04:00</span>, исчезнет без следа. Отменить это нельзя.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-bottom: 8px;">Что потеряется</div>
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{losses}}" as="loss" hint-placeholder-count="4">
+                <div style="{{loss.rowStyle}}">
+                  <span style="flex: 1; min-width: 0; font-size: 13px;">{{loss.label}}</span>
+                  <span style="font-size: 13px; font-weight: 600; color: #8A2323; font-variant-numeric: tabular-nums;">{{loss.count}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 13px; color: rgba(23,32,46,0.78); margin-bottom: 6px;">Введите <span style="font-weight: 600; color: #17202E;">ВОССТАНОВИТЬ</span>, чтобы продолжить</div>
+            <div style="height: 40px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; padding: 0 11px; color: rgba(23,32,46,0.62); letter-spacing: 1px;">ВОССТАНО</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div style="height: 36px; padding: 0 14px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px;">Отмена</div>
+            <div style="height: 36px; padding: 0 16px; border-radius: 10px; background: #F0EAE0; color: rgba(23,32,46,0.50); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center;">Развернуть</div>
+          </div>
+
+          <div style="font-size: 12px; color: rgba(23,32,46,0.62); line-height: 1.55;">Кнопка оживает, когда слово набрано целиком. Подтверждение словом стоит только здесь и у удаления аккаунта — там, где отменить нечем.</div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px;">Пока разворачиваем</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{steps}}" as="step" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="{{step.markStyle}}"></span>
+              <span style="flex: 1; min-width: 0; font-size: 13px; color: rgba(23,32,46,0.78);">{{step.label}}</span>
+              <span style="font-size: 12px; color: rgba(23,32,46,0.62);">{{step.note}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 14px; padding: 13px 14px; border-radius: 12px; background: rgba(23,32,46,0.03); font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">Приложение на это время закрыто для всех: писать в базу, которую перезаписывают, нельзя. Сейчас об этом не предупреждают вовсе.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = 'display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-bottom: 1px solid #F0EAE0;';
+    const icon = (auto) => 'width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; '
+      + (auto ? 'background: #EBEFF7; color: #3C5BA6;' : 'background: #EAF0EA; color: #2F6147;');
+    const badge = (kind) => {
+      const map = {
+        auto: 'background: #EBEFF7; color: #3C5BA6;',
+        hand: 'background: #EAF0EA; color: #2F6147;',
+        brought: 'background: #FBF1DF; color: #94641C;'
+      };
+      return 'height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; flex-shrink: 0; ' + map[kind];
+    };
+
+    const backups = [
+      { name: 'backup-2026-08-21-0400.json', meta: 'сегодня в 04:00 · по расписанию', badge: 'ночная', kind: 'auto', size: '54 МБ' },
+      { name: 'backup-2026-08-20-1812.json', meta: 'вчера в 18:12 · снял sber', badge: 'вручную', kind: 'hand', size: '54 МБ' },
+      { name: 'before-import.json', meta: '18 августа в 09:30 · принесён файлом', badge: 'принесена', kind: 'brought', size: '51 МБ' },
+      { name: 'backup-2026-08-18-0400.json', meta: '18 августа в 04:00 · по расписанию', badge: 'ночная', kind: 'auto', size: '51 МБ' },
+      { name: 'backup-2026-08-17-0400.json', meta: '17 августа в 04:00 · по расписанию', badge: 'ночная', kind: 'auto', size: '50 МБ' }
+    ].map((b) => ({
+      name: b.name,
+      meta: b.meta,
+      badge: b.badge,
+      size: b.size,
+      rowStyle: row,
+      iconStyle: icon(b.kind === 'auto'),
+      badgeStyle: badge(b.kind)
+    }));
+
+    const bar = (pct, color) => 'width: ' + pct + '%; height: 8px; border-radius: 999px; background: ' + color + '; display: block;';
+    const states = [
+      {
+        when: 'Снимаем',
+        title: 'Копия готовится',
+        text: 'Большая база снимается минуту-две. Кнопка на это время выключена, а не притворяется живой.',
+        barStyle: bar(62, '#1B2A4A')
+      },
+      {
+        when: 'Принесли файл',
+        title: 'Проверяем содержимое',
+        text: 'Перед разворачиванием читаем заголовок: версия схемы, дата, число записей. Чужой или битый файл отсекается здесь.',
+        barStyle: bar(100, '#2F6147')
+      },
+      {
+        when: 'Не сошлось',
+        title: 'Копия из другой версии',
+        text: 'Файл снят на схеме 14, сейчас 17. Разворачивать нельзя — сказать об этом надо до, а не после.',
+        barStyle: bar(38, '#8A2323')
+      }
+    ];
+
+    const lossRow = 'display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #F0EAE0;';
+    const losses = [
+      { label: 'Записей добавлено с тех пор', count: '38', rowStyle: lossRow },
+      { label: 'Заходов отмечено', count: '112', rowStyle: lossRow },
+      { label: 'Выписок сделано', count: '9', rowStyle: lossRow },
+      { label: 'Пользователей заведено', count: '2', rowStyle: lossRow }
+    ];
+
+    const mark = (done) => 'width: 16px; height: 16px; border-radius: 6px; flex-shrink: 0; display: inline-block; background: '
+      + (done ? '#2F6147' : 'rgba(23,32,46,0.13)') + ';';
+    const steps = [
+      { label: 'Снимаем страховочную копию текущей базы', note: 'готово', done: true },
+      { label: 'Закрываем вход в приложение', note: 'готово', done: true },
+      { label: 'Разворачиваем выбранный файл', note: '1 из 24 разделов', done: false },
+      { label: 'Открываем вход обратно', note: 'ждёт', done: false }
+    ].map((s) => ({ label: s.label, note: s.note, markStyle: mark(s.done) }));
+
+    return { backups, states, losses, steps };
+  }
+}
+</script>
+</body>
+</html>

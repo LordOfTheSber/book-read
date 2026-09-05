@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 900px; min-height: 980px; background: #FBF8F3; padding: 28px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 16px;">
+    <div class="lit" style="font-size: 18px; font-weight: 600;">Шапка на телефоне</div>
+    <div style="margin-top: 5px; color: rgba(23,32,46,0.78); font-size: 13px; line-height: 1.55;">Сейчас всё меню спрятано под значком-гамбургером справа: до ленты или аналитики — два касания и панель во весь экран.</div>
+  </div>
+
+  <div style="display: flex; gap: 32px;">
+
+    <!-- Экран 1 -->
+    <div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;">
+        <span style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px;">Основное</span>
+        <span style="font-size: 13px; color: rgba(23,32,46,0.78);">разделы внизу, под большим пальцем</span>
+      </div>
+
+      <div style="width: 390px; height: 800px; background: #FFFFFF; border: 1px solid #DED7CB; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(27,42,74,0.10);">
+        <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid #E7E0D4;">
+          <span class="lit" style="flex: 1; font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Библиотека</span>
+          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: rgba(23,32,46,0.78);">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          </div>
+          <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+          </div>
+        </div>
+
+        <div style="padding: 12px 12px 0; display: flex; gap: 7px; overflow: hidden;">
+          <sc-for list="{{chips}}" as="chip" hint-placeholder-count="4">
+            <div style="{{chip.style}}">{{chip.label}}<span style="{{chip.countStyle}}">{{chip.count}}</span></div>
+          </sc-for>
+        </div>
+
+        <div style="flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden;">
+          <sc-for list="{{cards}}" as="card" hint-placeholder-count="5">
+            <div style="display: flex; gap: 12px; padding: 12px; border: 1px solid #E7E0D4; border-radius: 14px;">
+              <div style="{{card.coverStyle}}">{{card.initials}}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{card.title}}</div>
+                <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{card.author}}</div>
+                <sc-if value="{{card.hasProgress}}" hint-placeholder-val="{{true}}">
+                  <div>
+                    <div style="margin-top: 10px; height: 6px; border-radius: 999px; background: #F0EAE0; overflow: hidden;">
+                      <div style="{{card.barStyle}}"></div>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 12px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{card.progress}}</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="height: 72px; flex-shrink: 0; border-top: 1px solid #E7E0D4; display: flex; align-items: center; padding: 0 4px;">
+          <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+            <div style="{{tab.style}}">
+              <sc-if value="{{tab.isAction}}" hint-placeholder-val="{{true}}">
+                <span style="width: 48px; height: 48px; border-radius: 16px; background: #1B2A4A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                </span>
+              </sc-if>
+              <sc-if value="{{tab.isTab}}" hint-placeholder-val="{{true}}">
+                <span style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                  <span style="{{tab.iconStyle}}">
+                    <sc-if value="{{tab.isLibrary}}" hint-placeholder-val="{{true}}">
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"></path><path d="M5 17h13"></path></svg>
+                    </sc-if>
+                    <sc-if value="{{tab.isFeed}}" hint-placeholder-val="{{true}}">
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"></path></svg>
+                    </sc-if>
+                    <sc-if value="{{tab.isChart}}" hint-placeholder-val="{{true}}">
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-6"></path></svg>
+                    </sc-if>
+                    <sc-if value="{{tab.isMore}}" hint-placeholder-val="{{true}}">
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg>
+                    </sc-if>
+                  </span>
+                  <span style="{{tab.labelStyle}}">{{tab.label}}</span>
+                </span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- Экран 2 -->
+    <div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;">
+        <span style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px;">Ещё</span>
+        <span style="font-size: 13px; color: rgba(23,32,46,0.78);">редкое, с подписями групп</span>
+      </div>
+
+      <div style="width: 390px; height: 800px; background: #FFFFFF; border: 1px solid #DED7CB; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(27,42,74,0.10);">
+        <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #E7E0D4;">
+          <span class="lit" style="font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Ещё</span>
+        </div>
+
+        <div style="flex: 1; padding: 8px 8px 0; overflow: hidden;">
+          <sc-for list="{{moreRows}}" as="row" hint-placeholder-count="14">
+            <div style="{{row.style}}">
+              <sc-if value="{{row.isHeading}}" hint-placeholder-val="{{true}}">
+                <span>{{row.label}}</span>
+              </sc-if>
+              <sc-if value="{{row.isItem}}" hint-placeholder-val="{{true}}">
+                <span style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                  <span style="{{row.dotStyle}}"></span>
+                  <span style="flex: 1;">{{row.label}}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+                </span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding: 12px 16px 20px; border-top: 1px solid #E7E0D4;">
+          <div style="font-size: 12px; color: rgba(23,32,46,0.62); margin-bottom: 9px;">Тема</div>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{themes}}" as="t" hint-placeholder-count="3">
+              <div style="{{t.style}}">
+                <span style="{{t.swatchStyle}}"></span>
+                {{t.label}}
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":900,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 999px; font-size: 13px; flex-shrink: 0; '
+      + (active ? 'background: #1B2A4A; color: #FFFFFF; font-weight: 500;' : 'border: 1px solid #E7E0D4;');
+    const chipCount = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(251,248,243,0.6)' : 'rgba(23,32,46,0.62)') + ';';
+    const chips = [
+      { label: 'Всё', count: '248', active: false },
+      { label: 'Читаю', count: '6', active: true },
+      { label: 'В планах', count: '41', active: false },
+      { label: 'Завершено', count: '186', active: false }
+    ].map((c) => ({ ...c, style: chip(c.active), countStyle: chipCount(c.active) }));
+
+    const cover = (c1, c2, fg) => 'width: 44px; height: 62px; border-radius: 8px; flex-shrink: 0; background: ' + c1 + '; color: ' + fg + '; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;';
+    const bar = (pct) => 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: #C8552F;';
+    const cards = [
+      { title: 'Задача трёх тел', author: 'Лю Цысинь', initials: 'ЗТ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A', pct: 53, progress: '212 / 400 стр.' },
+      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', c1: '#E6F0EF', c2: '#CFE4E1', fg: '#2C776E', pct: 31, progress: '384 / 1240 мин.' },
+      { title: 'Берсерк', author: 'Кэнтаро Миура', initials: 'Б', c1: '#F5E8EE', c2: '#EBD3DE', fg: '#A6446B', pct: 78, progress: '32 / 41 т.' },
+      { title: 'Тень и кость', author: 'Ли Бардуго', initials: 'ТК', c1: '#FBF1DF', c2: '#F2E2C4', fg: '#94641C', pct: 62, progress: '5 / 8 эп.' },
+      { title: 'Тайные виды на гору Фудзи', author: 'Виктор Пелевин', initials: 'ТВ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A', pct: 0, progress: '' }
+    ].map((c) => ({ ...c, coverStyle: cover(c.c1, c.c2, c.fg), barStyle: bar(c.pct), hasProgress: c.pct > 0 }));
+
+    const tabWrap = 'flex: 1; height: 72px; display: flex; align-items: center; justify-content: center;';
+    const tabIcon = (active) => 'display: inline-flex; color: ' + (active ? '#1B2A4A' : 'rgba(23,32,46,0.62)') + ';';
+    const tabLabel = (active) => 'font-size: 11px; ' + (active ? 'color: #B04B29; font-weight: 600;' : 'color: rgba(23,32,46,0.62);');
+    const tabs = [
+      { label: 'Библиотека', active: true, kind: 'library' },
+      { label: 'Лента', active: false, kind: 'feed' },
+      { label: '', active: false, kind: 'action' },
+      { label: 'Аналитика', active: false, kind: 'chart' },
+      { label: 'Ещё', active: false, kind: 'more' }
+    ].map((t) => ({
+      label: t.label,
+      style: tabWrap,
+      iconStyle: tabIcon(t.active),
+      labelStyle: tabLabel(t.active),
+      isAction: t.kind === 'action',
+      isTab: t.kind !== 'action',
+      isLibrary: t.kind === 'library',
+      isFeed: t.kind === 'feed',
+      isChart: t.kind === 'chart',
+      isMore: t.kind === 'more'
+    }));
+
+    const heading = 'padding: 14px 12px 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62);';
+    const row = 'min-height: 48px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px;';
+    const dot = (color) => 'width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: ' + color + ';';
+    const moreRows = [
+      { label: 'Каждую неделю', heading: true },
+      { label: 'Цели', color: '#1B2A4A' },
+      { label: 'Выписки', color: '#1B2A4A' },
+      { label: 'Действия', heading: true },
+      { label: 'Импорт', color: '#3A7657' },
+      { label: 'Экспорт и резервные копии', color: '#3A7657' },
+      { label: 'Справочники', heading: true },
+      { label: 'Полки и теги', color: 'rgba(23,32,46,0.50)' },
+      { label: 'Авторы и серии', color: 'rgba(23,32,46,0.50)' },
+      { label: 'Типы и источники', color: 'rgba(23,32,46,0.50)' },
+      { label: 'Администрирование', heading: true },
+      { label: 'Пользователи', color: '#7E62B8' },
+      { label: 'Узлы', color: '#7E62B8' }
+    ].map((r) => ({
+      label: r.label,
+      isHeading: Boolean(r.heading),
+      isItem: !r.heading,
+      style: r.heading ? heading : row,
+      dotStyle: dot(r.color || 'transparent')
+    }));
+
+    const themeChip = (active) => 'flex: 1; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; '
+      + (active ? 'border: 1px solid #C8552F; color: #B04B29; font-weight: 500;' : 'border: 1px solid #E7E0D4; color: rgba(23,32,46,0.78);');
+    const swatch = (c) => 'width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(23,32,46,0.11); background: ' + c + ';';
+    const themes = [
+      { label: 'Светлая', color: '#FBF8F3', active: true },
+      { label: 'Бирюзовая', color: '#0fbf9f', active: false },
+      { label: 'Тёмная', color: '#141C2E', active: false }
+    ].map((t) => ({ ...t, style: themeChip(t.active), swatchStyle: swatch(t.color) }));
+
+    return { chips, cards, tabs, moreRows, themes };
+  }
+}
+</script>
+</body>
+</html>

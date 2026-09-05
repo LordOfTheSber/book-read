@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 920px; background: #FBF8F3; padding: 28px; box-sizing: border-box;">
+
+  <div style="margin-bottom: 18px;">
+    <div class="lit" style="font-size: 18px; font-weight: 600;">Отзыв: реакции, обсуждение, спойлеры</div>
+    <div style="margin-top: 5px; color: rgba(23,32,46,0.78); font-size: 13px; line-height: 1.55; max-width: 980px;">В <a href="#">Feed2</a> обсуждение названо в подписи, но не нарисовано — а это единственное место, где люди в приложении говорят друг с другом. Отсюда и вопросы, которых у одиночного трекера не было: чей комментарий, что со спойлером, кто может удалить.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px;">
+
+    <!-- Тред -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Отзыв с обсуждением</div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+
+        <div style="padding: 20px; border-bottom: 1px solid #E7E0D4;">
+          <div style="display: flex; gap: 14px;">
+            <div style="width: 62px; height: 88px; border-radius: 8px; background: #E6F0EF; color: #2C776E; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">ПО</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 9px;">
+                <span style="width: 28px; height: 28px; border-radius: 999px; background: #F0EBF5; color: #6B4EA6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">Д</span>
+                <span style="font-size: 13px; font-weight: 600;">Дмитрий</span>
+                <span style="font-size: 12px; color: rgba(23,32,46,0.62);">написал отзыв · сегодня в 11:05</span>
+              </div>
+              <div class="lit" style="margin-top: 9px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px;">Пикник на обочине</div>
+              <div style="margin-top: 3px; font-size: 12px; color: rgba(23,32,46,0.62);">Аркадий и Борис Стругацкие · оценка 9,5</div>
+              <div style="margin-top: 10px; font-size: 13px; line-height: 1.65; color: rgba(23,32,46,0.78);">Перечитал через двадцать лет и понял, что читал другую книгу. Первый раз это была фантастика про Зону, теперь — про человека, которому некуда идти.</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; padding: 13px 15px; border-radius: 12px; background: rgba(23,32,46,0.03); border: 1px dashed #D9CFC0;">
+            <div style="display: flex; align-items: center; gap: 9px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><path d="M4 4l16 16"></path></svg>
+              <span style="font-size: 13px; color: rgba(23,32,46,0.78);">Дальше про финал — открыть спойлер</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+            <sc-for list="{{reactions}}" as="reaction" hint-placeholder-count="4">
+              <div style="{{reaction.style}}">
+                <span style="font-size: 13px;">{{reaction.emoji}}</span>
+                <span style="font-variant-numeric: tabular-nums;">{{reaction.count}}</span>
+              </div>
+            </sc-for>
+            <div style="margin-left: auto; font-size: 12px; color: rgba(23,32,46,0.62);">3 комментария</div>
+          </div>
+        </div>
+
+        <div style="padding: 8px 20px 0;">
+          <sc-for list="{{comments}}" as="comment" hint-placeholder-count="3">
+            <div style="{{comment.rowStyle}}">
+              <span style="{{comment.avatarStyle}}">{{comment.initial}}</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: flex; align-items: center; gap: 9px;">
+                  <span style="font-size: 13px; font-weight: 600;">{{comment.author}}</span>
+                  <span style="{{comment.tagStyle}}">{{comment.tag}}</span>
+                  <span style="font-size: 12px; color: rgba(23,32,46,0.62);">{{comment.when}}</span>
+                </span>
+                <span style="display: block; margin-top: 5px; font-size: 13px; line-height: 1.6; color: rgba(23,32,46,0.78);">{{comment.body}}</span>
+              </span>
+              <span style="{{comment.deleteStyle}}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A2323" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"></path></svg>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding: 16px 20px 20px;">
+          <div style="display: flex; gap: 10px;">
+            <span style="width: 32px; height: 32px; border-radius: 999px; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">С</span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="min-height: 44px; border: 1px solid #D9CFC0; border-radius: 12px; padding: 12px 13px; font-size: 13px; color: #17202E; line-height: 1.55;">Согласен про второе прочтение. У меня так же вышло с «Улиткой»</div>
+              <div style="margin-top: 9px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 12px; color: rgba(23,32,46,0.62);">Осталось 1 924 знака</span>
+                <span style="margin-left: auto; height: 36px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center;">Отправить</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">Поле ответа стоит внизу треда и всегда развёрнуто: комментарий пишут, дочитав ветку, а не до неё. Автор отзыва помечен, чтобы в длинной ветке было видно, кто отвечает по существу.</div>
+    </div>
+
+    <!-- Правила и состояния -->
+    <div>
+      <div style="font-size: 12px; font-weight: 700; color: #B04B29; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">Состояния и правила</div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px; margin-bottom: 20px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">Пусто — но не молчим</div>
+        <div style="padding: 16px; border-radius: 12px; background: rgba(23,32,46,0.03); text-align: center;">
+          <div style="font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.55;">Комментариев пока нет.<br>Скажите первым — автор увидит.</div>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: rgba(23,32,46,0.62); line-height: 1.55;">Пустой тред отличается от закрытого: во втором случае поле ответа не показывается вовсе.</div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px; margin-bottom: 20px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">Кто что может</div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{rights}}" as="right" hint-placeholder-count="4">
+            <div style="{{right.rowStyle}}">
+              <span style="flex: 1; min-width: 0; font-size: 13px; color: rgba(23,32,46,0.78);">{{right.who}}</span>
+              <span style="font-size: 12px; color: #17202E; text-align: right;">{{right.what}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">Что показываем вместо ошибки</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{failures}}" as="failure" hint-placeholder-count="3">
+            <div style="{{failure.boxStyle}}">
+              <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">{{failure.title}}</div>
+              <div style="font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.55;">{{failure.text}}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":920}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const reaction = (mine) => 'height: 34px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; '
+      + (mine ? 'background: #F7EAE4; color: #2E4472; border: 1px solid #E8C9BC;' : 'border: 1px solid #E7E0D4; color: rgba(23,32,46,0.78);');
+    const reactions = [
+      { emoji: '👍', count: '7', mine: true },
+      { emoji: '❤️', count: '3', mine: false },
+      { emoji: '🤔', count: '1', mine: false },
+      { emoji: '🔥', count: '0', mine: false }
+    ].map((r) => ({ emoji: r.emoji, count: r.count, style: reaction(r.mine) }));
+
+    const row = 'display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F0EAE0;';
+    const avatar = (bg, fg) => 'width: 32px; height: 32px; border-radius: 999px; background: ' + bg + '; color: ' + fg
+      + '; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;';
+    const tag = (kind) => {
+      if (kind === 'none') return 'display: none;';
+      const map = { author: 'background: #F0EBF5; color: #6B4EA6;', mine: 'background: #F7EAE4; color: #2E4472;' };
+      return 'height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; ' + map[kind];
+    };
+    // Крестик видно только у своего комментария и у администратора — иначе он обещает несуществующее право.
+    const del = (can) => can
+      ? 'width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;'
+      : 'display: none;';
+
+    const comments = [
+      {
+        author: 'Аня', initial: 'А', bg: '#F5E8EE', fg: '#A6446B',
+        tag: 'автор отзыва', kind: 'none', when: '20 минут назад',
+        body: 'А я наоборот: первый раз читала про людей, теперь вижу только Зону.',
+        can: false
+      },
+      {
+        author: 'Дмитрий', initial: 'Д', bg: '#F0EBF5', fg: '#6B4EA6',
+        tag: 'автор отзыва', kind: 'author', when: '12 минут назад',
+        body: 'Тогда третий раз будет про Зону внутри людей — обещаю.',
+        can: false
+      },
+      {
+        author: 'sber', initial: 'С', bg: '#EDEFF4', fg: '#2E4472',
+        tag: 'вы', kind: 'mine', when: '4 минуты назад',
+        body: 'Забрал в список. Спасибо за наводку на перечитывание.',
+        can: true
+      }
+    ].map((c) => ({
+      author: c.author,
+      initial: c.initial,
+      tag: c.kind === 'none' ? '' : c.tag,
+      when: c.when,
+      body: c.body,
+      rowStyle: row,
+      avatarStyle: avatar(c.bg, c.fg),
+      tagStyle: tag(c.kind),
+      deleteStyle: del(c.can)
+    }));
+
+    const rightRow = 'display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #F0EAE0;';
+    const rights = [
+      { who: 'Свой комментарий', what: 'удалить', rowStyle: rightRow },
+      { who: 'Чужой комментарий', what: 'только читать', rowStyle: rightRow },
+      { who: 'Автор отзыва', what: 'удалить любой в своей ветке', rowStyle: rightRow },
+      { who: 'Свой отзыв', what: 'реакцию себе не ставят', rowStyle: rightRow }
+    ];
+
+    const box = (kind) => {
+      const map = {
+        warn: 'padding: 13px 14px; border-radius: 12px; background: #FBF1DF;',
+        info: 'padding: 13px 14px; border-radius: 12px; background: #EBEFF7;',
+        plain: 'padding: 13px 14px; border-radius: 12px; background: rgba(23,32,46,0.03);'
+      };
+      return map[kind];
+    };
+    const failures = [
+      {
+        title: 'Отправка не прошла',
+        text: 'Текст остаётся в поле, рядом — «Повторить». Потерять написанное из-за моргнувшей сети нельзя.',
+        boxStyle: box('warn')
+      },
+      {
+        title: 'Отзыв стал закрытым',
+        text: 'Автор убрал публичность, пока вы писали. Говорим об этом и предлагаем скопировать текст себе в заметку.',
+        boxStyle: box('info')
+      },
+      {
+        title: 'Комментарий удалён',
+        text: 'На месте ветки остаётся строка «комментарий удалён» — иначе ответы под ним теряют смысл.',
+        boxStyle: box('plain')
+      }
+    ];
+
+    return { reactions, comments, rights, failures };
+  }
+}
+</script>
+</body>
+</html>

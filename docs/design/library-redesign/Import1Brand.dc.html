@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #FBF8F3; min-height: 900px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-label="BookRead"><rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect><rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect><path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path></svg>
+      <span class="lit" style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.62);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.62); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="margin-bottom: 22px;">
+      <div class="lit" style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Импорт библиотеки</div>
+      <div style="margin-top: 6px; color: rgba(23,32,46,0.78);">CSV из Goodreads, StoryGraph или LiveLib</div>
+    </div>
+
+    <!-- Шаги -->
+    <div style="display: flex; align-items: center; gap: 0; margin-bottom: 24px;">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+        <div style="{{s.wrapStyle}}">
+          <span style="{{s.badgeStyle}}">{{s.number}}</span>
+          <span style="min-width: 0;">
+            <span style="display: block; font-weight: 600; font-size: 14px;">{{s.title}}</span>
+            <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); margin-top: 2px;">{{s.hint}}</span>
+          </span>
+          <sc-if value="{{s.hasLine}}" hint-placeholder-val="{{true}}">
+            <span style="{{s.lineStyle}}"></span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 24px 26px;">
+      <div class="lit" style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Шаг 2 · Сопоставьте колонки</div>
+      <div style="font-size: 13px; color: rgba(23,32,46,0.78); margin-bottom: 20px;">Файл <span style="font-weight: 500; color: #17202E;">goodreads_library_export.csv</span> · 248 строк · распознано 9 колонок из 12</div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px;">
+        <sc-for list="{{mapping}}" as="m" hint-placeholder-count="9">
+          <div style="{{m.style}}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <span style="font-size: 12px; color: rgba(23,32,46,0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.source}}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.50)" stroke-width="2" stroke-linecap="round" style="flex-shrink: 0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            </div>
+            <div style="margin-top: 8px; height: 36px; border: 1px solid #D9CFC0; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 11px;">
+              <span style="{{m.targetStyle}}">{{m.target}}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+            <div style="margin-top: 7px; font-size: 12px; color: rgba(23,32,46,0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.sample}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding: 14px 16px; border-radius: 12px; background: #FBF1DF; display: flex; align-items: flex-start; gap: 11px; margin-bottom: 22px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#96651C" stroke-width="1.9" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16v.01"></path></svg>
+        <div style="font-size: 13px; color: #7A5416; line-height: 1.6;">
+          Три колонки не распознаны: <span style="font-weight: 600;">Bookshelves</span>, <span style="font-weight: 600;">Private Notes</span>, <span style="font-weight: 600;">Owned Copies</span>. Их можно связать вручную или пропустить — данные из них просто не приедут.
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; color: #B04B29; cursor: pointer;">Скачать пример правильного файла</span>
+        <div style="display: flex; gap: 10px;">
+          <div style="height: 40px; padding: 0 16px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; cursor: pointer;">Назад</div>
+          <div style="height: 40px; padding: 0 20px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; cursor: pointer;">Дальше · предпросмотр</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 22px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+      <span style="font-weight: 600; color: #17202E;">Вариант А — мастер.</span> Сейчас всё происходит на одной странице: бросил файл — получил таблицу на 248 строк с переключателями дублей у каждой. Здесь шаги разделены, и главное — появился шаг сопоставления колонок: сегодня они «распознаются автоматически», а что не распозналось, человек не видит вовсе.
+      <span style="display: block; margin-top: 6px;">Плата: три шага вместо одного — дольше для файла, который и так распознался целиком. Лечится тем, что шаг 2 пропускается сам, если непонятных колонок нет.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const wrap = (last) => 'display: flex; align-items: center; gap: 12px; ' + (last ? '' : 'flex: 1; min-width: 0;');
+    const badge = (state) => 'display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 13px; font-weight: 700; flex-shrink: 0; '
+      + (state === 'done' ? 'background: #EAF0EA; color: #2F6147;' : state === 'active' ? 'background: #1B2A4A; color: #FFFFFF;' : 'background: rgba(23,32,46,0.05); color: rgba(23,32,46,0.62);');
+    const line = 'flex: 1; min-width: 24px; height: 1px; background: #E7E0D4; margin: 0 16px;';
+
+    const steps = [
+      { number: '✓', title: 'Файл', hint: 'goodreads_library_export.csv', state: 'done' },
+      { number: '2', title: 'Колонки', hint: '9 из 12 распознано', state: 'active' },
+      { number: '3', title: 'Предпросмотр и дубли', hint: '248 строк, 6 совпадений', state: 'idle' }
+    ].map((s, i, arr) => ({
+      ...s,
+      badgeStyle: badge(s.state),
+      wrapStyle: wrap(i === arr.length - 1),
+      hasLine: i !== arr.length - 1,
+      lineStyle: line
+    }));
+
+    const box = (ok) => 'padding: 14px 16px; border-radius: 12px; ' + (ok ? 'background: rgba(23,32,46,0.03);' : 'background: #FCF4F2; box-shadow: inset 0 0 0 1px #E7CFCB;');
+    const target = (ok) => 'font-size: 13px; ' + (ok ? 'font-weight: 500;' : 'color: rgba(23,32,46,0.62);');
+    const mapping = [
+      { source: 'Title', target: 'Название', sample: 'The Three-Body Problem', ok: true },
+      { source: 'Author', target: 'Авторы', sample: 'Liu Cixin', ok: true },
+      { source: 'ISBN13', target: 'ISBN', sample: '9780765377067', ok: true },
+      { source: 'My Rating', target: 'Оценка', sample: '5 → 10', ok: true },
+      { source: 'Number of Pages', target: 'Объём', sample: '400', ok: true },
+      { source: 'Date Read', target: 'Завершено', sample: '2026/05/14', ok: true },
+      { source: 'Exclusive Shelf', target: 'Статус', sample: 'read → Завершено', ok: true },
+      { source: 'Bookshelves', target: 'Не выбрано', sample: 'sci-fi, favourites', ok: false },
+      { source: 'Private Notes', target: 'Не выбрано', sample: 'подарок от Ани', ok: false }
+    ].map((m) => ({ ...m, style: box(m.ok), targetStyle: target(m.ok) }));
+
+    return { steps, mapping };
+  }
+}
+</script>
+</body>
+</html>

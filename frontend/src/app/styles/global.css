@@ -1,0 +1,122 @@
+/* Literata — только заголовки и названия произведений: она сделана для чтения книг с экрана.
+   Интерфейс, поля и цифры остаются на Inter, переверстывать ничего не нужно.
+   Шрифт лежит рядом с приложением, а не приезжает из Google Fonts: установка бывает закрытой,
+   да и офлайн-режим не должен терять гарнитуру. Файл переменный — 400…700 одним начертанием. */
+@font-face {
+  font-family: 'Literata';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/literata-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Literata';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/literata-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
+}
+
+/* Отступ между карточками, которые страницы кладут друг под друга без сетки.
+   Карточки внутри Row/Col задают marginBottom: 0 сами. */
+.ant-card {
+  margin-bottom: 16px;
+}
+
+/* Оболочка приложения. Вкладки, поиск и строки меню собраны из <button> и <a>, а не из
+   компонентов Ant Design: геометрия у них своя, из макетов. Сброс кнопки и наведение живут
+   здесь, потому что инлайновым стилем :hover не задать. */
+.app-shell-reset {
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* Работает только там, где фон не задан инлайном: у выбранной вкладки свой цвет,
+   и наведение его не перекрывает. */
+.app-shell-hover:hover {
+  background: rgba(125, 125, 125, 0.12);
+}
+
+/* У поля поиска фон задан инлайном из токена темы, поэтому наведение перебивает его явно. */
+.app-shell-search:hover {
+  background: rgba(125, 125, 125, 0.1) !important;
+}
+
+/* Заголовки страниц и блоков — Literata. Класс `brand-display` вешается там, где заголовок
+   не тег и не компонент Ant Design: название произведения в строке списка, крупное число. */
+h1,
+h2,
+h3,
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-card-head-title,
+.ant-drawer-title,
+.ant-modal-title,
+.brand-display {
+  font-family: 'Literata', Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.2px;
+}
+
+/*
+ * Зоны нажатия на пальцевом вводе.
+ *
+ * Правило макетов телефона — не меньше 44 пикселей, а несколько частых органов управления
+ * приезжают от Ant Design заметно мельче: страницы выдачи 27, мелкая иконочная кнопка 27,
+ * отметка выбора 18. Мышью в них попадают, пальцем — через раз, и ошибка стоит дорого:
+ * рядом с «переименовать» стоит «удалить».
+ *
+ * Условие — по виду указателя, а не по ширине экрана: дело в пальце, а не в том, что окно узкое.
+ * Меняется только размер области, вид органа управления остаётся прежним.
+ */
+@media (pointer: coarse) {
+  .ant-pagination-item,
+  .ant-pagination-item-link,
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next {
+    min-width: 40px !important;
+    height: 40px !important;
+    line-height: 38px !important;
+  }
+
+  /* Мелкая иконочная кнопка: в плотных строках полок и справочника их по четыре в ряд. */
+  .ant-btn-sm.ant-btn-icon-only {
+    min-width: 40px;
+    height: 40px;
+  }
+
+  /*
+   * Отметка выбора расширяется только вбок и вверх-вниз отступом, без наложения поверх строки:
+   * невидимая заплатка поверх соседей ловила бы нажатия, которыми открывают запись.
+   */
+  .ant-checkbox-wrapper {
+    padding: 10px 8px;
+    margin: -10px -8px;
+  }
+}
