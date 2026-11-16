@@ -6,7 +6,7 @@ Deploying it somewhere? [INSTALL.md](INSTALL.md) is the step-by-step guide — s
 or a local development setup. This file covers the development cycle and how the features work.
 
 ## Prerequisites
-- Java 25
+- Java 21
 - Node.js 18+ (`workbox-build` is pinned to 7.3.0 for this: 7.4 requires Node 20, and the build image
   is `node:18`)
 - Maven
@@ -27,16 +27,7 @@ Database defaults:
 `.env` is git-ignored — no credential in this repository is a working one.
 
 ## Backend
-Located in `/backend` (Spring Boot 4.1 on Java 25).
-
-- Requests are served on virtual threads (`spring.threads.virtual.enabled`), so a slow database, S3 or
-  external catalogue call parks a virtual thread instead of holding a Tomcat worker.
-- JSON goes through Jackson 3 configured with the Jackson 2 defaults the API contract and the backup
-  format were built on (`spring.jackson.use-jackson2-defaults` plus `JacksonConfig`);
-  `JacksonCompatibilityTest` pins the behaviours that differ.
-- The Docker image unpacks the jar into layers and ships an AOT cache recorded by a training run at
-  build time, which roughly halves startup. The JVM flags in the training `RUN` and in `ENTRYPOINT` of
-  `backend/Dockerfile` must stay identical, otherwise the cache is silently ignored.
+Located in `/backend` (Spring Boot).
 
 ### Security configuration
 | Variable | Default | Description |

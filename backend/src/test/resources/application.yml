@@ -5,9 +5,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  jackson:
-    # Как в основном application.yml: JSON должен вести себя так же, как в проде.
-    use-jackson2-defaults: true
 
 # Этот файл полностью перекрывает src/main/resources/application.yml, поэтому нужные тестам
 # настройки Actuator приходится повторять здесь.

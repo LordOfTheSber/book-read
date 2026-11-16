@@ -1,7 +1,7 @@
 package com.library.tracker.service;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.library.tracker.domain.MonitoringMetricsSnapshot;
 import com.library.tracker.repository.MonitoringMetricsSnapshotRepository;
 import com.library.tracker.web.dto.EndpointMetricsResponse;

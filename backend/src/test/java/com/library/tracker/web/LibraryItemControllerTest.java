@@ -17,9 +17,9 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -51,25 +51,25 @@ class LibraryItemControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockBean
     private LibraryItemService libraryItemService;
 
-    @MockitoBean
+    @MockBean
     private DuplicateDetectionService duplicateDetectionService;
 
-    @MockitoBean
+    @MockBean
     private BulkItemService bulkItemService;
 
-    @MockitoBean
+    @MockBean
     private UserService userService;
 
-    @MockitoBean
+    @MockBean
     private JwtService jwtService;
 
-    @MockitoBean
+    @MockBean
     private SessionService sessionService;
 
-    @MockitoBean
+    @MockBean
     private RequestMetricsService requestMetricsService;
 
     @TestConfiguration

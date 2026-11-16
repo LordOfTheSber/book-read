@@ -12,16 +12,11 @@
     <description>Library Tracker backend</description>
 
     <properties>
-        <java.version>25</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.boot.version>4.1.2</spring.boot.version>
-        <aws.sdk.version>2.59.1</aws.sdk.version>
-        <jjwt.version>0.13.0</jjwt.version>
-        <springdoc.version>3.2.0</springdoc.version>
-        <!-- Плагины не видят версий из импортированного BOM, поэтому продублированы здесь;
-             держать в ногу с версиями Flyway и драйвера из spring-boot-dependencies. -->
-        <flyway.plugin.version>12.4.0</flyway.plugin.version>
-        <postgresql.plugin.version>42.7.14</postgresql.plugin.version>
+        <java.version>21</java.version>
+        <spring.boot.version>3.4.4</spring.boot.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
+        <aws.sdk.version>2.29.52</aws.sdk.version>
+        <jjwt.version>0.12.5</jjwt.version>
     </properties>
 
     <dependencyManagement>
@@ -40,13 +35,20 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -81,16 +83,9 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
-        <!-- Внешние каталоги книг опрашиваются через RestClient: в Spring Boot 4 его
-             автоконфигурация живёт в отдельном модуле. -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-restclient</artifactId>
-        </dependency>
-        <!-- Аналогично с Flyway: без стартера миграции при запуске просто не выполнятся. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-flyway</artifactId>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -114,12 +109,6 @@
                     <groupId>software.amazon.awssdk</groupId>
                     <artifactId>apache-client</artifactId>
                 </exclusion>
-                <!-- Новые версии SDK тянут ещё и клиент на Apache HttpClient 5. Он не нужен, а его
-                     присутствие в classpath меняет выбор HTTP-клиента самим Spring Boot. -->
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>apache5-client</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -133,7 +122,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>${springdoc.version}</version>
+            <version>2.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -142,59 +131,40 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-postgresql</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- В Spring Boot 4 тестовая поддержка разнесена по модулям: у каждой технологии свой
-             тестовый стартер (срезы @WebMvcTest/@DataJpaTest, TestRestTemplate и т. д.). -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security-test</artifactId>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-restclient-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- Сжатие аватаров. org.lz4:lz4-java заброшен и переехал под эти координаты
-             (пакет net.jpountz прежний), заодно закрыта CVE-2025-12183 в распаковщике. -->
-        <dependency>
-            <groupId>at.yawk.lz4</groupId>
+            <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.14.0</version>
+            <version>1.8.0</version>
         </dependency>
-        <!-- Кэши сессий и учётных записей на горячем пути аутентификации. -->
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.2.1-jre</version>
         </dependency>
         <!-- Импорт из Goodreads и LiveLib: их выгрузки содержат отзывы с переносами строк и
              кавычками внутри полей, и самописный split(',') на них разваливается. -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
-            <version>1.14.1</version>
+            <version>1.12.0</version>
         </dependency>
     </dependencies>
 
@@ -217,7 +187,7 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>${flyway.plugin.version}</version>
+                <version>10.20.1</version>
                 <configuration>
                     <url>${env.DB_URL}</url>
                     <user>${env.DB_USER}</user>
@@ -230,68 +200,25 @@
                     <dependency>
                         <groupId>org.flywaydb</groupId>
                         <artifactId>flyway-database-postgresql</artifactId>
-                        <version>${flyway.plugin.version}</version>
+                        <version>10.20.1</version>
                     </dependency>
                     <dependency>
                         <groupId>org.postgresql</groupId>
                         <artifactId>postgresql</artifactId>
-                        <version>${postgresql.plugin.version}</version>
+                        <version>42.7.4</version>
                     </dependency>
                 </dependencies>
-            </plugin>
-            <!-- Кладёт пути зависимостей в свойства вида ${groupId:artifactId:jar} — так
-                 surefire узнаёт, где лежит jar агента Mockito. -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.11.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <!-- lz4-java грузит нативную библиотеку. Без разрешения JDK 24+ пишет
-                                 предупреждение при старте, а в будущих версиях откажет вовсе. -->
-                            <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.6</version>
-                <configuration>
-                    <!-- Mockito подключается агентом явно: самоподключение на лету JDK уже
-                         помечает предупреждением и в одном из следующих выпусков запретит. -->
-                    <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <release>${java.version}</release>
-                    <parameters>true</parameters>
-                    <!-- Начиная с JDK 23 javac не запускает процессоры аннотаций, найденные в
-                         classpath, — Lombok нужно назвать явно. Версию берёт из BOM Spring Boot. -->
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </path>
-                    </annotationProcessorPaths>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>

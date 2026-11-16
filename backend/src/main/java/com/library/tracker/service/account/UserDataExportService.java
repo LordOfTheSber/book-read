@@ -1,8 +1,7 @@
 package com.library.tracker.service.account;
 
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.core.exc.JacksonIOException;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Loan;
 import com.library.tracker.domain.Quote;
@@ -141,19 +140,20 @@ public class UserDataExportService {
      */
     @Transactional( readOnly = true )
     public void writeJson( User owner, OutputStream output ) throws IOException {
-        try ( JsonGenerator json = objectMapper.writerWithDefaultPrettyPrinter().createGenerator( output ) ) {
+        try ( JsonGenerator json = objectMapper.getFactory().createGenerator( output ) ) {
+            json.useDefaultPrettyPrinter();
             json.writeStartObject();
-            json.writeStringProperty( "exportedAt", OffsetDateTime.now( ZoneOffset.UTC ).toString() );
-            json.writeObjectPropertyStart( "profile" );
-            json.writeStringProperty( "username", owner.getUsername() );
-            json.writeStringProperty( "displayName", owner.getDisplayName() );
-            json.writeStringProperty( "bio", owner.getBio() );
-            json.writeBooleanProperty( "publicProfile", owner.isPublicProfile() );
+            json.writeStringField( "exportedAt", OffsetDateTime.now( ZoneOffset.UTC ).toString() );
+            json.writeObjectFieldStart( "profile" );
+            json.writeStringField( "username", owner.getUsername() );
+            json.writeStringField( "displayName", owner.getDisplayName() );
+            json.writeStringField( "bio", owner.getBio() );
+            json.writeBooleanField( "publicProfile", owner.isPublicProfile() );
             json.writeEndObject();
 
             writeOwnerCollections( owner, json );
 
-            json.writeArrayPropertyStart( "items" );
+            json.writeArrayFieldStart( "items" );
             try {
                 walkItems( owner, page -> writeItemsPage( json, page ), true );
             } catch ( UncheckedIoException ex ) {
@@ -162,24 +162,20 @@ public class UserDataExportService {
             json.writeEndArray();
 
             json.writeEndObject();
-        } catch ( JacksonIOException ex ) {
-            // Jackson 3 заворачивает обрыв потока в непроверяемое исключение; наружу метод
-            // по-прежнему отдаёт IOException — так его и ждёт StreamingResponseBody.
-            throw ex.getCause();
         }
     }
 
     private void writeOwnerCollections( User owner, JsonGenerator json ) throws IOException {
         UUID ownerId = owner.getId();
 
-        json.writeName( "tags" );
+        json.writeFieldName( "tags" );
         objectMapper.writeValue( json, tagRepository.findByOwnerIdOrderByNameAsc( ownerId )
                                                     .stream()
                                                     .map( tag -> Map.of( "name", tag.getName(),
                                                                          "color", nullToEmpty( tag.getColor() ) ) )
                                                     .toList() );
 
-        json.writeName( "shelves" );
+        json.writeFieldName( "shelves" );
         objectMapper.writeValue( json, shelfRepository.findByOwnerIdOrderByNameAsc( ownerId )
                                                       .stream()
                                                       .map( shelf -> Map.of( "name", shelf.getName(),
@@ -188,7 +184,7 @@ public class UserDataExportService {
                                                                              "public", shelf.isPublic() ) )
                                                       .toList() );
 
-        json.writeName( "smartShelves" );
+        json.writeFieldName( "smartShelves" );
         objectMapper.writeValue( json, smartShelfRepository.findByOwnerIdOrderByNameAsc( ownerId )
                                                            .stream()
                                                            .map( shelf -> Map.of( "name", shelf.getName(),
@@ -197,7 +193,7 @@ public class UserDataExportService {
                                                                                   "filter", shelf.getFilter() ) )
                                                            .toList() );
 
-        json.writeName( "goals" );
+        json.writeFieldName( "goals" );
         objectMapper.writeValue( json, readingGoalRepository.findByOwnerIdOrderByYearDesc( ownerId )
                                                             .stream()
                                                             .map( goal -> mapOfNullable(
@@ -207,7 +203,7 @@ public class UserDataExportService {
                                                                     "targetMinutes", goal.getTargetMinutes() ) )
                                                             .toList() );
 
-        json.writeName( "achievements" );
+        json.writeFieldName( "achievements" );
         objectMapper.writeValue( json, userAchievementRepository.findByOwnerIdOrderByUnlockedOnAsc( ownerId )
                                                                 .stream()
                                                                 .map( achievement -> mapOfNullable(
@@ -220,10 +216,10 @@ public class UserDataExportService {
         try {
             for ( LibraryItem item : page.items() ) {
                 json.writeStartObject();
-                json.writeStringProperty( "title", item.getTitle() );
+                json.writeStringField( "title", item.getTitle() );
                 writeIfPresent( json, "altTitle", item.getAltTitle() );
-                json.writeStringProperty( "kind", item.getKind().name() );
-                json.writeStringProperty( "status", item.getStatus().name() );
+                json.writeStringField( "kind", item.getKind().name() );
+                json.writeStringField( "status", item.getStatus().name() );
                 writeIfPresent( json, "type", item.getType() != null ? item.getType().getName() : null );
                 writeIfPresent( json, "source", item.getSource() != null ? item.getSource().getName() : null );
                 writeIfPresent( json, "series", item.getSeries() != null ? item.getSeries().getName() : null );
@@ -250,8 +246,8 @@ public class UserDataExportService {
                 writeIfPresent( json, "ratingStyle", item.getRatingStyle() );
                 writeIfPresent( json, "ratingCharacters", item.getRatingCharacters() );
                 writeIfPresent( json, "ratingEnding", item.getRatingEnding() );
-                json.writeBooleanProperty( "favorite", item.isFavorite() );
-                json.writeBooleanProperty( "wishlist", item.isWishlist() );
+                json.writeBooleanField( "favorite", item.isFavorite() );
+                json.writeBooleanField( "wishlist", item.isWishlist() );
                 writeIfPresent( json, "price", item.getPrice() );
                 writeIfPresent( json, "currency", item.getCurrency() );
                 writeIfPresent( json, "purchaseUrl", item.getPurchaseUrl() );
@@ -371,7 +367,7 @@ public class UserDataExportService {
         if ( names.isEmpty() ) {
             return;
         }
-        json.writeArrayPropertyStart( field );
+        json.writeArrayFieldStart( field );
         for ( String name : names ) {
             json.writeString( name );
         }
@@ -383,7 +379,7 @@ public class UserDataExportService {
         if ( rows.isEmpty() ) {
             return;
         }
-        json.writeName( field );
+        json.writeFieldName( field );
         objectMapper.writeValue( json, rows.stream().map( mapper ).toList() );
     }
 
@@ -392,7 +388,7 @@ public class UserDataExportService {
         if ( value == null || ( value instanceof String text && text.isBlank() ) ) {
             return;
         }
-        json.writeName( field );
+        json.writeFieldName( field );
         objectMapper.writeValue( json, value );
     }
 

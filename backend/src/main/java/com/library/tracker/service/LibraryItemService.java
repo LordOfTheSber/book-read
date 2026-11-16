@@ -413,7 +413,7 @@ public class LibraryItemService {
 
     private Specification<LibraryItem> buildSpecification( LibraryItemFilter filter, User currentUser, boolean isAdmin ) {
         return ( root, query, cb ) -> {
-            Specification<LibraryItem> spec = Specification.unrestricted();
+            Specification<LibraryItem> spec = Specification.where( null );
             if ( filter.userId().isPresent() && !isAdmin && !filter.userId().get().equals( currentUser.getId() ) ) {
                 throw new AccessDeniedException( "Недостаточно прав для просмотра книг другого пользователя" );
             }

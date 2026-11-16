@@ -1,7 +1,7 @@
 package com.library.tracker.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.library.tracker.domain.Role;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.SessionRepository;
@@ -55,7 +55,7 @@ public class UserService implements UserDetailsService {
     private static final long USER_CACHE_TTL_SECONDS = 30;
 
     private final Cache<String, AppUserDetails> userDetailsCache =
-            Caffeine.newBuilder()
+            CacheBuilder.newBuilder()
                         .maximumSize( 10_000 )
                         .expireAfterWrite( USER_CACHE_TTL_SECONDS, TimeUnit.SECONDS )
                         .build();

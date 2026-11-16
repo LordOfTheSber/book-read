@@ -16,8 +16,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** Сквозная проверка быстрого входа: запомнить устройство → войти без пароля → забыть его. */
 @SpringBootTest( webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT )
-@AutoConfigureTestRestTemplate
 class TrustedDeviceFlowIntegrationTest extends PostgresContainerTest {
 
     private static final String FINGERPRINT = "0a1b2c3d4e5f60718293a4b5c6d7e8f9";
