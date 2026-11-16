@@ -50,9 +50,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
@@ -116,125 +116,125 @@ class ControllerSecurityMatrixTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private LibraryItemService libraryItemService;
 
-    @MockBean
+    @MockitoBean
     private AnalyticsService analyticsService;
 
-    @MockBean
+    @MockitoBean
     private UserDataExportService userDataExportService;
 
-    @MockBean
+    @MockitoBean
     private AccountDeletionService accountDeletionService;
 
-    @MockBean
+    @MockitoBean
     private PasswordChangeService passwordChangeService;
 
-    @MockBean
+    @MockitoBean
     private TrustedDeviceService trustedDeviceService;
 
     /** Отключение доверенного устройства гасит его куку тем же способом, что и выход. */
-    @MockBean
+    @MockitoBean
     private DeviceTokenCookieService deviceTokenCookieService;
 
-    @MockBean
+    @MockitoBean
     private BookTypeService bookTypeService;
 
-    @MockBean
+    @MockitoBean
     private AuthorService authorService;
 
-    @MockBean
+    @MockitoBean
     private SeriesService seriesService;
 
-    @MockBean
+    @MockitoBean
     private SourceService sourceService;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
-    @MockBean
+    @MockitoBean
     private NodeService nodeService;
 
-    @MockBean
+    @MockitoBean
     private ReadingProgressService readingProgressService;
 
-    @MockBean
+    @MockitoBean
     private QuoteService quoteService;
 
-    @MockBean
+    @MockitoBean
     private TagService tagService;
 
-    @MockBean
+    @MockitoBean
     private ShelfService shelfService;
 
-    @MockBean
+    @MockitoBean
     private SmartShelfService smartShelfService;
 
-    @MockBean
+    @MockitoBean
     private ShelfMemberService shelfMemberService;
 
-    @MockBean
+    @MockitoBean
     private ProfileService profileService;
 
-    @MockBean
+    @MockitoBean
     private ActivityService activityService;
 
-    @MockBean
+    @MockitoBean
     private ReviewInteractionService reviewInteractionService;
 
-    @MockBean
+    @MockitoBean
     private LoanService loanService;
 
-    @MockBean
+    @MockitoBean
     private ReadingGoalService readingGoalService;
 
-    @MockBean
+    @MockitoBean
     private StreakService streakService;
 
-    @MockBean
+    @MockitoBean
     private AchievementService achievementService;
 
-    @MockBean
+    @MockitoBean
     private YearInReviewService yearInReviewService;
 
-    @MockBean
+    @MockitoBean
     private ExternalMetadataService externalMetadataService;
 
-    @MockBean
+    @MockitoBean
     private LibraryImportService libraryImportService;
 
-    @MockBean
+    @MockitoBean
     private DuplicateDetectionService duplicateDetectionService;
 
-    @MockBean
+    @MockitoBean
     private BulkItemService bulkItemService;
 
     /** Контроллер прогресса берёт «сегодня» из бина часов. */
-    @MockBean
+    @MockitoBean
     private java.time.Clock clock;
 
-    @MockBean
+    @MockitoBean
     private MonitoringMetricsSnapshotService monitoringMetricsSnapshotService;
 
-    @MockBean
+    @MockitoBean
     private MonitoringSettingsService monitoringSettingsService;
 
-    @MockBean
+    @MockitoBean
     private SessionService sessionService;
 
-    @MockBean
+    @MockitoBean
     private DataExportService dataExportService;
 
-    @MockBean
+    @MockitoBean
     private JwtService jwtService;
 
     /** AccountController гасит куки при удалении аккаунта тем же способом, что выход из системы. */
-    @MockBean
+    @MockitoBean
     private AccessTokenCookieService accessTokenCookieService;
 
     /** Нужен фильтру логирования, который {@code @WebMvcTest} поднимает вместе с MVC. */
-    @MockBean
+    @MockitoBean
     private RequestMetricsService requestMetricsService;
 
     /**

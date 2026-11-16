@@ -340,7 +340,7 @@ cd backend && mvn spring-boot:run     # http://localhost:8080
 cd frontend && npm ci && npm run dev  # http://localhost:5173
 ```
 
-Требуется Java 21, Maven, Node.js 18+. Вне профиля `prod` JWT-секрет генерируется при каждом старте
+Требуется Java 25, Maven, Node.js 18+. Вне профиля `prod` JWT-секрет генерируется при каждом старте
 (токены не переживают перезапуск), а `SECURITY_COOKIE_SECURE` по умолчанию `false` — иначе куки не
 дошли бы по HTTP.
 

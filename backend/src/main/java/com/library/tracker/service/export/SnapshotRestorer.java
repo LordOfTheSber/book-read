@@ -1,7 +1,7 @@
 package com.library.tracker.service.export;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.library.tracker.domain.ActivityType;
 import com.library.tracker.domain.ItemFormat;
 import com.library.tracker.domain.MediaKind;
@@ -964,7 +964,7 @@ public class SnapshotRestorer {
     private String filterJson( SavedFilter filter ) {
         try {
             return objectMapper.writeValueAsString( filter != null ? filter : new SavedFilter() );
-        } catch ( JsonProcessingException ex ) {
+        } catch ( JacksonException ex ) {
             log.warn( "Восстановление: фильтр умной полки не читается, взят пустой", ex );
             return "{}";
         }

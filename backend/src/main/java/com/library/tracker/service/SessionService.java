@@ -1,7 +1,7 @@
 package com.library.tracker.service;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.library.tracker.domain.Session;
 import com.library.tracker.domain.User;
 import com.library.tracker.repository.SessionRepository;
@@ -48,7 +48,7 @@ public class SessionService {
 
     @PostConstruct
     void init() {
-        this.sessionCache = CacheBuilder.newBuilder()
+        this.sessionCache = Caffeine.newBuilder()
                                         .maximumSize( 10_000 )
                                         .expireAfterWrite( 2, TimeUnit.DAYS )
                                         .build();

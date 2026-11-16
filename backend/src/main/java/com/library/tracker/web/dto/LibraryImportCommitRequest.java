@@ -14,8 +14,7 @@ public class LibraryImportCommitRequest {
 
     @NotEmpty( message = "Rows are required" )
     @Size( max = 2000, message = "At most 2000 rows can be imported at once" )
-    @Valid
-    private List<LibraryImportRow> rows;
+    private List<@Valid LibraryImportRow> rows;
 
     /** Общий тег для всей пачки: «импорт из Goodreads» отделяет её от заведённого руками. */
     private List<String> tagNames;

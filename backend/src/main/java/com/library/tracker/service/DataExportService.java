@@ -1,6 +1,7 @@
 package com.library.tracker.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.library.tracker.service.export.ExportPayload;
 import com.library.tracker.service.export.SnapshotCollector;
 import com.library.tracker.service.export.SnapshotRestorer;
@@ -76,7 +77,7 @@ public class DataExportService {
         try {
             Files.createDirectories( directory );
             objectMapper.writerWithDefaultPrettyPrinter().writeValue( filePath.toFile(), payload );
-        } catch ( IOException ex ) {
+        } catch ( IOException | JacksonException ex ) {
             throw new IllegalStateException( "Не удалось сохранить данные в файл", ex );
         }
 
@@ -235,7 +236,7 @@ public class DataExportService {
                 throw new IllegalArgumentException( "Некорректный формат файла экспорта" );
             }
             return payload;
-        } catch ( IOException ex ) {
+        } catch ( JacksonException ex ) {
             throw new IllegalArgumentException( "Некорректный формат файла экспорта", ex );
         }
     }
