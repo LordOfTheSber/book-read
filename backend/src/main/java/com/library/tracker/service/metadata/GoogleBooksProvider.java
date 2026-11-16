@@ -1,6 +1,6 @@
 package com.library.tracker.service.metadata;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.library.tracker.web.dto.ExternalBookResponse;
 
 import java.util.ArrayList;
@@ -127,11 +127,11 @@ public class GoogleBooksProvider implements MetadataProvider {
     }
 
     private static String text( JsonNode node ) {
-        return node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
+        return node.isString() && !node.asString().isBlank() ? node.asString() : null;
     }
 
     private static Integer integer( JsonNode node ) {
-        return node.isNumber() && node.asInt() > 0 ? node.asInt() : null;
+        return node.isNumber() && node.canConvertToInt() && node.asInt() > 0 ? node.asInt() : null;
     }
 
     private static List<String> strings( JsonNode node ) {

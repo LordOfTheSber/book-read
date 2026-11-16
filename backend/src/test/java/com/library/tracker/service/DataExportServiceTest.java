@@ -1,6 +1,6 @@
 package com.library.tracker.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.library.tracker.service.export.SnapshotCollector;
 import com.library.tracker.service.export.SnapshotRestorer;
 
@@ -13,7 +13,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -38,7 +38,7 @@ class DataExportServiceTest {
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json().build();
+        ObjectMapper objectMapper = JsonMapper.builder().configureForJackson2().build();
         service = new DataExportService( objectMapper, mock( SnapshotCollector.class ), mock( SnapshotRestorer.class ) );
         ReflectionTestUtils.setField( service, "exportDirectory", exportDirectory.toString() );
         ReflectionTestUtils.setField( service, "maxUploadBytes", 1024L );

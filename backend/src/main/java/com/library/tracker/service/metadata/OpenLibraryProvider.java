@@ -1,6 +1,6 @@
 package com.library.tracker.service.metadata;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.library.tracker.web.dto.ExternalBookResponse;
 
 import java.util.ArrayList;
@@ -97,15 +97,15 @@ public class OpenLibraryProvider implements MetadataProvider {
     }
 
     private String coverUrl( JsonNode coverId ) {
-        return coverId.isNumber() ? coversUrl + "/b/id/" + coverId.asInt() + "-L.jpg" : null;
+        return coverId.isNumber() && coverId.canConvertToInt() ? coversUrl + "/b/id/" + coverId.asInt() + "-L.jpg" : null;
     }
 
     private static String text( JsonNode node ) {
-        return node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
+        return node.isString() && !node.asString().isBlank() ? node.asString() : null;
     }
 
     private static Integer integer( JsonNode node ) {
-        return node.isNumber() ? node.asInt() : null;
+        return node.isNumber() && node.canConvertToInt() ? node.asInt() : null;
     }
 
     private static List<String> strings( JsonNode node ) {

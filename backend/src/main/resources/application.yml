@@ -1,15 +1,43 @@
 spring:
+  threads:
+    virtual:
+      # Запрос обслуживает виртуальный поток (Java 21+): пока он ждёт БД, S3 или внешний каталог
+      # книг, платформенный поток свободен, и медленный чужой сервис не выедает пул Tomcat.
+      # С Java 24 виртуальный поток не «прибивается» к носителю и внутри synchronized.
+      enabled: true
+  main:
+    # Виртуальные потоки — демоны; флаг не даёт JVM завершиться, если других не осталось.
+    keep-alive: true
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/library}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
+    hikari:
+      data-source-properties:
+        # Драйвер склеивает пачку INSERT в один многострочный — без этого батчинг Hibernate
+        # экономит только на разборе запроса, но не на обменах с сервером.
+        reWriteBatchedInserts: true
   jpa:
     hibernate:
       ddl-auto: none
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          # Импорт библиотеки и восстановление из копии пишут тысячи строк за транзакцию.
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        query:
+          # IN (?, ?, ?) дополняется до степени двойки: планов в кэше Hibernate и PostgreSQL
+          # становится на порядок меньше, чем при произвольной длине списка.
+          in_clause_parameter_padding: true
     open-in-view: false
+  jackson:
+    # Spring Boot 4 перешёл на Jackson 3, у которого другие умолчания: null в примитив — ошибка,
+    # свойства сортируются по алфавиту и т. д. Контракт с клиентом и формат резервных копий
+    # сложились на Jackson 2, поэтому умолчания оставлены прежними.
+    use-jackson2-defaults: true
   flyway:
     enabled: true
     locations: classpath:db/migration

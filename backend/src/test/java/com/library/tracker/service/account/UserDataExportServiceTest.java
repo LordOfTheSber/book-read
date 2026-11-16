@@ -1,8 +1,7 @@
 package com.library.tracker.service.account;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.library.tracker.domain.LibraryItem;
 import com.library.tracker.domain.Quote;
 import com.library.tracker.domain.ReadingStatus;
@@ -80,7 +79,7 @@ class UserDataExportServiceTest {
     @Mock
     private UserAchievementRepository userAchievementRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule( new JavaTimeModule() );
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private UserDataExportService service;
 
