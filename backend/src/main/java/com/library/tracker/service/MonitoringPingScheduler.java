@@ -3,22 +3,27 @@ package com.library.tracker.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class MonitoringPingScheduler {
 
     private final MonitoringSettingsService monitoringSettingsService;
-    private final RestTemplateBuilder restTemplateBuilder;
+    private final RestClient restClient;
     private final AtomicReference<Instant> lastPingAt = new AtomicReference<>();
+
+    /** Клиент собирается один раз: раньше на каждый пинг строился новый RestTemplate. */
+    public MonitoringPingScheduler( MonitoringSettingsService monitoringSettingsService,
+                                    RestClient.Builder restClientBuilder ) {
+        this.monitoringSettingsService = monitoringSettingsService;
+        this.restClient = restClientBuilder.build();
+    }
 
     @Value( "${server.port:8080}" )
     private int serverPort;
@@ -45,7 +50,7 @@ public class MonitoringPingScheduler {
 
         String target = resolvePingUrl( settings.pingPath() );
         try {
-            restTemplateBuilder.build().getForEntity( target, String.class );
+            restClient.get().uri( target ).retrieve().toBodilessEntity();
         } catch ( Exception ex ) {
             log.warn( "Monitoring ping failed for {}", target, ex );
         }
