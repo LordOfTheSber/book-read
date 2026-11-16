@@ -1,0 +1,4 @@
+security:
+  cookie:
+    # Прод разворачивается за TLS, поэтому сессионная кука не должна ходить по HTTP.
+    secure: ${SECURITY_COOKIE_SECURE:true}

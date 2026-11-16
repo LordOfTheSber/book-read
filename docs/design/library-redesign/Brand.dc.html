@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 1560px; background: #FBF8F3; padding: 32px; box-sizing: border-box;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 30px;">
+    <div>
+      <div class="lit" style="font-size: 34px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.15;">Фирменный стиль BookRead</div>
+      <div style="margin-top: 8px; color: rgba(23,32,46,0.78); font-size: 14px; line-height: 1.6; max-width: 620px;">Дневник прочитанного, а не корпоративная панель. Отсюда и материал: бумага вместо серого фона, чернила вместо синего по умолчанию и закладка как единственный тёплый акцент.</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; padding: 16px 20px; background: #1B2A4A; border-radius: 16px;">
+      <svg width="40" height="40" viewBox="0 0 64 64" aria-label="BookRead">
+        <rect x="10" y="8" width="44" height="48" rx="9" fill="#FBF8F3"></rect>
+        <rect x="18" y="8" width="3" height="48" fill="#1B2A4A" opacity="0.18"></rect>
+        <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+      </svg>
+      <span class="lit" style="font-size: 24px; font-weight: 700; color: #FBF8F3; letter-spacing: -0.5px;">BookRead</span>
+    </div>
+  </div>
+
+  <!-- Поиск знака -->
+  <div style="margin-bottom: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62);">Поиск знака</div>
+  <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+
+    <div style="background: #ffffff; border: 2px solid #C8552F; border-radius: 18px; padding: 20px; position: relative;">
+      <span style="position: absolute; top: -11px; left: 20px; height: 22px; padding: 0 10px; border-radius: 999px; background: #C8552F; color: #ffffff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;">выбран</span>
+      <div style="height: 96px; display: flex; align-items: center; justify-content: center;">
+        <svg width="74" height="74" viewBox="0 0 64 64">
+          <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+          <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+          <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 14px;">Корешок с закладкой</div>
+      <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Две формы, обе читаются в 16 px. Закладка даёт тёплое пятно и работает дальше как элемент интерфейса.</div>
+    </div>
+
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 20px;">
+      <div style="height: 96px; display: flex; align-items: center; justify-content: center;">
+        <svg width="74" height="74" viewBox="0 0 64 64">
+          <path d="M8 14h20a4 4 0 0 1 4 4v34a6 6 0 0 0-6-4H8z" fill="none" stroke="#1B2A4A" stroke-width="3.4" stroke-linejoin="round"></path>
+          <path d="M56 14H36a4 4 0 0 0-4 4v34a6 6 0 0 1 6-4h18z" fill="none" stroke="#1B2A4A" stroke-width="3.4" stroke-linejoin="round"></path>
+          <path d="M8 34h20a4 4 0 0 1 4 4v14a6 6 0 0 0-6-4H8z" fill="#C8552F" stroke="none"></path>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 14px;">Открытая книга</div>
+      <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Заливка снизу = прогресс. Красиво, но в 16 px превращается в кляксу и слишком похоже на десяток читалок.</div>
+    </div>
+
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 20px;">
+      <div style="height: 96px; display: flex; align-items: center; justify-content: center;">
+        <svg width="74" height="74" viewBox="0 0 64 64">
+          <rect x="12" y="10" width="16" height="44" rx="8" fill="#1B2A4A"></rect>
+          <rect x="34" y="10" width="16" height="44" rx="8" fill="#C8552F"></rect>
+          <rect x="34" y="26" width="16" height="4" fill="#FBF8F3"></rect>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 14px;">Монограмма из корешков</div>
+      <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Два корешка вместо букв. Чисто, но нейтрально: без подписи это не про книги.</div>
+    </div>
+
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 20px;">
+      <div style="height: 96px; display: flex; align-items: center; justify-content: center;">
+        <svg width="74" height="74" viewBox="0 0 64 64">
+          <rect x="10" y="40" width="44" height="10" rx="5" fill="#1B2A4A"></rect>
+          <rect x="14" y="27" width="36" height="10" rx="5" fill="#2E7D74"></rect>
+          <rect x="18" y="14" width="28" height="10" rx="5" fill="#C8552F"></rect>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 14px;">Стопка</div>
+      <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Цвет = вид произведения, стопка растёт вместе с коллекцией. Три цвета в знаке — перебор для 16 px.</div>
+    </div>
+
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 20px;">
+      <div style="height: 96px; display: flex; align-items: center; justify-content: center;">
+        <svg width="74" height="74" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="21" fill="none" stroke="#1B2A4A" stroke-width="6" stroke-linecap="round" stroke-dasharray="99 33" transform="rotate(-90 32 32)"></circle>
+          <path d="M26 6h12v22l-6-6.5L26 28z" fill="#C8552F"></path>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 14px;">Кольцо цели</div>
+      <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">Кольцо прогресса с хвостом закладки. Слишком похоже на фитнес-трекер и спорит с кольцами внутри продукта.</div>
+    </div>
+  </div>
+
+  <!-- Лок-ап и размеры -->
+  <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin-bottom: 26px;">
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 20px;">Написание</div>
+
+      <div style="display: flex; align-items: center; gap: 40px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <svg width="34" height="34" viewBox="0 0 64 64">
+            <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+            <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+            <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+          </svg>
+          <span class="lit" style="font-size: 24px; font-weight: 700; letter-spacing: -0.4px;">BookRead</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <svg width="44" height="44" viewBox="0 0 64 64">
+            <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+            <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+            <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+          </svg>
+          <span class="lit" style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+        </div>
+
+        <div>
+          <span class="lit" style="font-size: 24px; font-weight: 700; letter-spacing: -0.4px;">Book<span style="color: #B04B29;">Read</span></span>
+          <div style="margin-top: 6px; font-size: 12px; color: rgba(23,32,46,0.62);">только слово — для узких мест</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #F0EAE0; display: flex; align-items: flex-end; gap: 28px;">
+        <sc-for list="{{sizes}}" as="s" hint-placeholder-count="4">
+          <div style="text-align: center;">
+            <div style="height: 66px; display: flex; align-items: flex-end; justify-content: center;">
+              <svg width="{{s.px}}" height="{{s.px}}" viewBox="0 0 64 64">
+                <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+                <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+                <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+              </svg>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{s.label}}</div>
+          </div>
+        </sc-for>
+        <div style="flex: 1; min-width: 0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+          Ниже 20 px закладка сливается с корешком — там ставится вариант без прорези: сплошной прямоугольник и красная полоса. Охранное поле вокруг знака — четверть его высоты.
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #1B2A4A; border-radius: 18px; padding: 24px 26px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(251,248,243,0.5); margin-bottom: 20px;">На тёмном и в цвете</div>
+      <div style="display: flex; align-items: center; gap: 26px; flex-wrap: wrap;">
+        <svg width="52" height="52" viewBox="0 0 64 64">
+          <rect x="10" y="8" width="44" height="48" rx="9" fill="#FBF8F3"></rect>
+          <rect x="18" y="8" width="3" height="48" fill="#1B2A4A" opacity="0.18"></rect>
+          <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+        </svg>
+        <svg width="52" height="52" viewBox="0 0 64 64">
+          <rect x="10" y="8" width="44" height="48" rx="9" fill="#C8552F"></rect>
+          <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.3"></rect>
+          <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#FBF8F3"></path>
+        </svg>
+        <svg width="52" height="52" viewBox="0 0 64 64">
+          <rect x="10" y="8" width="44" height="48" rx="9" fill="none" stroke="#FBF8F3" stroke-width="3.4"></rect>
+          <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="none" stroke="#FBF8F3" stroke-width="3.4" stroke-linejoin="round"></path>
+        </svg>
+        <div style="width: 52px; height: 52px; border-radius: 14px; background: #FBF8F3; display: flex; align-items: center; justify-content: center;">
+          <svg width="34" height="34" viewBox="0 0 64 64">
+            <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+            <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+          </svg>
+        </div>
+      </div>
+      <div style="margin-top: 20px; font-size: 13px; color: rgba(251,248,243,0.7); line-height: 1.6;">Четыре версии и всё: инверсия, плашка, контур и иконка приложения. Градиентов в знаке нет — сейчас он собран из двух градиентов и в 16 px превращается в цветное пятно.</div>
+    </div>
+  </div>
+
+  <!-- Палитра -->
+  <div style="margin-bottom: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62);">Палитра</div>
+  <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px;">
+    <sc-for list="{{palette}}" as="c" hint-placeholder-count="6">
+      <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+        <div style="{{c.swatchStyle}}"></div>
+        <div style="padding: 13px 15px;">
+          <div style="font-weight: 600; font-size: 14px;">{{c.name}}</div>
+          <div style="margin-top: 3px; font-size: 12px; color: rgba(23,32,46,0.62); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">{{c.hex}}</div>
+          <div style="margin-top: 7px; font-size: 12px; color: rgba(23,32,46,0.78); line-height: 1.5;">{{c.role}}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px; margin-bottom: 26px;">
+    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 14px;">Корешки видов — вместо пресетов Ant Design</div>
+    <div style="display: flex; gap: 10px;">
+      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="9">
+        <div style="flex: 1; min-width: 0;">
+          <div style="{{k.barStyle}}"></div>
+          <div style="margin-top: 8px; font-size: 12px; color: rgba(23,32,46,0.78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{k.label}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top: 14px; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">Девять видов произведения получают девять приглушённых цветов одной насыщенности — они же красят заглушки обложек, чипы и корешковую полосу. Сейчас это яркие пресеты Ant Design: рядом друг с другом они спорят и выглядят как раскраска.</div>
+  </div>
+
+  <!-- Типографика -->
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px;">
+    <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 24px 26px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 18px;">Типографика</div>
+
+      <div class="lit" style="font-size: 40px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.1;">Задача трёх тел</div>
+      <div style="margin-top: 6px; font-size: 13px; color: rgba(23,32,46,0.62);">Literata 700 · заголовки страниц и названия произведений</div>
+
+      <div class="lit" style="margin-top: 22px; font-size: 20px; font-weight: 600; letter-spacing: -0.2px;">Лучшее за год</div>
+      <div style="margin-top: 6px; font-size: 13px; color: rgba(23,32,46,0.62);">Literata 600 · заголовки блоков</div>
+
+      <div style="margin-top: 22px; font-size: 14px; line-height: 1.65; max-width: 640px;">Зона здесь не про инопланетян, а про то, как быстро человек перестаёт задавать вопросы, если за них платят. Интерфейсный текст, подписи полей, кнопки и цифры остаются на Inter — он лучше держит мелкий кегль и табличные цифры.</div>
+      <div style="margin-top: 6px; font-size: 13px; color: rgba(23,32,46,0.62);">Inter 400/500/600 · интерфейс</div>
+
+      <div style="margin-top: 22px; padding: 14px 16px; border-radius: 12px; background: #F3EEE6; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+        Literata сделана для чтения книг с экрана — она уместна по смыслу, а не просто «шрифт с засечками». Смена затрагивает только заголовки: интерфейс остаётся на Inter, переверстывать ничего не нужно.
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 22px 24px;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 16px;">Заглушка обложки</div>
+        <div style="display: flex; gap: 12px;">
+          <sc-for list="{{covers}}" as="c" hint-placeholder-count="4">
+            <div style="{{c.style}}">
+              <span style="{{c.spineStyle}}"></span>
+              <span class="lit" style="{{c.textStyle}}">{{c.initials}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 12px; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">У книги без обложки — бумажный прямоугольник с корешком слева и инициалами Literata в цвете вида. Сейчас это градиентная плитка.</div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #E7E0D4; border-radius: 18px; padding: 22px 24px;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 16px;">Голос</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{voice}}" as="v" hint-placeholder-count="3">
+            <div>
+              <div style="display: flex; align-items: center; gap: 9px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #EAF0EA; color: #3A7657; flex-shrink: 0;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+                </span>
+                <span style="font-size: 13px; font-weight: 500;">{{v.good}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 9px; margin-top: 6px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #F7E9E6; color: #9E2B2B; flex-shrink: 0;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </span>
+                <span style="font-size: 13px; color: rgba(23,32,46,0.62); text-decoration: line-through;">{{v.bad}}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sizes = [
+      { px: 16, label: '16 px' },
+      { px: 24, label: '24 px' },
+      { px: 32, label: '32 px' },
+      { px: 48, label: '48 px' }
+    ];
+
+    const swatch = (hex, tall) => 'height: ' + (tall ? 88 : 88) + 'px; background: ' + hex + ';';
+    const palette = [
+      { name: 'Чернила', hex: '#1B2A4A', role: 'основной: шапка, кнопки, текст заголовков' },
+      { name: 'Закладка', hex: '#C8552F', role: 'единственный акцент: прогресс, активное, ссылки' },
+      { name: 'Бумага', hex: '#FBF8F3', role: 'фон приложения вместо холодного серого' },
+      { name: 'Переплёт', hex: '#E7E0D4', role: 'границы и разделители' },
+      { name: 'Мох', hex: '#3C7A5A', role: 'завершено, успех' },
+      { name: 'Сургуч', hex: '#9E2B2B', role: 'удаление и ошибки — отдельно от закладки' }
+    ].map((c) => ({ ...c, swatchStyle: swatch(c.hex) }));
+
+    const kindColors = [
+      ['Книга', '#1B2A4A'], ['Аудиокнига', '#2E7D74'], ['Манга', '#A6446B'],
+      ['Комикс', '#6B4EA6'], ['Фильм', '#B4552A'], ['Сериал', '#B8862B'],
+      ['Аниме', '#8A6D1F'], ['Подкаст', '#3C5BA6'], ['Игра', '#3C7A5A']
+    ];
+    const kinds = kindColors.map(([label, color]) => ({
+      label,
+      barStyle: 'height: 54px; border-radius: 6px; background: ' + color + ';'
+    }));
+
+    const coverBox = (tint, color) => 'position: relative; width: 74px; height: 104px; border-radius: 8px; background: ' + tint + '; border: 1px solid #E7E0D4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;';
+    const spine = (color) => 'position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: ' + color + '; display: block;';
+    const coverText = (color) => 'font-size: 18px; font-weight: 700; color: ' + color + '; letter-spacing: 0.5px;';
+    const covers = [
+      { initials: 'ЗТ', tint: '#F2F0EC', color: '#1B2A4A' },
+      { initials: 'Д', tint: '#EDF3F2', color: '#2E7D74' },
+      { initials: 'Б', tint: '#F5EDF1', color: '#A6446B' },
+      { initials: 'DE', tint: '#EEF3F0', color: '#3C7A5A' }
+    ].map((c) => ({ ...c, style: coverBox(c.tint), spineStyle: spine(c.color), textStyle: coverText(c.color) }));
+
+    const voice = [
+      { good: 'Осталось 188 страниц — это неделя в вашем темпе', bad: 'Прогресс: 53%' },
+      { good: 'Библиотека пока пуста. Давайте найдём первую книгу', bad: 'Нет данных для отображения' },
+      { good: 'Запись добавлена. Обложка подтянется сама', bad: 'Операция выполнена успешно' }
+    ];
+
+    return { sizes, palette, kinds, covers, voice };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+backend/target/
+frontend/node_modules/
+frontend/dist/
+.idea/
+.DS_Store
+
+# Локальные секреты: пароли БД и JWT-секрет установки.
+.env
+deploy/.env
+
+# Артефакты Playwright и логи бэкенда, поднятого им же.
+frontend/test-results/
+frontend/playwright-report/
+frontend/logs/
+backend/logs/
+logs/
+
+# Локальное файловое хранилище обложек.
+backend/storage/
+storage/
+
+# Административные бэкапы базы.
+backend/exports/
+exports/

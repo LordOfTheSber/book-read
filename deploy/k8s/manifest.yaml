@@ -1,0 +1,250 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: book-read-db
+  namespace: ${NAMESPACE}
+type: Opaque
+stringData:
+  POSTGRES_DB: "${POSTGRES_DB}"
+  POSTGRES_USER: "${POSTGRES_USER}"
+  # Пароль генерируется при установке (см. deploy/install_k8s.sh) — в репозитории его нет.
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: book-read-backend
+  namespace: ${NAMESPACE}
+type: Opaque
+stringData:
+  SECURITY_JWT_SECRET: "${SECURITY_JWT_SECRET}"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: book-read-db
+  namespace: ${NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: ${DB_STORAGE_SIZE}
+---
+# Обложки бэкенд пишет на диск (storage.type=filesystem). В контейнере они не переживают
+# перезапуск пода, поэтому каталог вынесен на том.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: book-read-covers
+  namespace: ${NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: ${COVERS_STORAGE_SIZE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  # Том ReadWriteOnce не разрешает подключить себя дважды, а RollingUpdate поднимает новый под
+  # раньше, чем гасит старый: обновление встало бы намертво.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: book-read-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    app: db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: ${NAMESPACE}
+spec:
+  replicas: ${BACKEND_REPLICAS}
+  # Как и у базы: том с обложками — ReadWriteOnce.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        # Тег образа между установками не меняется, и без этой аннотации apply не увидел бы
+        # разницы в шаблоне — под остался бы на старом собранном образе.
+        book-read/image-id: "${BACKEND_IMAGE_ID}"
+    spec:
+      containers:
+        - name: backend
+          image: ${BACKEND_IMAGE}
+          imagePullPolicy: ${IMAGE_PULL_POLICY}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_DB
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-db
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db:5432/$(POSTGRES_DB)
+            - name: SPRING_PROFILES_ACTIVE
+              value: ${SPRING_PROFILES_ACTIVE}
+            - name: SECURITY_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: book-read-backend
+                  key: SECURITY_JWT_SECRET
+            - name: SECURITY_COOKIE_SECURE
+              value: "${SECURITY_COOKIE_SECURE}"
+          # Пробы Actuator: под убирается из Service, пока не прогрелся, и перезапускается, если завис.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            # WORKDIR образа — /app, а storage.filesystem.path по умолчанию относительный (storage).
+            - name: covers
+              mountPath: /app/storage
+      volumes:
+        - name: covers
+          persistentVolumeClaim:
+            claimName: book-read-covers
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    app: backend
+  sessionAffinity: ClientIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: ${NAMESPACE}
+spec:
+  replicas: ${FRONTEND_REPLICAS}
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+      annotations:
+        book-read/image-id: "${FRONTEND_IMAGE_ID}"
+    spec:
+      containers:
+        - name: frontend
+          image: ${FRONTEND_IMAGE}
+          imagePullPolicy: ${IMAGE_PULL_POLICY}
+          ports:
+            - containerPort: 80
+            - containerPort: 9443
+          env:
+            - name: DOMAIN
+              value: ${DOMAIN}
+            - name: SSL_CERT_PATH
+              value: /etc/nginx/certs/fullchain.pem
+            - name: SSL_KEY_PATH
+              value: /etc/nginx/certs/privkey.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: ${NAMESPACE}
+spec:
+  type: ${FRONTEND_SERVICE_TYPE}
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 9443
+      targetPort: 9443

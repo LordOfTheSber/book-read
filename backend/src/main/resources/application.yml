@@ -1,0 +1,109 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/library}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      # Резервная копия базы — это десятки мегабайт JSON, а умолчание Spring Boot равно 1 МБ:
+      # с ним загрузка копии на сервер отвергалась бы ещё до контроллера.
+      max-file-size: ${MAX_UPLOAD_SIZE:64MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:64MB}
+
+server:
+  port: ${PORT:8080}
+
+# Административные бэкапы: снимок всей базы (см. DataExportService).
+export:
+  directory: ${EXPORT_DIRECTORY:exports}
+  # Потолок на принесённый файл копии: разбор идёт в памяти, поэтому он не может быть безграничным.
+  max-upload-bytes: ${EXPORT_MAX_UPLOAD_BYTES:67108864}
+
+security:
+  jwt:
+    # Обязателен в профиле prod: приложение не стартует без него.
+    # Вне прода при пустом значении генерируется временный секрет.
+    secret: ${SECURITY_JWT_SECRET:}
+    expiration-ms: ${SECURITY_JWT_EXPIRATION_MS:1800000}
+  cookie:
+    # В профиле prod переопределяется на true (см. application-prod.yml).
+    secure: ${SECURITY_COOKIE_SECURE:false}
+    same-site: ${SECURITY_COOKIE_SAME_SITE:Lax}
+  # Быстрый вход по доверенному устройству (см. TrustedDeviceService).
+  device:
+    # Сколько устройство помнят без единого ввода пароля. Каждый вход сдвигает срок вперёд,
+    # поэтому активное устройство не разлогинивается никогда — а забытое отваливается само.
+    ttl-days: ${SECURITY_DEVICE_TTL_DAYS:90}
+    # Потолок на список «мои устройства»: место под новое освобождают самые давние по входу.
+    max-per-user: ${SECURITY_DEVICE_MAX_PER_USER:10}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health открыт для проб оркестратора, остальное — только администраторам (см. SecurityConfig).
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  metrics:
+    distribution:
+      # Перцентили считает Prometheus по гистограмме, а не приложение по своей памяти.
+      percentiles-histogram:
+        http.server.requests: true
+
+storage:
+  # filesystem по умолчанию; для нескольких реплик нужен общий s3 (см. S3ObjectStorage).
+  type: ${STORAGE_TYPE:filesystem}
+  filesystem:
+    path: ${STORAGE_PATH:storage}
+  s3:
+    bucket: ${STORAGE_S3_BUCKET:}
+    region: ${STORAGE_S3_REGION:us-east-1}
+    endpoint: ${STORAGE_S3_ENDPOINT:}
+    access-key: ${STORAGE_S3_ACCESS_KEY:}
+    secret-key: ${STORAGE_S3_SECRET_KEY:}
+    path-style-access: ${STORAGE_S3_PATH_STYLE:true}
+
+# Внешние каталоги книг: запрос идёт через сервер, а не из браузера, — у каталогов нет CORS.
+metadata:
+  open-library:
+    url: ${METADATA_OPEN_LIBRARY_URL:https://openlibrary.org}
+    covers-url: ${METADATA_OPEN_LIBRARY_COVERS_URL:https://covers.openlibrary.org}
+  google-books:
+    url: ${METADATA_GOOGLE_BOOKS_URL:https://www.googleapis.com/books/v1}
+  # Откуда разрешено забирать обложку по ссылке от клиента. Список закрытый: без него
+  # поле «адрес обложки» было бы готовым SSRF.
+  cover-hosts: ${METADATA_COVER_HOSTS:covers.openlibrary.org,books.google.com,books.googleusercontent.com}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+node:
+  heartbeat-interval: 10s
+
+logging:
+  file:
+    path: ${LOG_PATH:logs}
+    name: ${LOG_PATH:logs}/application.log
+  level:
+    root: INFO
+    com.library.tracker: DEBUG
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB

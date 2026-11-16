@@ -1,0 +1,19 @@
+# Подключение к БД задаёт PostgresContainerTest: тесты идут на настоящем PostgreSQL в контейнере,
+# схему на нём строит Flyway.
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+# Этот файл полностью перекрывает src/main/resources/application.yml, поэтому нужные тестам
+# настройки Actuator приходится повторять здесь.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

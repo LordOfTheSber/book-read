@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #FBF8F3; min-height: 920px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-label="BookRead"><rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect><rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect><path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path></svg>
+      <span class="lit" style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.62);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.62); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="margin-bottom: 18px;">
+      <div class="lit" style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Выписки</div>
+      <div style="margin-top: 6px; color: rgba(23,32,46,0.78);">312 выписок из 64 книг</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; align-items: start;">
+
+      <!-- Книги -->
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 12px;">
+        <div style="height: 38px; border: 1px solid #D9CFC0; border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px; margin-bottom: 10px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <span style="color: rgba(23,32,46,0.62); font-size: 13px;">Книга или автор</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <sc-for list="{{books}}" as="b" hint-placeholder-count="8">
+            <div style="{{b.style}}">
+              <span style="{{b.coverStyle}}">{{b.initials}}</span>
+              <span style="flex: 1; min-width: 0;">
+                <span style="display: block; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{b.title}}</span>
+                <span style="display: block; font-size: 12px; color: rgba(23,32,46,0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{b.author}}</span>
+              </span>
+              <span style="{{b.countStyle}}">{{b.count}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Выписки выбранной книги -->
+      <div>
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px; margin-bottom: 14px; display: flex; align-items: center; gap: 18px;">
+          <div style="width: 64px; height: 90px; border-radius: 10px; flex-shrink: 0; background: #EDEFF4; color: #1B2A4A; display: flex; align-items: center; justify-content: center; font-weight: 700;">ЗТ</div>
+          <div style="flex: 1; min-width: 0;">
+            <div class="lit" style="font-size: 18px; font-weight: 600;">Задача трёх тел</div>
+            <div style="font-size: 13px; color: rgba(23,32,46,0.62); margin-top: 3px;">Лю Цысинь · читаю · 212 из 400 стр.</div>
+            <div style="margin-top: 10px; display: flex; gap: 8px;">
+              <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(23,32,46,0.05); font-size: 12px;">18 выписок</span>
+              <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(23,32,46,0.05); font-size: 12px;">последняя 3 дня назад</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <div style="height: 36px; padding: 0 14px; border: 1px solid #D9CFC0; border-radius: 10px; display: inline-flex; align-items: center; font-size: 13px; cursor: pointer;">Открыть карточку</div>
+            <div style="height: 36px; padding: 0 14px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              Выписка
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{quotes}}" as="q" hint-placeholder-count="5">
+            <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 14px; padding: 18px 20px;">
+              <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <span style="{{q.pageStyle}}">{{q.page}}</span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; padding-left: 14px; border-left: 3px solid #E8C9BC; font-size: 16px; line-height: 1.6; font-style: italic; color: rgba(23,32,46,0.78);">{{q.text}}</span>
+                  <sc-if value="{{q.hasNote}}" hint-placeholder-val="{{true}}">
+                    <span style="display: block; margin-top: 10px; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.55;">{{q.note}}</span>
+                  </sc-if>
+                  <sc-if value="{{q.hasTags}}" hint-placeholder-val="{{true}}">
+                    <span style="display: block; margin-top: 10px;">
+                      <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; background: rgba(23,32,46,0.05); font-size: 12px; color: rgba(23,32,46,0.78);">{{q.tag}}</span>
+                    </span>
+                  </sc-if>
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; color: rgba(23,32,46,0.50);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16z"></path></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"></path></svg>
+                </span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+          <span style="font-weight: 600; color: #17202E;">Вариант Б — по книгам.</span> Выписки почти всегда нужны в контексте одной книги: перечитать перед тем, как писать отзыв, или вспомнить, на чём остановился. Слева книги с числом выписок, справа — цитаты по страницам, с пометками и тегами, там же кнопка добавить новую.
+          <span style="display: block; margin-top: 6px;">Плата: поиск «где-то было про страх» работает хуже — под него нужен отдельный режим (он же вариант А), поэтому переключатель «Стеной / По книгам» стоит оставить.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":920}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = (active) => 'display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: 10px; cursor: pointer; ' + (active ? 'background: #F7EAE4;' : '');
+    const cover = (c1, c2, fg) => 'display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 44px; border-radius: 6px; flex-shrink: 0; font-size: 11px; font-weight: 700; background: ' + c1 + '; color: ' + fg + ';';
+    const count = (active) => 'font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; color: ' + (active ? '#1B2A4A' : 'rgba(23,32,46,0.62)') + ';';
+
+    const books = [
+      { title: 'Задача трёх тел', author: 'Лю Цысинь', count: '18', active: true, initials: 'ЗТ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A' },
+      { title: 'Дюна', author: 'Фрэнк Герберт', count: '24', active: false, initials: 'Д', c1: '#E6F0EF', c2: '#CFE4E1', fg: '#2C776E' },
+      { title: 'Сто лет одиночества', author: 'Габриэль Гарсиа Маркес', count: '15', active: false, initials: 'СЛ', c1: '#F0EBF5', c2: '#E1D7EC', fg: '#6B4EA6' },
+      { title: 'Пикник на обочине', author: 'Стругацкие', count: '12', active: false, initials: 'ПО', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A' },
+      { title: 'Disco Elysium', author: 'ZA/UM', count: '11', active: false, initials: 'DE', c1: '#EAF0EA', c2: '#D8E6D4', fg: '#2F6147' },
+      { title: 'Тёмный лес', author: 'Лю Цысинь', count: '9', active: false, initials: 'ТЛ', c1: '#EDEFF4', c2: '#DDE1EA', fg: '#1B2A4A' },
+      { title: 'Тьма', author: 'Баран бо Одар', count: '7', active: false, initials: 'Т', c1: '#FBF1DF', c2: '#F2E2C4', fg: '#94641C' },
+      { title: 'Ванпанчмен', author: 'ONE', count: '6', active: false, initials: 'ВП', c1: '#FAF6E4', c2: '#F1E9C6', fg: '#8E6721' }
+    ].map((b) => ({ ...b, style: row(b.active), coverStyle: cover(b.c1, b.c2, b.fg), countStyle: count(b.active) }));
+
+    const pageStyle = 'display: inline-flex; align-items: center; justify-content: center; min-width: 52px; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(23,32,46,0.05); font-size: 12px; font-weight: 600; color: rgba(23,32,46,0.78); flex-shrink: 0; font-variant-numeric: tabular-nums;';
+
+    const quotes = [
+      { page: 'стр. 118', text: '«Не отвечайте! Не отвечайте!! Не отвечайте!!!»', note: 'Первое сообщение из космоса — и сразу предупреждение. Вся книга держится на этой фразе.', tag: 'финал первой части' },
+      { page: 'стр. 92', text: '«В хаосе трёх солнц нет ни одного дня, который можно предсказать.»', note: '', tag: 'наука' },
+      { page: 'стр. 64', text: '«Физика не существует» — фраза, с которой начинается вся история.', note: 'Проверить, как это переведено в английском издании.', tag: '' },
+      { page: 'стр. 203', text: '«Человечество — это дети, играющие с огнём в темноте.»', note: '', tag: 'на память' },
+      { page: 'пометка', text: '«Дочитать до конца второй части к отпуску — дальше начинается тёмный лес.»', note: '', tag: '' }
+    ].map((q) => ({
+      ...q,
+      pageStyle,
+      hasNote: q.note !== '',
+      hasTags: q.tag !== ''
+    }));
+
+    return { books, quotes };
+  }
+}
+</script>
+</body>
+</html>

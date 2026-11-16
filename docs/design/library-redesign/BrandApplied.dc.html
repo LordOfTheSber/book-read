@@ -1,0 +1,273 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; min-height: 1240px; background: #FBF8F3;">
+
+  <!-- Шапка в новом стиле -->
+  <div style="height: 62px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 22px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 11px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64">
+        <rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect>
+        <rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect>
+        <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+      </svg>
+      <span class="lit" style="font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px;">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+        <div style="{{n.style}}">{{n.label}}</div>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: #FBF8F3; border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 12px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.62);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.62); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="height: 36px; padding: 0 16px; border-radius: 10px; background: #1B2A4A; color: #FBF8F3; font-weight: 500; display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4;">
+        <span class="lit" style="width: 26px; height: 26px; border-radius: 50%; background: #1B2A4A; color: #FBF8F3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">С</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px;">
+      <div>
+        <div class="lit" style="font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.6px;">Моя библиотека</div>
+        <div style="margin-top: 7px; color: rgba(23,32,46,0.78);">248 записей · 6 в процессе · 118 дней подряд с чтением</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;">
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="6">
+        <div style="{{c.style}}">{{c.label}}<span style="{{c.countStyle}}">{{c.count}}</span></div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; align-items: start;">
+
+      <!-- Список -->
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+          <div style="{{r.rowStyle}}">
+            <div style="{{r.coverStyle}}">
+              <span style="{{r.spineStyle}}"></span>
+              <span class="lit" style="{{r.initialsStyle}}">{{r.initials}}</span>
+              <sc-if value="{{r.reading}}" hint-placeholder-val="{{true}}">
+                <span style="{{r.ribbonStyle}}"></span>
+              </sc-if>
+            </div>
+
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 9px;">
+                <span class="lit" style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{r.title}}</span>
+                <span style="{{r.kindStyle}}">{{r.kind}}</span>
+              </div>
+              <div style="margin-top: 3px; font-size: 13px; color: rgba(23,32,46,0.62);">{{r.author}}</div>
+              <sc-if value="{{r.reading}}" hint-placeholder-val="{{true}}">
+                <div style="margin-top: 11px; display: flex; align-items: center; gap: 12px;">
+                  <span style="flex: 1; min-width: 0; height: 6px; border-radius: 999px; background: #F0EAE0; overflow: hidden; display: block;">
+                    <span style="{{r.barStyle}}"></span>
+                  </span>
+                  <span style="font-size: 12px; color: rgba(23,32,46,0.78); font-variant-numeric: tabular-nums; flex-shrink: 0;">{{r.progress}}</span>
+                  <span style="height: 26px; padding: 0 11px; border-radius: 999px; background: #F7EAE4; color: #B04B29; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; flex-shrink: 0;">{{r.step}}</span>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="width: 120px; flex-shrink: 0;"><span style="{{r.statusStyle}}">{{r.status}}</span></div>
+            <div style="width: 64px; flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums;">{{r.rating}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- Правая колонка: карточка, кнопки, тёмная тема -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; overflow: hidden;">
+          <div style="position: relative; height: 176px; background: #F2F0EC; display: flex; align-items: center; justify-content: center;">
+            <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: #1B2A4A;"></span>
+            <span class="lit" style="font-size: 40px; font-weight: 700; color: #1B2A4A; letter-spacing: 1px;">ЗТ</span>
+            <span style="position: absolute; right: 22px; top: 0; width: 22px; height: 62px; background: #C8552F; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);"></span>
+            <span style="position: absolute; right: 0; top: 0; width: 0; height: 0; border-style: solid; border-width: 0 22px 22px 0; border-color: transparent #FBF8F3 transparent transparent;"></span>
+          </div>
+          <div style="padding: 16px 18px;">
+            <div class="lit" style="font-size: 16px; font-weight: 600; line-height: 1.3;">Задача трёх тел</div>
+            <div style="margin-top: 4px; font-size: 13px; color: rgba(23,32,46,0.62);">Лю Цысинь</div>
+            <div style="margin-top: 12px; height: 6px; border-radius: 999px; background: #F0EAE0; overflow: hidden;">
+              <div style="width: 53%; height: 100%; border-radius: 999px; background: #C8552F;"></div>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: rgba(23,32,46,0.78);">Осталось 188 страниц — это неделя в вашем темпе</div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 18px 20px;">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(23,32,46,0.62); margin-bottom: 14px;">Элементы</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 9px; align-items: center;">
+            <span style="height: 40px; padding: 0 17px; border-radius: 10px; background: #1B2A4A; color: #FBF8F3; font-weight: 500; display: inline-flex; align-items: center;">Основная</span>
+            <span style="height: 40px; padding: 0 17px; border-radius: 10px; border: 1px solid #1B2A4A; color: #1B2A4A; display: inline-flex; align-items: center;">Вторая</span>
+            <span style="height: 40px; padding: 0 17px; border-radius: 10px; background: #F7EAE4; color: #B04B29; font-weight: 500; display: inline-flex; align-items: center;">Акцент</span>
+            <span style="height: 40px; padding: 0 17px; border-radius: 10px; border: 1px solid #E7CFCB; color: #9E2B2B; display: inline-flex; align-items: center;">Удалить</span>
+          </div>
+          <div style="margin-top: 12px; height: 40px; border: 1px solid #E7E0D4; background: #FBF8F3; border-radius: 10px; display: flex; align-items: center; padding: 0 12px; color: rgba(23,32,46,0.62);">Поле ввода на бумаге</div>
+          <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="height: 26px; padding: 0 11px; border-radius: 999px; background: #EAF0EA; color: #3A7657; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center;">Завершено</span>
+            <span style="height: 26px; padding: 0 11px; border-radius: 999px; background: #F7EAE4; color: #B04B29; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center;">Читаю</span>
+            <span style="height: 26px; padding: 0 11px; border-radius: 999px; background: #F0EAE0; color: rgba(23,32,46,0.78); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center;">Отложено</span>
+          </div>
+        </div>
+
+        <!-- Тёмная тема -->
+        <div style="background: #141C2E; border-radius: 16px; padding: 18px 20px;">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(251,248,243,0.45); margin-bottom: 14px;">Тема «Чернила»</div>
+          <div style="display: flex; gap: 13px;">
+            <div style="position: relative; width: 62px; height: 88px; border-radius: 8px; background: #1E2940; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">
+              <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #C8552F;"></span>
+              <span class="lit" style="font-size: 16px; font-weight: 700; color: #FBF8F3;">Д</span>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div class="lit" style="font-size: 14px; font-weight: 600; color: #FBF8F3;">Дюна</div>
+              <div style="margin-top: 3px; font-size: 12px; color: rgba(251,248,243,0.5);">Фрэнк Герберт</div>
+              <div style="margin-top: 12px; height: 6px; border-radius: 999px; background: rgba(251,248,243,0.12); overflow: hidden;">
+                <div style="width: 31%; height: 100%; border-radius: 999px; background: #E07A50;"></div>
+              </div>
+              <div style="margin-top: 7px; font-size: 12px; color: rgba(251,248,243,0.5);">384 из 1240 минут</div>
+            </div>
+          </div>
+          <div style="margin-top: 14px; font-size: 12px; color: rgba(251,248,243,0.5); line-height: 1.55;">Тёмная тема перестаёт быть «серым интерфейсом ночью»: это тот же бренд с чернильным фоном и осветлённой закладкой.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Пустое состояние и вход -->
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 20px; margin-top: 20px;">
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 34px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div style="display: flex; align-items: flex-end; gap: 7px; margin-bottom: 22px;">
+          <sc-for list="{{shelfBars}}" as="b" hint-placeholder-count="9">
+            <div style="{{b.style}}"></div>
+          </sc-for>
+        </div>
+        <div class="lit" style="font-size: 20px; font-weight: 600;">Полка пока пустая</div>
+        <div style="margin-top: 8px; font-size: 14px; color: rgba(23,32,46,0.78); max-width: 420px; line-height: 1.6;">Давайте найдём первую книгу — по названию, автору или штрихкоду с обложки. Остальное подтянется само.</div>
+        <div style="margin-top: 18px; display: flex; gap: 10px;">
+          <span style="height: 40px; padding: 0 18px; border-radius: 10px; background: #1B2A4A; color: #FBF8F3; font-weight: 500; display: inline-flex; align-items: center;">Найти книгу</span>
+          <span style="height: 40px; padding: 0 18px; border-radius: 10px; border: 1px solid #E7E0D4; display: inline-flex; align-items: center;">Перенести из другого трекера</span>
+        </div>
+      </div>
+
+      <div style="background: #1B2A4A; border-radius: 16px; padding: 30px; display: flex; flex-direction: column; justify-content: center;">
+        <svg width="38" height="38" viewBox="0 0 64 64" style="margin-bottom: 18px;">
+          <rect x="10" y="8" width="44" height="48" rx="9" fill="#FBF8F3"></rect>
+          <rect x="18" y="8" width="3" height="48" fill="#1B2A4A" opacity="0.18"></rect>
+          <path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path>
+        </svg>
+        <div class="lit" style="font-size: 24px; font-weight: 700; color: #FBF8F3; line-height: 1.25; letter-spacing: -0.4px;">Дневник<br>прочитанного</div>
+        <div style="margin-top: 10px; font-size: 14px; color: rgba(251,248,243,0.7); line-height: 1.6; max-width: 330px;">Книги, сериалы, подкасты и игры — с прогрессом, выписками и целями. На вашем сервере, с выгрузкой в любой момент.</div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <span style="height: 44px; padding: 0 20px; border-radius: 12px; background: #C8552F; color: #FBF8F3; font-weight: 500; display: inline-flex; align-items: center;">Войти</span>
+          <span style="height: 44px; padding: 0 20px; border-radius: 12px; border: 1px solid rgba(251,248,243,0.3); color: #FBF8F3; display: inline-flex; align-items: center;">Завести аккаунт</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 15px 18px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+      Что поменялось по сравнению с предыдущими макетами: фон стал тёплым, синий Ant Design уступил чернилам, единственный акцент — закладка, заголовки набраны Literata, а заглушка обложки перестала быть градиентом. Геометрия та же — радиусы, высоты полей и сетка не менялись, так что это перекраска, а не переверстка.
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = (active) => 'padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; '
+      + (active ? 'background: #F7EAE4; color: #B04B29; font-weight: 600;' : 'color: #17202E;');
+    const nav = [
+      { label: 'Библиотека', active: true },
+      { label: 'Аналитика', active: false },
+      { label: 'Лента', active: false },
+      { label: 'Ещё', active: false }
+    ].map((n) => ({ ...n, style: tab(n.active) }));
+
+    const chip = (active) => 'display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 999px; cursor: pointer; '
+      + (active ? 'background: #1B2A4A; color: #FBF8F3; font-weight: 500;' : 'background: #FFFFFF; border: 1px solid #E7E0D4;');
+    const count = (active) => 'font-variant-numeric: tabular-nums; color: ' + (active ? 'rgba(251,248,243,0.6)' : 'rgba(23,32,46,0.62)') + ';';
+    const chips = [
+      { label: 'Всё', count: '248', active: false },
+      { label: 'Читаю', count: '6', active: true },
+      { label: 'В планах', count: '41', active: false },
+      { label: 'Завершено', count: '186', active: false },
+      { label: 'Избранное', count: '32', active: false },
+      { label: 'Желаемое', count: '12', active: false }
+    ].map((c) => ({ ...c, style: chip(c.active), countStyle: count(c.active) }));
+
+    const rowStyle = (last) => 'display: flex; align-items: center; gap: 16px; padding: 14px 18px; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const coverBox = (tint) => 'position: relative; width: 44px; height: 62px; border-radius: 8px; background: ' + tint + '; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;';
+    const spine = (color) => 'position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: ' + color + '; display: block;';
+    const initials = (color) => 'font-size: 13px; font-weight: 700; color: ' + color + ';';
+    const ribbon = (pct) => 'position: absolute; right: 7px; top: 0; width: 7px; height: ' + Math.round(62 * (pct / 100)) + 'px; background: #C8552F; display: block;';
+    const kindTag = (color, tint) => 'display: inline-flex; align-items: center; height: 21px; padding: 0 9px; border-radius: 999px; background: ' + tint + '; color: ' + color + '; font-size: 11px; font-weight: 700; flex-shrink: 0;';
+    const statusTag = (color, tint) => 'display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 999px; background: ' + tint + '; color: ' + color + '; font-size: 12px; font-weight: 600;';
+    const bar = (pct) => 'display: block; width: ' + pct + '%; height: 100%; border-radius: 999px; background: #C8552F;';
+
+    const rows = [
+      { title: 'Задача трёх тел', author: 'Лю Цысинь', initials: 'ЗТ', tint: '#F2F0EC', color: '#1B2A4A', kind: 'Книга', kTint: '#EDEFF4',
+        status: 'Читаю', sColor: '#C8552F', sTint: '#F7EAE4', rating: '—', pct: 53, progress: '212 / 400 стр.', step: '+10', reading: true },
+      { title: 'Дюна', author: 'Фрэнк Герберт', initials: 'Д', tint: '#EDF3F2', color: '#2E7D74', kind: 'Аудио', kTint: '#E6F0EF',
+        status: 'Читаю', sColor: '#C8552F', sTint: '#F7EAE4', rating: '—', pct: 31, progress: '384 / 1240 мин.', step: '+15', reading: true },
+      { title: 'Берсерк', author: 'Кэнтаро Миура', initials: 'Б', tint: '#F5EDF1', color: '#A6446B', kind: 'Манга', kTint: '#F5E8EE',
+        status: 'Читаю', sColor: '#C8552F', sTint: '#F7EAE4', rating: '9,5', pct: 78, progress: '32 / 41 т.', step: '+1', reading: true },
+      { title: 'Пикник на обочине', author: 'Стругацкие', initials: 'ПО', tint: '#F2F0EC', color: '#1B2A4A', kind: 'Книга', kTint: '#EDEFF4',
+        status: 'Завершено', sColor: '#3C7A5A', sTint: '#EAF0EA', rating: '8,5', pct: 0, progress: '', step: '', reading: false },
+      { title: 'Тайные виды на гору Фудзи', author: 'Виктор Пелевин', initials: 'ТВ', tint: '#F2F0EC', color: '#1B2A4A', kind: 'Книга', kTint: '#EDEFF4',
+        status: 'В планах', sColor: 'rgba(23,32,46,0.78)', sTint: '#F0EAE0', rating: '—', pct: 0, progress: '', step: '', reading: false }
+    ].map((r, i, arr) => ({
+      ...r,
+      rowStyle: rowStyle(i === arr.length - 1),
+      coverStyle: coverBox(r.tint),
+      spineStyle: spine(r.color),
+      initialsStyle: initials(r.color),
+      ribbonStyle: ribbon(r.pct),
+      kindStyle: kindTag(r.color, r.kTint),
+      statusStyle: statusTag(r.sColor, r.sTint),
+      barStyle: bar(r.pct)
+    }));
+
+    const shelfColors = ['#1B2A4A', '#2E7D74', '#A6446B', '#6B4EA6', '#B4552A', '#B8862B', '#8A6D1F', '#3C5BA6', '#3C7A5A'];
+    const heights = [54, 68, 46, 74, 58, 80, 50, 64, 44];
+    const shelfBars = shelfColors.map((c, i) => ({
+      style: 'width: 16px; height: ' + heights[i] + 'px; border-radius: 4px; background: ' + c + '; opacity: 0.85;'
+    }));
+
+    return { nav, chips, rows, shelfBars };
+  }
+}
+</script>
+</body>
+</html>

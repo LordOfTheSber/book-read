@@ -1,0 +1,55 @@
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    # Редирект ведёт на тот адрес, который набрал пользователь, а не на имя из DOMAIN: иначе
+    # установка, открытая по IP или второму имени, уводила бы браузер на чужой хост. Порт
+    # добавляем явно — HTTPS слушает 9443. $host — это имя из запроса, уже без порта.
+    return 301 https://$host:9443$request_uri;
+}
+
+server {
+    listen 9443 ssl;
+    server_name ${DOMAIN};
+
+    ssl_certificate ${SSL_CERT_PATH};
+    ssl_certificate_key ${SSL_KEY_PATH};
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Имена файлов сборки содержат хеш содержимого: изменившийся файл всегда приезжает под новым
+    # адресом, поэтому старый можно держать в кеше сколько угодно.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # Три файла, которые кешировать нельзя. Service worker и манифест — точки входа обновления:
+    # закешированный worker навсегда оставляет пользователя на старой версии приложения, потому
+    # что именно он решает, что подгружать дальше. index.html ссылается на хешированные имена
+    # и устаревает вместе с ними.
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -1,0 +1,288 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #17202E; -webkit-font-smoothing: antialiased; }
+    a { color: #B04B29; text-decoration: none; } a:hover { color: #A8421F; }
+    svg { display: block; }
+    .lit { font-family: 'Literata', Georgia, 'Times New Roman', serif; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+
+<div style="width: 1360px; background: #FBF8F3; min-height: 1080px;">
+  <!-- Шапка: вариант А -->
+  <div style="height: 60px; background: #FFFFFF; border-bottom: 1px solid #E7E0D4; display: flex; align-items: center; gap: 20px; padding: 0 24px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-label="BookRead"><rect x="10" y="8" width="44" height="48" rx="9" fill="#1B2A4A"></rect><rect x="18" y="8" width="3" height="48" fill="#FBF8F3" opacity="0.22"></rect><path d="M34 8h11v40l-5.5-6.5L34 48z" fill="#C8552F"></path></svg>
+      <span class="lit" style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">BookRead</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Библиотека</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; background: #F7EAE4; color: #B04B29; font-weight: 600;">Аналитика</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center;">Лента</div>
+      <div style="padding: 0 13px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;">Ещё
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 420px; height: 36px; border: 1px solid #E7E0D4; background: rgba(23,32,46,0.03); border-radius: 10px; display: flex; align-items: center; gap: 9px; padding: 0 11px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="flex: 1; color: rgba(23,32,46,0.62);">Поиск по книгам, авторам, выпискам</span>
+        <span style="font-size: 11px; font-weight: 600; color: rgba(23,32,46,0.62); border: 1px solid #E7E0D4; background: #FFFFFF; border-radius: 6px; padding: 2px 6px;">⌘K</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <div style="height: 36px; padding: 0 15px; border-radius: 10px; background: #1B2A4A; color: #FFFFFF; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Добавить
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 3px; border-radius: 999px; border: 1px solid #E7E0D4; cursor: pointer;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EDEFF4; color: #2E4472; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">С</div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(23,32,46,0.62)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <div style="padding: 26px 24px 40px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px;">
+      <div>
+        <div class="lit" style="font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px;">Аналитика</div>
+        <div style="margin-top: 6px; color: rgba(23,32,46,0.78);">Статистика по вашей коллекции</div>
+      </div>
+      <div style="display: flex; gap: 2px; padding: 3px; background: rgba(23,32,46,0.05); border-radius: 10px;">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="4">
+          <div style="{{p.style}}">{{p.label}}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Итог фразой, а не восемью плитками -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 24px 26px; margin-bottom: 16px;">
+      <div style="font-size: 20px; line-height: 1.5; letter-spacing: -0.2px; max-width: 900px;">
+        За 2026 год дочитано <span style="font-weight: 700;">36 книг</span> — это <span style="font-weight: 700; color: #2F6147;">на 22% больше</span>, чем за тот же отрезок прошлого года. Прочитано <span style="font-weight: 700;">11 240 страниц</span> и прослушано <span style="font-weight: 700;">64 часа</span>, средняя оценка <span style="font-weight: 700;">8,4</span>.
+      </div>
+      <div style="margin-top: 20px; display: flex; align-items: stretch;">
+        <sc-for list="{{numbers}}" as="n" hint-placeholder-count="5">
+          <div style="{{n.style}}">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(23,32,46,0.62);">{{n.label}}</div>
+            <div style="margin-top: 6px; display: flex; align-items: baseline; gap: 8px;">
+              <span class="lit" style="font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;">{{n.value}}</span>
+              <span style="{{n.deltaStyle}}">{{n.delta}}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Динамика -->
+    <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <span style="font-weight: 600;">Динамика чтения</span>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: rgba(23,32,46,0.78);"><span style="width: 10px; height: 10px; border-radius: 4px; background: #1B2A4A;"></span>2026</span>
+          <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: rgba(23,32,46,0.78);"><span style="width: 10px; height: 10px; border-radius: 4px; background: #F2DFD6; box-shadow: inset 0 0 0 1px #D07A52;"></span>2025</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-end; gap: 14px; height: 160px;">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: flex-end; gap: 3px; width: 100%; justify-content: center;">
+              <div style="{{b.prevStyle}}"></div>
+              <div style="{{b.style}}"></div>
+            </div>
+            <span style="font-size: 11px; color: rgba(23,32,46,0.62);">{{b.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Календарь и темп -->
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; margin-bottom: 16px;">
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+          <span style="font-weight: 600;">Календарь активности</span>
+          <span style="font-size: 13px; color: rgba(23,32,46,0.62);">248 дней с чтением за год</span>
+        </div>
+        <div style="display: grid; grid-template-rows: repeat(7, 10px); grid-auto-flow: column; grid-auto-columns: 10px; gap: 3px;">
+          <sc-for list="{{cells}}" as="cell" hint-placeholder-count="120">
+            <div style="{{cell.style}}"></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+        <div style="font-weight: 600; margin-bottom: 16px;">Темп и прогноз</div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{pace}}" as="p" hint-placeholder-count="4">
+            <div style="{{p.style}}">
+              <span style="color: rgba(23,32,46,0.78);">{{p.label}}</span>
+              <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{p.value}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 14px; padding: 12px; border-radius: 10px; background: #F7EAE4; font-size: 13px; color: #A8421F; line-height: 1.55;">
+          При нынешнем темпе год закроется на 47 книгах — цель 48 под вопросом.
+        </div>
+      </div>
+    </div>
+
+    <!-- Разрезы -->
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-weight: 600;">Авторы</span>
+          <span style="font-size: 13px; color: #B04B29; cursor: pointer;">В библиотеку</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{authors}}" as="row" hint-placeholder-count="4">
+            <div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}}</span>
+                <span style="font-size: 13px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{row.value}}</span>
+              </div>
+              <div style="height: 6px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;">
+                <div style="{{row.barStyle}}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-weight: 600;">Типы</span>
+          <span style="font-size: 13px; color: #B04B29; cursor: pointer;">В библиотеку</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{types}}" as="row" hint-placeholder-count="4">
+            <div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}}</span>
+                <span style="font-size: 13px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{row.value}}</span>
+              </div>
+              <div style="height: 6px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;">
+                <div style="{{row.barStyle}}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E7E0D4; border-radius: 16px; padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-weight: 600;">Десятилетия</span>
+          <span style="font-size: 13px; color: #B04B29; cursor: pointer;">В библиотеку</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{decades}}" as="row" hint-placeholder-count="4">
+            <div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}}</span>
+                <span style="font-size: 13px; color: rgba(23,32,46,0.62); font-variant-numeric: tabular-nums;">{{row.value}}</span>
+              </div>
+              <div style="height: 6px; border-radius: 999px; background: rgba(23,32,46,0.07); overflow: hidden;">
+                <div style="{{row.barStyle}}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 22px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #D9CFC0; font-size: 13px; color: rgba(23,32,46,0.78); line-height: 1.6;">
+      <span style="font-weight: 600; color: #17202E;">Вариант А — отчёт.</span> Страница начинается с вывода фразой, а не с восьми одинаковых плиток: сначала «что произошло», потом графики. Динамика сравнивает год с прошлым прямо в столбиках, разрезы (авторы, языки, типы) стоят рядом и ведут в библиотеку с уже наложенным фильтром.
+      <span style="display: block; margin-top: 6px;">Плата: текстовый вывод надо считать на сервере и аккуратно склонять; при пустой коллекции фраза бессмысленна и нужен отдельный вид.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1360,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const seg = (active) => 'height: 32px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; font-size: 13px; cursor: pointer; '
+      + (active ? 'background: #FFFFFF; font-weight: 500; box-shadow: 0 1px 2px rgba(27,42,74,0.06);' : 'color: rgba(23,32,46,0.78);');
+    const periods = [
+      { label: 'Год', active: true },
+      { label: 'Полгода', active: false },
+      { label: 'Всё время', active: false },
+      { label: 'Сравнить годы', active: false }
+    ].map((p) => ({ ...p, style: seg(p.active) }));
+
+    const cell = (first) => 'flex: 1; min-width: 0; ' + (first ? '' : 'padding-left: 24px; border-left: 1px solid #E7E0D4; margin-left: 24px;');
+    const delta = (kind) => 'font-size: 13px; font-weight: 500; color: ' + (kind === 'up' ? '#2F6147' : kind === 'down' ? '#B4552A' : 'rgba(23,32,46,0.62)') + ';';
+    const numbers = [
+      { label: 'Дочитано', value: '36', delta: '+22%', kind: 'up' },
+      { label: 'Страниц', value: '11 240', delta: '+18%', kind: 'up' },
+      { label: 'Часов аудио', value: '64', delta: '−9%', kind: 'down' },
+      { label: 'Средняя оценка', value: '8,4', delta: 'было 8,1', kind: 'flat' },
+      { label: 'Брошено', value: '6', delta: 'было 11', kind: 'flat' }
+    ].map((n, i) => ({ ...n, style: cell(i === 0), deltaStyle: delta(n.kind) }));
+
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const cur = [3, 2, 4, 5, 6, 3, 4, 3, 2, 2, 1, 1];
+    const prev = [2, 3, 2, 4, 3, 4, 2, 4, 3, 1, 2, 2];
+    const max = 6;
+    const bars = months.map((m, i) => ({
+      label: m,
+      style: 'width: 14px; height: ' + Math.round((cur[i] / max) * 120) + 'px; border-radius: 6px 5px 2px 2px; background: #1B2A4A;',
+      prevStyle: 'width: 14px; height: ' + Math.round((prev[i] / max) * 120) + 'px; border-radius: 6px 5px 2px 2px; background: #F2DFD6; box-shadow: inset 0 0 0 1px #D07A52;'
+    }));
+
+    const shades = ['rgba(23,32,46,0.06)', '#F2DFD6', '#E0B49F', '#D07A52', '#1B2A4A'];
+    const cells = [];
+    let seed = 424242;
+    for (let i = 0; i < 371; i += 1) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      const r = seed / 2147483648;
+      const level = r > 0.85 ? 4 : r > 0.64 ? 3 : r > 0.4 ? 2 : r > 0.18 ? 1 : 0;
+      cells.push({ style: 'width: 10px; height: 10px; border-radius: 4px; background: ' + shades[level] + ';' });
+    }
+
+    const paceRow = (last) => 'display: flex; align-items: center; justify-content: space-between; padding: 10px 0; ' + (last ? '' : 'border-bottom: 1px solid #F0EAE0;');
+    const pace = [
+      { label: 'Страниц в день', value: '31' },
+      { label: 'Минут в день', value: '18' },
+      { label: 'Страниц в час', value: '42' },
+      { label: 'Книга в среднем за', value: '9 дней' }
+    ].map((p, i, arr) => ({ ...p, style: paceRow(i === arr.length - 1) }));
+
+    const bar = (pct, color) => 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: ' + color + ';';
+    const mk = (rows) => rows.map((r) => ({ ...r, barStyle: bar(r.pct, r.color) }));
+    const authors = mk([
+      { label: 'Лю Цысинь', value: '6', pct: 100, color: '#1B2A4A' },
+      { label: 'Стругацкие', value: '5', pct: 83, color: '#D07A52' },
+      { label: 'Фрэнк Герберт', value: '4', pct: 66, color: '#E0B49F' },
+      { label: 'Виктор Пелевин', value: '3', pct: 50, color: '#F2DFD6' }
+    ]);
+
+    const types = mk([
+      { label: 'Научная фантастика', value: '64', pct: 100, color: '#1B2A4A' },
+      { label: 'Нон-фикшн', value: '41', pct: 64, color: '#D07A52' },
+      { label: 'Манга и комиксы', value: '28', pct: 44, color: '#E0B49F' },
+      { label: 'Детектив', value: '17', pct: 27, color: '#F2DFD6' }
+    ]);
+
+    const decades = mk([
+      { label: '2000-е', value: '58', pct: 100, color: '#1B2A4A' },
+      { label: '2010-е', value: '52', pct: 90, color: '#D07A52' },
+      { label: '1980-е', value: '31', pct: 53, color: '#E0B49F' },
+      { label: '1960-е', value: '22', pct: 38, color: '#F2DFD6' }
+    ]);
+
+    return { periods, numbers, bars, cells, pace, authors, types, decades };
+  }
+}
+</script>
+</body>
+</html>
